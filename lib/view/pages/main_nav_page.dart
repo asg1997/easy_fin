@@ -107,32 +107,39 @@ class _MainNavPageState extends State<MainNavPage> {
                 /// Импорт данных
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: MaterialButton(
-                    onPressed: () {},
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isExpanded ? 20 : 0,
-                    ),
-                    minWidth: 50,
-                    height: 50,
-                    color: Theme.of(context).colorScheme.primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(LucideIcons.import, size: 20, color: Colors.white),
-                        if (isExpanded) ...[
-                          Gap(10),
-                          Text(
-                            'Импорт',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
+                  child: Tooltip(
+                    message: !isExpanded ? 'Импорт' : null,
+                    child: MaterialButton(
+                      onPressed: () {},
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isExpanded ? 20 : 0,
+                      ),
+                      minWidth: 50,
+                      height: 50,
+                      color: Theme.of(context).colorScheme.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            LucideIcons.import,
+                            size: 20,
+                            color: Colors.white,
                           ),
+                          if (isExpanded) ...[
+                            Gap(10),
+                            Text(
+                              'Импорт',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -171,36 +178,39 @@ class NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialButton(
-      onPressed: onPressed,
-      padding: EdgeInsets.zero,
-      shape: CircleBorder(),
+    return Tooltip(
+      message: !isExpanded ? title : '',
+      child: MaterialButton(
+        onPressed: onPressed,
+        padding: EdgeInsets.zero,
+        shape: CircleBorder(),
 
-      child: SizedBox(
-        height: 50,
+        child: SizedBox(
+          height: 50,
 
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 20,
-              color: isActive
-                  ? Theme.of(context).colorScheme.primary
-                  : Colors.grey,
-            ),
-            if (isExpanded) ...[
-              Gap(10),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: isActive ? Colors.black : Colors.grey,
-                ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: isActive
+                    ? Theme.of(context).colorScheme.primary
+                    : Colors.grey,
               ),
+              if (isExpanded) ...[
+                Gap(10),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: isActive ? Colors.black : Colors.grey,
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
