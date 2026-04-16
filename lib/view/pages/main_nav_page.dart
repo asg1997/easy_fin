@@ -1,3 +1,7 @@
+import 'package:easy_fin/view/pages/database_page.dart';
+import 'package:easy_fin/view/pages/documents_page.dart';
+import 'package:easy_fin/view/pages/reports_page.dart';
+import 'package:easy_fin/view/pages/settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -87,6 +91,13 @@ class _MainNavPageState extends State<MainNavPage> {
                           isExpanded: isExpanded,
                           isActive: currentIndex == 2,
                         ),
+                        NavItem(
+                          title: 'Настройки',
+                          icon: LucideIcons.settings,
+                          onPressed: () => onItemTapped(3),
+                          isExpanded: isExpanded,
+                          isActive: currentIndex == 3,
+                        ),
                       ],
                     ),
                   ),
@@ -128,7 +139,15 @@ class _MainNavPageState extends State<MainNavPage> {
               ],
             ),
           ),
-          Spacer(),
+          Expanded(
+            child: switch (currentIndex) {
+              0 => ReportsPage(),
+              1 => DocumentsPage(),
+              2 => DatabasePage(),
+              3 => SettingsPage(),
+              _ => Container(),
+            },
+          ),
         ],
       ),
     );
