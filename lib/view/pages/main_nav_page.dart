@@ -91,6 +91,40 @@ class _MainNavPageState extends State<MainNavPage> {
                     ),
                   ),
                 ),
+                Gap(20),
+
+                /// Импорт данных
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  child: MaterialButton(
+                    onPressed: () {},
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isExpanded ? 20 : 0,
+                    ),
+                    minWidth: 50,
+                    height: 50,
+                    color: Theme.of(context).colorScheme.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(LucideIcons.import, size: 20, color: Colors.white),
+                        if (isExpanded) ...[
+                          Gap(10),
+                          Text(
+                            'Импорт',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
