@@ -17,14 +17,14 @@ class AddIncomePage extends ConsumerStatefulWidget {
 }
 
 class _AddIncomePageState extends ConsumerState<AddIncomePage> {
-  String _selectedIncomeSource = 'Арендатор';
+  String? _selectedIncomeSource;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: TemplatePage(
         hasBackButton: true,
-        title: 'Добавить приход',
+        title: 'Приход',
         child: Column(
           children: [
             DropdownWidget(
@@ -32,6 +32,7 @@ class _AddIncomePageState extends ConsumerState<AddIncomePage> {
                 'Арендатор',
                 'Другое',
               ],
+              hint: 'Выбор базы',
               selectedItem: _selectedIncomeSource,
               onChanged: (item) {
                 setState(() {

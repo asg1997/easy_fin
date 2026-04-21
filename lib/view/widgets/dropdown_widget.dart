@@ -8,11 +8,13 @@ class DropdownWidget<T> extends StatelessWidget {
     required this.onChanged,
     required this.labelBuilder,
     this.selectedItem,
+    this.hint,
     this.width = 220,
     super.key,
   });
   final List<T> items;
   final T? selectedItem;
+  final String? hint;
   final double width;
   final void Function(T item) onChanged;
   final String Function(T item) labelBuilder;
@@ -22,6 +24,15 @@ class DropdownWidget<T> extends StatelessWidget {
       child: DropdownButton2(
         isExpanded: true,
         valueListenable: ValueNotifier<T?>(selectedItem),
+        hint: hint == null
+            ? null
+            : Text(
+                hint!,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey,
+                ),
+              ),
         items: items
             .map(
               (item) => DropdownItem(
