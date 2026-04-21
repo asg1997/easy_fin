@@ -1,3 +1,5 @@
+import 'package:easy_fin/utils/app_colors.dart';
+import 'package:easy_fin/view/pages/add_income_page.dart';
 import 'package:easy_fin/view/pages/database_page.dart';
 import 'package:easy_fin/view/pages/documents_page.dart';
 import 'package:easy_fin/view/pages/reports_page.dart';
@@ -36,14 +38,13 @@ class _MainNavPageState extends State<MainNavPage> {
 
         children: [
           Container(
-            padding: EdgeInsets.symmetric(vertical: 20),
+            padding: const EdgeInsets.symmetric(vertical: 20),
             decoration: BoxDecoration(
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.15),
                   blurRadius: 20,
-                  offset: Offset(0, 0),
                 ),
               ],
             ),
@@ -51,8 +52,8 @@ class _MainNavPageState extends State<MainNavPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 MaterialButton(
-                  onPressed: () => toggleExpanded(),
-                  shape: CircleBorder(),
+                  onPressed: toggleExpanded,
+                  shape: const CircleBorder(),
                   child: Icon(
                     size: 16,
                     color: Colors.grey,
@@ -102,45 +103,85 @@ class _MainNavPageState extends State<MainNavPage> {
                     ),
                   ),
                 ),
-                Gap(20),
+                const Gap(20),
 
                 /// Импорт данных
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: Tooltip(
-                    message: !isExpanded ? 'Импорт' : null,
-                    child: MaterialButton(
-                      onPressed: () {},
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isExpanded ? 20 : 0,
-                      ),
-                      minWidth: 50,
-                      height: 50,
-                      color: Theme.of(context).colorScheme.primary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            LucideIcons.import,
-                            size: 20,
-                            color: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    children: [
+                      Tooltip(
+                        message: !isExpanded ? 'Приход' : '',
+                        child: MaterialButton(
+                          onPressed: () => AddIncomePage.navigate(context),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isExpanded ? 20 : 0,
                           ),
-                          if (isExpanded) ...[
-                            Gap(10),
-                            Text(
-                              'Импорт',
-                              style: TextStyle(
+                          minWidth: 50,
+                          height: 50,
+                          color: AppColors.green,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                LucideIcons.handCoins,
+                                size: 20,
                                 color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
                               ),
-                            ),
-                          ],
-                        ],
+                              if (isExpanded) ...[
+                                const Gap(10),
+                                const Text(
+                                  'Добавить приход',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
+                      const Gap(10),
+                      Tooltip(
+                        message: !isExpanded ? 'Импорт' : '',
+                        child: MaterialButton(
+                          onPressed: () {},
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isExpanded ? 20 : 0,
+                          ),
+                          minWidth: 50,
+                          height: 50,
+                          color: Theme.of(context).colorScheme.primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                LucideIcons.import,
+                                size: 20,
+                                color: Colors.white,
+                              ),
+                              if (isExpanded) ...[
+                                const Gap(10),
+                                const Text(
+                                  'Импорт',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -148,10 +189,10 @@ class _MainNavPageState extends State<MainNavPage> {
           ),
           Expanded(
             child: switch (currentIndex) {
-              0 => ReportsPage(),
-              1 => DocumentsPage(),
-              2 => DatabasePage(),
-              3 => SettingsPage(),
+              0 => const ReportsPage(),
+              1 => const DocumentsPage(),
+              2 => const DatabasePage(),
+              3 => const SettingsPage(),
               _ => Container(),
             },
           ),
@@ -163,12 +204,12 @@ class _MainNavPageState extends State<MainNavPage> {
 
 class NavItem extends StatelessWidget {
   const NavItem({
-    super.key,
     required this.title,
     required this.icon,
     required this.onPressed,
     required this.isExpanded,
     required this.isActive,
+    super.key,
   });
   final String title;
   final IconData icon;
@@ -183,7 +224,7 @@ class NavItem extends StatelessWidget {
       child: MaterialButton(
         onPressed: onPressed,
         padding: EdgeInsets.zero,
-        shape: CircleBorder(),
+        shape: const CircleBorder(),
 
         child: SizedBox(
           height: 50,
@@ -199,7 +240,7 @@ class NavItem extends StatelessWidget {
                     : Colors.grey,
               ),
               if (isExpanded) ...[
-                Gap(10),
+                const Gap(10),
                 Text(
                   title,
                   style: TextStyle(
