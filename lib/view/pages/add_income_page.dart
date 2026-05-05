@@ -1,3 +1,4 @@
+import 'package:easy_fin/view/widgets/date_picker_field.dart';
 import 'package:easy_fin/view/widgets/dropdown_widget.dart';
 import 'package:easy_fin/view/widgets/template_page.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +28,7 @@ class _AddIncomePageState extends ConsumerState<AddIncomePage> {
         title: 'Приход',
         child: Column(
           children: [
+            // Выбор базы
             DropdownWidget(
               items: const [
                 'Арендатор',
@@ -41,6 +43,14 @@ class _AddIncomePageState extends ConsumerState<AddIncomePage> {
               },
               labelBuilder: (item) => item,
             ),
+
+            // Выбор даты
+            DatePickerField(
+              selectedDate: DateTime.now(),
+              onChanged: (date) {},
+            ),
+
+            // Выбор счета (касса / банк)
           ],
         ),
       ),
