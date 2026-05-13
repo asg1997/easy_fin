@@ -7,7 +7,6 @@ class BankStatement extends Equatable {
     required this.startDate,
     required this.endDate,
     required this.accountNumber,
-    required this.bankName,
     required this.initialBalance,
     required this.finalBalance,
     required this.operations,
@@ -16,7 +15,6 @@ class BankStatement extends Equatable {
   final DateTime startDate;
   final DateTime endDate;
   final String accountNumber;
-  final String bankName;
   final double initialBalance;
   final double finalBalance;
   final List<BankStatementOperation> operations;
@@ -26,7 +24,6 @@ class BankStatement extends Equatable {
     startDate,
     endDate,
     accountNumber,
-    bankName,
     initialBalance,
     finalBalance,
   ];

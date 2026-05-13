@@ -8,7 +8,6 @@ class VtbParser {
       startDate: DateTime.now(),
       endDate: DateTime.now(),
       accountNumber: '1234567890',
-      bankName: 'VTB',
       initialBalance: 0,
       finalBalance: 0,
       operations: const [],

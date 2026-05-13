@@ -4,31 +4,38 @@ import 'package:equatable/equatable.dart';
 class BankStatementOperation extends Equatable {
   const BankStatementOperation({
     required this.date,
-    required this.number,
-    required this.operationType,
-    required this.renterInn,
-    required this.renterBankAccount,
+
+    required this.debitInn,
+    required this.debitBankAccount,
+    required this.creditInn,
+    required this.creditBankAccount,
     required this.debit,
     required this.credit,
     required this.note,
   });
 
   final DateTime date;
-  final int number;
-  final int operationType;
-  final String renterInn;
-  final String renterBankAccount;
-  final double debit;
-  final double credit;
+  final String debitInn;
+  final String debitBankAccount;
+  final String creditInn;
+  final String creditBankAccount;
+  // расходы
+  final double? debit;
+  // доходы
+  final double? credit;
   final String note;
+
+  bool get isDebit => debit != null;
+  bool get isCredit => credit != null;
 
   @override
   List<Object?> get props => [
     date,
-    number,
-    operationType,
-    renterInn,
-    renterBankAccount,
+
+    debitInn,
+    debitBankAccount,
+    creditInn,
+    creditBankAccount,
     debit,
     credit,
     note,

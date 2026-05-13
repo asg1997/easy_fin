@@ -1,4 +1,4 @@
-import 'package:easy_fin/data/bank_statement_parser/bank_statement_parser.dart';
+import 'package:easy_fin/data/bank_statements_importing/bank_statement_parser/bank_statement_parser.dart';
 import 'package:easy_fin/models/bank_statement_import_request.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
