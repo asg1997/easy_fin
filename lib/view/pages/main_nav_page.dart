@@ -1,22 +1,24 @@
 import 'package:easy_fin/utils/app_colors.dart';
+import 'package:easy_fin/view/controllers/import_controller.dart';
 import 'package:easy_fin/view/pages/add_income_page.dart';
 import 'package:easy_fin/view/pages/database_page.dart';
 import 'package:easy_fin/view/pages/documents_page.dart';
 import 'package:easy_fin/view/pages/reports_page.dart';
 import 'package:easy_fin/view/pages/settings_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Главная страница навигации
-class MainNavPage extends StatefulWidget {
+class MainNavPage extends ConsumerStatefulWidget {
   const MainNavPage({super.key});
 
   @override
-  State<MainNavPage> createState() => _MainNavPageState();
+  ConsumerState<MainNavPage> createState() => _MainNavPageState();
 }
 
-class _MainNavPageState extends State<MainNavPage> {
+class _MainNavPageState extends ConsumerState<MainNavPage> {
   bool isExpanded = false;
   int currentIndex = 0;
 
@@ -32,6 +34,9 @@ class _MainNavPageState extends State<MainNavPage> {
 
   @override
   Widget build(BuildContext context) {
+    final importState = ref.watch(importControllerProvider);
+    final isImportLoading = importState.isLoading;
+
     return Scaffold(
       body: Row(
         mainAxisSize: MainAxisSize.min,
@@ -110,6 +115,7 @@ class _MainNavPageState extends State<MainNavPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
                     children: [
+                      /// КНОПКА ПРИХОД
                       Tooltip(
                         message: !isExpanded ? 'Приход' : '',
                         child: MaterialButton(
@@ -146,14 +152,22 @@ class _MainNavPageState extends State<MainNavPage> {
                         ),
                       ),
                       const Gap(10),
+
+                      /// КНОПКА ИМПОРТ
                       Tooltip(
                         message: !isExpanded ? 'Импорт' : '',
                         child: MaterialButton(
-                          onPressed: () {},
+                          onPressed: () async {
+                            if (isImportLoading) return;
+                            await ref
+                                .read(importControllerProvider.notifier)
+                                .pickAndImport();
+                          },
+
                           padding: EdgeInsets.symmetric(
                             horizontal: isExpanded ? 20 : 0,
                           ),
-                          minWidth: 50,
+                          minWidth: !isExpanded ? 50 : null,
                           height: 50,
                           color: Theme.of(context).colorScheme.primary,
                           shape: RoundedRectangleBorder(
@@ -161,12 +175,22 @@ class _MainNavPageState extends State<MainNavPage> {
                           ),
                           child: Row(
                             children: [
-                              const Icon(
-                                LucideIcons.import,
-                                size: 20,
-                                color: Colors.white,
-                              ),
-                              if (isExpanded) ...[
+                              if (isImportLoading)
+                                const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              else
+                                const Icon(
+                                  LucideIcons.import,
+                                  size: 20,
+                                  color: Colors.white,
+                                ),
+                              if (isExpanded && !isImportLoading) ...[
                                 const Gap(10),
                                 const Text(
                                   'Импорт',
