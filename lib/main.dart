@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:easy_fin/data/bank_statements_importing/bank_statement_parser/xls2_cvs_converter.dart';
 import 'package:easy_fin/data/bank_statements_importing/bank_statemenets_importer.dart';
 import 'package:easy_fin/models/bank_statement_import_request.dart';
 import 'package:easy_fin/view/pages/main_nav_page.dart';
@@ -23,6 +24,12 @@ class _MainAppState extends ConsumerState<MainApp> {
     return value.toLowerCase().replaceAll('ё', 'е').replaceAll('\u0308', '');
   }
 
+  bool _isExcelFile(String path) {
+    final lower = path.toLowerCase();
+    return lower.endsWith('.xlsx') ||
+        (lower.endsWith('.xls') && !lower.endsWith('.xlsx'));
+  }
+
   @override
   void initState() {
     super.initState();
@@ -30,7 +37,7 @@ class _MainAppState extends ConsumerState<MainApp> {
       // TODO: Убрать
       /// файлы excel из assets
       final assetNameParts = [
-        ('СберБизнес. Выписка за 2026.04.28 счёт 40802810066000031876', '.csv'),
+        ('СберБизнес. Выписка за 2026.04.28 счёт 40802810066000031876', '.xls'),
         ('VTB_BankStatement_40802810014450000445', '.xls'),
       ];
 
@@ -80,9 +87,17 @@ class _MainAppState extends ConsumerState<MainApp> {
           return file;
         }),
       );
+      final filesForImport = <File>[];
+      for (final file in files) {
+        if (_isExcelFile(file.path)) {
+          filesForImport.add(await Xls2CvsConverter.instance.convert(file));
+        } else {
+          filesForImport.add(file);
+        }
+      }
       final bankStatements = await ref
           .read(bankStatementsImporterProvider)
-          .import(BankStatementImportRequest(files: files));
+          .import(BankStatementImportRequest(files: filesForImport));
       print(bankStatements);
     });
   }
