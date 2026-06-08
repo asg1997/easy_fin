@@ -6,7 +6,7 @@ import 'package:easy_fin/view/data/documents_mock_data.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/widgets/date_picker_field.dart';
 import 'package:easy_fin/view/widgets/documents_table.dart';
-import 'package:easy_fin/view/widgets/dropdown_widget.dart';
+import 'package:easy_fin/view/widgets/multi_dropdown_widget.dart';
 import 'package:easy_fin/view/widgets/template_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,9 +20,9 @@ class DocumentsPage extends ConsumerStatefulWidget {
 }
 
 class _DocumentsPageState extends ConsumerState<DocumentsPage> {
-  DocumentType? _documentType;
-  Base? _selectedBase;
-  AccountFilterType? _accountFilter;
+  Set<DocumentType> _documentTypes = {};
+  Set<Base> _selectedBases = {};
+  Set<AccountFilterType> _accountFilters = {};
   DateTime? _startDate;
   DateTime? _endDate;
 
@@ -38,15 +38,15 @@ class _DocumentsPageState extends ConsumerState<DocumentsPage> {
           _FilterRow(
             children: [
               _FilterField(
-                child: DropdownWidget<DocumentType>(
+                child: MultiDropdownWidget<DocumentType>(
                   expand: true,
                   items: DocumentType.values,
                   hint: 'Тип',
-                  selectedItem: _documentType,
+                  selectedItems: _documentTypes,
                   labelBuilder: (item) => item.label,
-                  onChanged: (item) {
+                  onChanged: (items) {
                     setState(() {
-                      _documentType = item;
+                      _documentTypes = items;
                     });
                   },
                 ),
@@ -54,15 +54,15 @@ class _DocumentsPageState extends ConsumerState<DocumentsPage> {
               const Gap(12),
               _FilterField(
                 child: basesAsync.when(
-                  data: (bases) => DropdownWidget<Base>(
+                  data: (bases) => MultiDropdownWidget<Base>(
                     expand: true,
                     items: bases,
                     hint: 'Выбор базы',
-                    selectedItem: _selectedBase,
+                    selectedItems: _selectedBases,
                     labelBuilder: (item) => item.name,
-                    onChanged: (item) {
+                    onChanged: (items) {
                       setState(() {
-                        _selectedBase = item;
+                        _selectedBases = items;
                       });
                     },
                   ),
@@ -73,15 +73,15 @@ class _DocumentsPageState extends ConsumerState<DocumentsPage> {
               ),
               const Gap(12),
               _FilterField(
-                child: DropdownWidget<AccountFilterType>(
+                child: MultiDropdownWidget<AccountFilterType>(
                   expand: true,
                   items: AccountFilterType.values,
                   hint: 'Касса/Банк',
-                  selectedItem: _accountFilter,
+                  selectedItems: _accountFilters,
                   labelBuilder: (item) => item.label,
-                  onChanged: (item) {
+                  onChanged: (items) {
                     setState(() {
-                      _accountFilter = item;
+                      _accountFilters = items;
                     });
                   },
                 ),

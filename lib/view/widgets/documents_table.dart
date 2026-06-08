@@ -1,3 +1,4 @@
+import 'package:easy_fin/models/document_type.dart';
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:easy_fin/view/models/documents_table_item.dart';
@@ -36,9 +37,58 @@ class DocumentsTable extends StatefulWidget {
 class _DocumentsTableState extends State<DocumentsTable> {
   final Set<DocumentsTableColumn> _visibleColumns =
       DocumentsTableColumn.values.toSet();
+  final TextEditingController _amountSearchController =
+      TextEditingController();
+  final FocusNode _amountSearchFocusNode = FocusNode();
+
+  bool _isAmountSearchVisible = false;
+  String _amountSearchQuery = '';
 
   static final _dateFormat = DateFormat('dd.MM.yyyy', 'ru');
   static final _amountFormat = NumberFormat('#,##0.00', 'ru');
+
+  @override
+  void dispose() {
+    _amountSearchController.dispose();
+    _amountSearchFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _toggleAmountSearch() {
+    setState(() {
+      _isAmountSearchVisible = !_isAmountSearchVisible;
+      if (!_isAmountSearchVisible) {
+        _amountSearchController.clear();
+        _amountSearchQuery = '';
+      }
+    });
+
+    if (_isAmountSearchVisible) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _amountSearchFocusNode.requestFocus();
+      });
+    }
+  }
+
+  bool _matchesAmountSearch(DocumentsTableItem item) {
+    final query = _amountSearchQuery.trim();
+    if (query.isEmpty) return true;
+
+    final normalizedQuery = query.replaceAll(RegExp(r'[\s,]'), '');
+    final formattedAmount = _amountFormat
+        .format(item.amount)
+        .replaceAll(RegExp(r'[\s,]'), '');
+    final rawAmount = item.amount
+        .toStringAsFixed(2)
+        .replaceAll(RegExp(r'[\s,]'), '');
+
+    return formattedAmount.contains(normalizedQuery) ||
+        rawAmount.contains(normalizedQuery);
+  }
+
+  List<DocumentsTableItem> get _filteredItems {
+    return widget.items.where(_matchesAmountSearch).toList();
+  }
 
   void _toggleColumn(DocumentsTableColumn column, bool isVisible) {
     if (!column.canHide) return;
@@ -126,6 +176,7 @@ class _DocumentsTableState extends State<DocumentsTable> {
     final visibleColumns = DocumentsTableColumn.values
         .where(_visibleColumns.contains)
         .toList();
+    final filteredItems = _filteredItems;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -152,17 +203,30 @@ class _DocumentsTableState extends State<DocumentsTable> {
               borderRadius: BorderRadius.circular(10),
               child: Column(
                 children: [
-                  _DocumentsTableHeader(columns: visibleColumns),
+                  _DocumentsTableHeader(
+                    columns: visibleColumns,
+                    isAmountSearchVisible: _isAmountSearchVisible,
+                    amountSearchController: _amountSearchController,
+                    amountSearchFocusNode: _amountSearchFocusNode,
+                    onAmountSearchToggle: _toggleAmountSearch,
+                    onAmountSearchChanged: (value) {
+                      setState(() {
+                        _amountSearchQuery = value;
+                      });
+                    },
+                  ),
                   Expanded(
-                    child: widget.items.isEmpty
-                        ? const Center(
+                    child: filteredItems.isEmpty
+                        ? Center(
                             child: Text(
-                              'Нет документов',
+                              widget.items.isEmpty
+                                  ? 'Нет документов'
+                                  : 'Ничего не найдено',
                               style: filterFieldHintTextStyle,
                             ),
                           )
                         : ListView.separated(
-                            itemCount: widget.items.length,
+                            itemCount: filteredItems.length,
                             separatorBuilder: (_, _) => const Divider(
                               height: 1,
                               thickness: 1,
@@ -170,7 +234,7 @@ class _DocumentsTableState extends State<DocumentsTable> {
                             ),
                             itemBuilder: (context, index) {
                               return _DocumentsTableRow(
-                                item: widget.items[index],
+                                item: filteredItems[index],
                                 columns: visibleColumns,
                                 dateFormat: _dateFormat,
                                 amountFormat: _amountFormat,
@@ -189,9 +253,21 @@ class _DocumentsTableState extends State<DocumentsTable> {
 }
 
 class _DocumentsTableHeader extends StatelessWidget {
-  const _DocumentsTableHeader({required this.columns});
+  const _DocumentsTableHeader({
+    required this.columns,
+    required this.isAmountSearchVisible,
+    required this.amountSearchController,
+    required this.amountSearchFocusNode,
+    required this.onAmountSearchToggle,
+    required this.onAmountSearchChanged,
+  });
 
   final List<DocumentsTableColumn> columns;
+  final bool isAmountSearchVisible;
+  final TextEditingController amountSearchController;
+  final FocusNode amountSearchFocusNode;
+  final VoidCallback onAmountSearchToggle;
+  final ValueChanged<String> onAmountSearchChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -200,20 +276,115 @@ class _DocumentsTableHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          for (final column in columns) ...[
+          for (final column in columns)
             _DocumentsTableCell(
               column: column,
-              child: Text(
-                column.label,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+              child: column == DocumentsTableColumn.amount
+                  ? _AmountColumnHeader(
+                      isSearchVisible: isAmountSearchVisible,
+                      searchController: amountSearchController,
+                      searchFocusNode: amountSearchFocusNode,
+                      onSearchToggle: onAmountSearchToggle,
+                      onSearchChanged: onAmountSearchChanged,
+                    )
+                  : Text(
+                      column.label,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
             ),
-          ],
         ],
       ),
+    );
+  }
+}
+
+class _AmountColumnHeader extends StatelessWidget {
+  const _AmountColumnHeader({
+    required this.isSearchVisible,
+    required this.searchController,
+    required this.searchFocusNode,
+    required this.onSearchToggle,
+    required this.onSearchChanged,
+  });
+
+  final bool isSearchVisible;
+  final TextEditingController searchController;
+  final FocusNode searchFocusNode;
+  final VoidCallback onSearchToggle;
+  final ValueChanged<String> onSearchChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isSearchVisible) {
+      return TextField(
+        controller: searchController,
+        focusNode: searchFocusNode,
+        autofocus: true,
+        style: filterFieldTextStyle,
+        decoration: InputDecoration(
+          isDense: true,
+          hintText: 'Поиск по сумме',
+          hintStyle: filterFieldHintTextStyle,
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: 8,
+          ),
+          suffixIcon: IconButton(
+            tooltip: 'Закрыть поиск',
+            onPressed: onSearchToggle,
+            icon: const Icon(
+              LucideIcons.x,
+              size: 16,
+              color: Colors.grey,
+            ),
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: AppColors.border),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: AppColors.border),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: AppColors.primary),
+          ),
+        ),
+        onChanged: onSearchChanged,
+      );
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        IconButton(
+          tooltip: 'Поиск по сумме',
+          onPressed: onSearchToggle,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(
+            minWidth: 28,
+            minHeight: 28,
+          ),
+          icon: const Icon(
+            LucideIcons.search,
+            size: 16,
+            color: Colors.grey,
+          ),
+        ),
+        const Text(
+          'Сумма',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -240,10 +411,17 @@ class _DocumentsTableRow extends StatelessWidget {
           for (final column in columns)
             _DocumentsTableCell(
               column: column,
-              child: Text(
-                _valueForColumn(column),
-                style: filterFieldTextStyle,
-              ),
+              child: column == DocumentsTableColumn.amount
+                  ? Text(
+                      amountFormat.format(item.amount),
+                      style: filterFieldTextStyle.copyWith(
+                        color: _amountColor(item.documentType),
+                      ),
+                    )
+                  : Text(
+                      _valueForColumn(column),
+                      style: filterFieldTextStyle,
+                    ),
             ),
         ],
       ),
@@ -256,6 +434,14 @@ class _DocumentsTableRow extends StatelessWidget {
       DocumentsTableColumn.bankCash => item.accountType,
       DocumentsTableColumn.base => item.baseName,
       DocumentsTableColumn.amount => amountFormat.format(item.amount),
+    };
+  }
+
+  Color _amountColor(DocumentType documentType) {
+    return switch (documentType) {
+      DocumentType.income => AppColors.green,
+      DocumentType.outcome => AppColors.red,
+      DocumentType.renterAssignment => AppColors.primary,
     };
   }
 }
