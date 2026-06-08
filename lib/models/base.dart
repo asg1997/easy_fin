@@ -1,11 +1,11 @@
 import 'package:equatable/equatable.dart';
 
-typedef BaseId = String;
+typedef AccountNumber = String;
 
 class Base extends Equatable {
   const Base({required this.id, required this.name});
 
-  final BaseId id;
+  final AccountNumber id;
   final String name;
 
   @override

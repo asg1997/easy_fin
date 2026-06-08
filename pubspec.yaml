@@ -22,6 +22,9 @@ dependencies:
   intl: ^0.20.2
   lucide_icons_flutter: ^3.1.12
   path: ^1.9.1
+  path_provider: ^2.1.5
+  drift: ^2.33.0
+  sqlite3_flutter_libs: ^0.6.0+eol
   riverpod: ^3.2.1
 
 dev_dependencies:
@@ -29,6 +32,8 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
   very_good_analysis: ^10.2.0
+  drift_dev: ^2.33.0
+  build_runner: ^2.15.0
 
 flutter:
   uses-material-design: true

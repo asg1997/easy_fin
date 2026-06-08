@@ -13,7 +13,7 @@ class Document extends Equatable {
 
   final DocumentId id;
   final DateTime createdAt;
-  final BaseId baseId;
+  final AccountNumber baseId;
 
   @override
   List<Object?> get props => [id, createdAt, baseId];
