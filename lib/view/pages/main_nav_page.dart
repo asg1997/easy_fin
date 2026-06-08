@@ -169,7 +169,7 @@ class _MainNavPageState extends ConsumerState<MainNavPage> {
                           ),
                           minWidth: !isExpanded ? 50 : null,
                           height: 50,
-                          color: Theme.of(context).colorScheme.primary,
+                          color: AppColors.blue,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),
                           ),

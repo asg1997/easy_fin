@@ -1,8 +1,13 @@
+import 'package:easy_fin/utils/app_theme.dart';
 import 'package:easy_fin/view/pages/main_nav_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('ru');
   runApp(const ProviderScope(child: MainApp()));
 }
 
@@ -18,13 +23,17 @@ class _MainAppState extends ConsumerState<MainApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        scaffoldBackgroundColor: Colors.white,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color.fromARGB(255, 253, 93, 93),
-          primary: const Color.fromARGB(255, 253, 93, 93),
-        ),
-      ),
+      locale: const Locale('ru'),
+      supportedLocales: const [
+        Locale('ru'),
+        Locale('en'),
+      ],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      theme: buildAppTheme(),
       home: const MainNavPage(),
     );
   }

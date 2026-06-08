@@ -1,4 +1,5 @@
 import 'package:easy_fin/utils/app_colors.dart';
+import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -8,35 +9,66 @@ class DatePickerField extends StatelessWidget {
     this.selectedDate,
     this.hint = 'Выберите дату',
     this.width = 220,
+    this.expand = false,
     super.key,
   });
   final DateTime? selectedDate;
   final void Function(DateTime? date) onChanged;
   final String hint;
   final double width;
+  final bool expand;
   @override
   Widget build(BuildContext context) {
-    return MaterialButton(
-      elevation: 0,
-      height: 55,
-      minWidth: width,
-      color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-        side: const BorderSide(color: AppColors.border),
-      ),
-      onPressed: () {
-        showDatePicker(
-          context: context,
-          initialDate: selectedDate ?? DateTime.now(),
-          firstDate: DateTime(2000),
-          lastDate: DateTime(2100),
-        );
-      },
-      child: Text(
-        DateFormat('dd.MM.yyyy').format(selectedDate ?? DateTime.now()),
-        style: const TextStyle(fontSize: 14),
+    return SizedBox(
+      height: filterFieldHeight,
+      width: expand ? double.infinity : width,
+      child: Material(
+        color: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: const BorderSide(color: AppColors.border),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () async {
+            final now = DateTime.now();
+            final today = DateTime(now.year, now.month, now.day);
+            var initialDate = selectedDate ?? today;
+            if (initialDate.isAfter(today)) {
+              initialDate = today;
+            }
+
+            final date = await showDatePicker(
+              context: context,
+              locale: const Locale('ru'),
+              initialDate: initialDate,
+              firstDate: DateTime(2000),
+              lastDate: today,
+            );
+            if (date != null) {
+              onChanged(date);
+            }
+          },
+          child: SizedBox(
+            height: filterFieldHeight,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: filterFieldHorizontalPadding,
+              ),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  selectedDate == null
+                      ? hint
+                      : DateFormat('dd.MM.yyyy', 'ru').format(selectedDate!),
+                  style: selectedDate == null
+                      ? filterFieldHintTextStyle
+                      : filterFieldTextStyle,
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
