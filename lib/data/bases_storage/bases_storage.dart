@@ -7,7 +7,8 @@ final basesStorageProvider = Provider<BasesStorage>(
 
 abstract class BasesStorage {
   Future<void> save(Base base);
-  Future<Base?> findByAccount(AccountNumber id);
+  Future<Base?> findById(BaseId id);
+  Future<Base?> findByAccount(AccountNumber accountNumber);
   Future<List<Base>> getAll();
 }
 
@@ -16,7 +17,13 @@ class BasesStorageImpl implements BasesStorage {
   final Ref ref;
 
   @override
-  Future<Base?> findByAccount(AccountNumber id) {
+  Future<Base?> findById(BaseId id) {
+    // TODO: implement findById
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Base?> findByAccount(AccountNumber accountNumber) {
     // TODO: implement find
     throw UnimplementedError();
   }

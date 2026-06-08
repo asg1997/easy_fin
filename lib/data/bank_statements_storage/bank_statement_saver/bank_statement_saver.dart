@@ -1,5 +1,7 @@
 import 'package:easy_fin/data/bases_storage/bases_storage.dart';
 import 'package:easy_fin/data/models/back_statement.dart';
+import 'package:easy_fin/drift/bank_statement_database/bank_statement_mapper.dart';
+import 'package:easy_fin/drift/bank_statement_database/db/bank_statement_database_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final bankStatementSaverProvider = Provider<BankStatementSaver>(
@@ -42,6 +44,23 @@ class BankStatementSaverImpl implements BankStatementSaver {
   }
 
   Future<void> _saveToDatabase(BankStatement bankStatement) async {
-    // TODO: выбрать способ сохранения выписки в базу данных
+    final db = ref.read(bankStatementDatabaseProvider);
+
+    await db.transaction(() async {
+      final statementId = await db
+          .into(db.bankStatements)
+          .insert(bankStatement.toCompanion());
+
+      if (bankStatement.operations.isEmpty) return;
+
+      await db.batch((batch) {
+        batch.insertAll(
+          db.bankStatementOperations,
+          bankStatement.operations
+              .map((operation) => operation.toCompanion(statementId: statementId))
+              .toList(),
+        );
+      });
+    });
   }
 }
