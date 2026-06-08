@@ -1,5 +1,5 @@
 import 'package:drift/drift.dart';
-import 'package:easy_fin/drift/bases_database/db/bases_database.dart';
+import 'package:easy_fin/drift/db/app_database.dart';
 import 'package:easy_fin/models/base.dart' as domain;
 
 extension BaseMapper on domain.Base {

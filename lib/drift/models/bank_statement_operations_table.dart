@@ -1,7 +1,8 @@
 import 'package:drift/drift.dart';
-import 'package:easy_fin/drift/bank_statement_database/models/bank_statements_table.dart';
+import 'package:easy_fin/drift/models/bank_statements_table.dart';
 
 /// Операция в выписке по банковскому счету
+@DataClassName('BankStatementOperationRow')
 class BankStatementOperations extends Table {
   IntColumn get id => integer().autoIncrement()();
 
@@ -18,9 +19,9 @@ class BankStatementOperations extends Table {
 
   TextColumn get creditBankAccount => text()();
 
-  RealColumn get debit => real().nullable()();
+  IntColumn get debitMinor => integer().nullable()();
 
-  RealColumn get credit => real().nullable()();
+  IntColumn get creditMinor => integer().nullable()();
 
   TextColumn get note => text()();
 }

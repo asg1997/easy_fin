@@ -1,5 +1,5 @@
 import 'package:drift/drift.dart';
-import 'package:easy_fin/drift/bases_database/models/bases_table.dart';
+import 'package:easy_fin/drift/models/bases_table.dart';
 
 /// Банковский счёт, привязанный к базе
 class BaseAccountNumbers extends Table {

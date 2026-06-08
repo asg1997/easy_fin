@@ -1,7 +1,8 @@
+import 'package:drift/drift.dart';
 import 'package:easy_fin/data/bases_storage/bases_storage.dart';
 import 'package:easy_fin/data/models/back_statement.dart';
-import 'package:easy_fin/drift/bank_statement_database/bank_statement_mapper.dart';
-import 'package:easy_fin/drift/bank_statement_database/db/bank_statement_database_provider.dart';
+import 'package:easy_fin/drift/db/app_database_provider.dart';
+import 'package:easy_fin/drift/mappers/bank_statement_mapper.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final bankStatementSaverProvider = Provider<BankStatementSaver>(
@@ -33,23 +34,50 @@ class BankStatementSaverImpl implements BankStatementSaver {
 
   @override
   Future<void> save(BankStatement bankStatement) async {
-    /// по номеру счета находим к какой базе относится выписка
     final base = await ref
         .read(basesStorageProvider)
         .findByAccount(bankStatement.accountNumber);
     if (base == null) throw BankAccountNotFoundError();
 
-    /// Сохраняем выписку в базу данных
-    await _saveToDatabase(bankStatement);
+    await _saveToDatabase(bankStatement, baseId: base.id);
   }
 
-  Future<void> _saveToDatabase(BankStatement bankStatement) async {
-    final db = ref.read(bankStatementDatabaseProvider);
+  Future<void> _saveToDatabase(
+    BankStatement bankStatement, {
+    required String baseId,
+  }) async {
+    final db = ref.read(appDatabaseProvider);
 
     await db.transaction(() async {
-      final statementId = await db
-          .into(db.bankStatements)
-          .insert(bankStatement.toCompanion());
+      final existingStatement =
+          await (db.select(db.bankStatements)..where(
+                (table) =>
+                    table.accountNumber.equals(bankStatement.accountNumber) &
+                    table.startDate.equals(bankStatement.startDate) &
+                    table.endDate.equals(bankStatement.endDate),
+              ))
+              .getSingleOrNull();
+
+      final statementId =
+          existingStatement?.id ??
+          await db
+              .into(db.bankStatements)
+              .insert(bankStatement.toCompanion(baseId: baseId));
+
+      if (existingStatement != null) {
+        await (db.update(db.bankStatements)..where(
+              (table) => table.id.equals(existingStatement.id),
+            ))
+            .write(
+              bankStatement
+                  .toCompanion(baseId: baseId)
+                  .copyWith(id: Value(existingStatement.id)),
+            );
+      }
+
+      await (db.delete(
+        db.bankStatementOperations,
+      )..where((table) => table.statementId.equals(statementId))).go();
 
       if (bankStatement.operations.isEmpty) return;
 
@@ -57,7 +85,9 @@ class BankStatementSaverImpl implements BankStatementSaver {
         batch.insertAll(
           db.bankStatementOperations,
           bankStatement.operations
-              .map((operation) => operation.toCompanion(statementId: statementId))
+              .map(
+                (operation) => operation.toCompanion(statementId: statementId),
+              )
               .toList(),
         );
       });

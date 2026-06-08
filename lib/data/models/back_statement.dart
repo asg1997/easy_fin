@@ -10,8 +10,10 @@ class BankStatement extends Equatable {
     required this.initialBalance,
     required this.finalBalance,
     required this.operations,
+    this.id,
   });
 
+  final int? id;
   final DateTime startDate;
   final DateTime endDate;
   final String accountNumber;
@@ -21,10 +23,12 @@ class BankStatement extends Equatable {
 
   @override
   List<Object?> get props => [
+    id,
     startDate,
     endDate,
     accountNumber,
     initialBalance,
     finalBalance,
+    operations,
   ];
 }

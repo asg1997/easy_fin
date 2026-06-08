@@ -1,11 +1,9 @@
 import 'package:drift/drift.dart';
 import 'package:easy_fin/data/bank_statements_storage/bank_statement_saver/bank_statement_saver.dart';
-import 'package:easy_fin/data/bases_storage/bases_storage.dart';
 import 'package:easy_fin/data/models/back_statement.dart';
-import 'package:easy_fin/drift/bank_statement_database/bank_statement_mapper.dart';
-import 'package:easy_fin/drift/bank_statement_database/db/bank_statement_database.dart'
-    hide BankStatement;
-import 'package:easy_fin/drift/bank_statement_database/db/bank_statement_database_provider.dart';
+import 'package:easy_fin/drift/db/app_database.dart';
+import 'package:easy_fin/drift/db/app_database_provider.dart';
+import 'package:easy_fin/drift/mappers/bank_statement_mapper.dart';
 import 'package:easy_fin/models/base.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -36,13 +34,10 @@ class BankStatementStorageImpl implements BankStatementStorage {
     BaseId baseId, {
     bool dateDesc = true,
   }) async {
-    final base = await ref.read(basesStorageProvider).findById(baseId);
-    if (base == null || base.accountNumbers.isEmpty) return [];
-
-    final db = ref.read(bankStatementDatabaseProvider);
+    final db = ref.read(appDatabaseProvider);
 
     final statementsQuery = db.select(db.bankStatements)
-      ..where((table) => table.accountNumber.isIn(base.accountNumbers))
+      ..where((table) => table.baseId.equals(baseId))
       ..orderBy([
         (table) => dateDesc
             ? OrderingTerm.desc(table.startDate)
@@ -55,10 +50,11 @@ class BankStatementStorageImpl implements BankStatementStorage {
     final statementIds = statementRows.map((row) => row.id).toList();
     final operationRows =
         await (db.select(db.bankStatementOperations)
-              ..where((table) => table.statementId.isIn(statementIds)))
+              ..where((table) => table.statementId.isIn(statementIds))
+              ..orderBy([(table) => OrderingTerm.asc(table.date)]))
             .get();
 
-    final operationsByStatementId = <int, List<BankStatementOperation>>{};
+    final operationsByStatementId = <int, List<BankStatementOperationRow>>{};
     for (final operation in operationRows) {
       operationsByStatementId
           .putIfAbsent(operation.statementId, () => [])

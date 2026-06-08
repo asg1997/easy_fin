@@ -1,0 +1,167 @@
+import 'dart:io';
+
+import 'package:drift/drift.dart';
+import 'package:drift/native.dart';
+import 'package:easy_fin/drift/models/bank_statement_operations_table.dart';
+import 'package:easy_fin/drift/models/bank_statements_table.dart';
+import 'package:easy_fin/drift/models/base_account_numbers_table.dart';
+import 'package:easy_fin/drift/models/bases_table.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+
+part 'app_database.g.dart';
+
+@DriftDatabase(
+  tables: [
+    Bases,
+    BaseAccountNumbers,
+    BankStatements,
+    BankStatementOperations,
+  ],
+)
+class AppDatabase extends _$AppDatabase {
+  AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
+
+  @override
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (migrator) async {
+      await migrator.createAll();
+    },
+    onUpgrade: (migrator, from, to) async {
+      if (from < 2) {
+        await _migrateToV2(migrator);
+      }
+    },
+  );
+}
+
+LazyDatabase _openConnection() {
+  return LazyDatabase(() async {
+    final dbFolder = await getApplicationDocumentsDirectory();
+    final file = File(p.join(dbFolder.path, 'easy_fin.sqlite'));
+
+    return NativeDatabase(file);
+  });
+}
+
+Future<void> _migrateToV2(Migrator migrator) async {
+  final db = migrator.database;
+
+  final statementsTable = await db
+      .customSelect(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'bank_statements'",
+      )
+      .getSingleOrNull();
+  if (statementsTable == null) {
+    await migrator.createAll();
+    return;
+  }
+
+  final statementsSql = statementsTable.data['sql']! as String;
+  if (statementsSql.contains('initial_balance_minor')) {
+    return;
+  }
+
+  await db.transaction(() async {
+    await db.customStatement('PRAGMA foreign_keys = OFF');
+
+    await db.customStatement('''
+      CREATE TABLE IF NOT EXISTS bank_statements_new (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        base_id TEXT NOT NULL REFERENCES bases (id) ON DELETE CASCADE,
+        account_number TEXT NOT NULL REFERENCES base_account_numbers (account_number) ON DELETE RESTRICT,
+        start_date INTEGER NOT NULL,
+        end_date INTEGER NOT NULL,
+        initial_balance_minor INTEGER NOT NULL,
+        final_balance_minor INTEGER NOT NULL,
+        UNIQUE (account_number, start_date, end_date)
+      )
+    ''');
+
+    await db.customStatement('''
+      INSERT INTO bank_statements_new (
+        id,
+        base_id,
+        account_number,
+        start_date,
+        end_date,
+        initial_balance_minor,
+        final_balance_minor
+      )
+      SELECT
+        bank_statements.id,
+        base_account_numbers.base_id,
+        bank_statements.account_number,
+        bank_statements.start_date,
+        bank_statements.end_date,
+        CAST(ROUND(bank_statements.initial_balance * 100) AS INTEGER),
+        CAST(ROUND(bank_statements.final_balance * 100) AS INTEGER)
+      FROM bank_statements
+      INNER JOIN base_account_numbers
+        ON base_account_numbers.account_number = bank_statements.account_number
+    ''');
+
+    await db.customStatement('''
+      CREATE TABLE bank_statement_operations_new (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        statement_id INTEGER NOT NULL,
+        date INTEGER NOT NULL,
+        debit_inn TEXT NOT NULL,
+        debit_bank_account TEXT NOT NULL,
+        credit_inn TEXT NOT NULL,
+        credit_bank_account TEXT NOT NULL,
+        debit_minor INTEGER,
+        credit_minor INTEGER,
+        note TEXT NOT NULL
+      )
+    ''');
+
+    await db.customStatement('''
+      INSERT INTO bank_statement_operations_new (
+        id,
+        statement_id,
+        date,
+        debit_inn,
+        debit_bank_account,
+        credit_inn,
+        credit_bank_account,
+        debit_minor,
+        credit_minor,
+        note
+      )
+      SELECT
+        bank_statement_operations.id,
+        bank_statement_operations.statement_id,
+        bank_statement_operations.date,
+        bank_statement_operations.debit_inn,
+        bank_statement_operations.debit_bank_account,
+        bank_statement_operations.credit_inn,
+        bank_statement_operations.credit_bank_account,
+        CAST(ROUND(bank_statement_operations.debit * 100) AS INTEGER),
+        CAST(ROUND(bank_statement_operations.credit * 100) AS INTEGER),
+        bank_statement_operations.note
+      FROM bank_statement_operations
+      INNER JOIN bank_statements_new
+        ON bank_statements_new.id = bank_statement_operations.statement_id
+    ''');
+
+    await db.customStatement('DROP TABLE bank_statement_operations');
+    await db.customStatement('DROP TABLE bank_statements');
+    await db.customStatement(
+      'ALTER TABLE bank_statements_new RENAME TO bank_statements',
+    );
+    await db.customStatement(
+      'ALTER TABLE bank_statement_operations_new RENAME TO bank_statement_operations',
+    );
+
+    await db.customStatement('''
+      CREATE INDEX IF NOT EXISTS bank_statements_base_start_date
+      ON bank_statements (base_id, start_date)
+    ''');
+
+    await db.customStatement('PRAGMA foreign_keys = ON');
+  });
+}
