@@ -1586,6 +1586,18 @@ class $RentersTable extends Renters with TableInfo<$RentersTable, RenterRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _baseIdMeta = const VerificationMeta('baseId');
+  @override
+  late final GeneratedColumn<String> baseId = GeneratedColumn<String>(
+    'base_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES bases (id) ON DELETE CASCADE',
+    ),
+  );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -1595,8 +1607,23 @@ class $RentersTable extends Renters with TableInfo<$RentersTable, RenterRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _isArchivedMeta = const VerificationMeta(
+    'isArchived',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, name];
+  late final GeneratedColumn<bool> isArchived = GeneratedColumn<bool>(
+    'is_archived',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_archived" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, baseId, name, isArchived];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1614,6 +1641,14 @@ class $RentersTable extends Renters with TableInfo<$RentersTable, RenterRow> {
     } else if (isInserting) {
       context.missing(_idMeta);
     }
+    if (data.containsKey('base_id')) {
+      context.handle(
+        _baseIdMeta,
+        baseId.isAcceptableOrUnknown(data['base_id']!, _baseIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_baseIdMeta);
+    }
     if (data.containsKey('name')) {
       context.handle(
         _nameMeta,
@@ -1621,6 +1656,12 @@ class $RentersTable extends Renters with TableInfo<$RentersTable, RenterRow> {
       );
     } else if (isInserting) {
       context.missing(_nameMeta);
+    }
+    if (data.containsKey('is_archived')) {
+      context.handle(
+        _isArchivedMeta,
+        isArchived.isAcceptableOrUnknown(data['is_archived']!, _isArchivedMeta),
+      );
     }
     return context;
   }
@@ -1635,9 +1676,17 @@ class $RentersTable extends Renters with TableInfo<$RentersTable, RenterRow> {
         DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
+      baseId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}base_id'],
+      )!,
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}name'],
+      )!,
+      isArchived: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_archived'],
       )!,
     );
   }
@@ -1650,18 +1699,32 @@ class $RentersTable extends Renters with TableInfo<$RentersTable, RenterRow> {
 
 class RenterRow extends DataClass implements Insertable<RenterRow> {
   final String id;
+  final String baseId;
   final String name;
-  const RenterRow({required this.id, required this.name});
+  final bool isArchived;
+  const RenterRow({
+    required this.id,
+    required this.baseId,
+    required this.name,
+    required this.isArchived,
+  });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
+    map['base_id'] = Variable<String>(baseId);
     map['name'] = Variable<String>(name);
+    map['is_archived'] = Variable<bool>(isArchived);
     return map;
   }
 
   RentersCompanion toCompanion(bool nullToAbsent) {
-    return RentersCompanion(id: Value(id), name: Value(name));
+    return RentersCompanion(
+      id: Value(id),
+      baseId: Value(baseId),
+      name: Value(name),
+      isArchived: Value(isArchived),
+    );
   }
 
   factory RenterRow.fromJson(
@@ -1671,7 +1734,9 @@ class RenterRow extends DataClass implements Insertable<RenterRow> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return RenterRow(
       id: serializer.fromJson<String>(json['id']),
+      baseId: serializer.fromJson<String>(json['baseId']),
       name: serializer.fromJson<String>(json['name']),
+      isArchived: serializer.fromJson<bool>(json['isArchived']),
     );
   }
   @override
@@ -1679,16 +1744,31 @@ class RenterRow extends DataClass implements Insertable<RenterRow> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
+      'baseId': serializer.toJson<String>(baseId),
       'name': serializer.toJson<String>(name),
+      'isArchived': serializer.toJson<bool>(isArchived),
     };
   }
 
-  RenterRow copyWith({String? id, String? name}) =>
-      RenterRow(id: id ?? this.id, name: name ?? this.name);
+  RenterRow copyWith({
+    String? id,
+    String? baseId,
+    String? name,
+    bool? isArchived,
+  }) => RenterRow(
+    id: id ?? this.id,
+    baseId: baseId ?? this.baseId,
+    name: name ?? this.name,
+    isArchived: isArchived ?? this.isArchived,
+  );
   RenterRow copyWithCompanion(RentersCompanion data) {
     return RenterRow(
       id: data.id.present ? data.id.value : this.id,
+      baseId: data.baseId.present ? data.baseId.value : this.baseId,
       name: data.name.present ? data.name.value : this.name,
+      isArchived: data.isArchived.present
+          ? data.isArchived.value
+          : this.isArchived,
     );
   }
 
@@ -1696,54 +1776,75 @@ class RenterRow extends DataClass implements Insertable<RenterRow> {
   String toString() {
     return (StringBuffer('RenterRow(')
           ..write('id: $id, ')
-          ..write('name: $name')
+          ..write('baseId: $baseId, ')
+          ..write('name: $name, ')
+          ..write('isArchived: $isArchived')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name);
+  int get hashCode => Object.hash(id, baseId, name, isArchived);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is RenterRow && other.id == this.id && other.name == this.name);
+      (other is RenterRow &&
+          other.id == this.id &&
+          other.baseId == this.baseId &&
+          other.name == this.name &&
+          other.isArchived == this.isArchived);
 }
 
 class RentersCompanion extends UpdateCompanion<RenterRow> {
   final Value<String> id;
+  final Value<String> baseId;
   final Value<String> name;
+  final Value<bool> isArchived;
   final Value<int> rowid;
   const RentersCompanion({
     this.id = const Value.absent(),
+    this.baseId = const Value.absent(),
     this.name = const Value.absent(),
+    this.isArchived = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   RentersCompanion.insert({
     required String id,
+    required String baseId,
     required String name,
+    this.isArchived = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
+       baseId = Value(baseId),
        name = Value(name);
   static Insertable<RenterRow> custom({
     Expression<String>? id,
+    Expression<String>? baseId,
     Expression<String>? name,
+    Expression<bool>? isArchived,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (baseId != null) 'base_id': baseId,
       if (name != null) 'name': name,
+      if (isArchived != null) 'is_archived': isArchived,
       if (rowid != null) 'rowid': rowid,
     });
   }
 
   RentersCompanion copyWith({
     Value<String>? id,
+    Value<String>? baseId,
     Value<String>? name,
+    Value<bool>? isArchived,
     Value<int>? rowid,
   }) {
     return RentersCompanion(
       id: id ?? this.id,
+      baseId: baseId ?? this.baseId,
       name: name ?? this.name,
+      isArchived: isArchived ?? this.isArchived,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1754,8 +1855,14 @@ class RentersCompanion extends UpdateCompanion<RenterRow> {
     if (id.present) {
       map['id'] = Variable<String>(id.value);
     }
+    if (baseId.present) {
+      map['base_id'] = Variable<String>(baseId.value);
+    }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
+    }
+    if (isArchived.present) {
+      map['is_archived'] = Variable<bool>(isArchived.value);
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -1767,7 +1874,9 @@ class RentersCompanion extends UpdateCompanion<RenterRow> {
   String toString() {
     return (StringBuffer('RentersCompanion(')
           ..write('id: $id, ')
+          ..write('baseId: $baseId, ')
           ..write('name: $name, ')
+          ..write('isArchived: $isArchived, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2100,6 +2209,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
+        'bases',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('renters', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
         'renters',
         limitUpdateKind: UpdateKind.delete,
       ),
@@ -2166,6 +2282,25 @@ final class $$BasesTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<$RentersTable, List<RenterRow>> _rentersRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.renters,
+    aliasName: $_aliasNameGenerator(db.bases.id, db.renters.baseId),
+  );
+
+  $$RentersTableProcessedTableManager get rentersRefs {
+    final manager = $$RentersTableTableManager(
+      $_db,
+      $_db.renters,
+    ).filter((f) => f.baseId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_rentersRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$BasesTableFilterComposer extends Composer<_$AppDatabase, $BasesTable> {
@@ -2227,6 +2362,31 @@ class $$BasesTableFilterComposer extends Composer<_$AppDatabase, $BasesTable> {
           }) => $$BankStatementsTableFilterComposer(
             $db: $db,
             $table: $db.bankStatements,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> rentersRefs(
+    Expression<bool> Function($$RentersTableFilterComposer f) f,
+  ) {
+    final $$RentersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.renters,
+      getReferencedColumn: (t) => t.baseId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RentersTableFilterComposer(
+            $db: $db,
+            $table: $db.renters,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -2322,6 +2482,31 @@ class $$BasesTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> rentersRefs<T extends Object>(
+    Expression<T> Function($$RentersTableAnnotationComposer a) f,
+  ) {
+    final $$RentersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.renters,
+      getReferencedColumn: (t) => t.baseId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RentersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.renters,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$BasesTableTableManager
@@ -2340,6 +2525,7 @@ class $$BasesTableTableManager
           PrefetchHooks Function({
             bool baseAccountNumbersRefs,
             bool bankStatementsRefs,
+            bool rentersRefs,
           })
         > {
   $$BasesTableTableManager(_$AppDatabase db, $BasesTable table)
@@ -2372,12 +2558,17 @@ class $$BasesTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({baseAccountNumbersRefs = false, bankStatementsRefs = false}) {
+              ({
+                baseAccountNumbersRefs = false,
+                bankStatementsRefs = false,
+                rentersRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (baseAccountNumbersRefs) db.baseAccountNumbers,
                     if (bankStatementsRefs) db.bankStatements,
+                    if (rentersRefs) db.renters,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -2424,6 +2615,23 @@ class $$BasesTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (rentersRefs)
+                        await $_getPrefetchedData<
+                          BaseRow,
+                          $BasesTable,
+                          RenterRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$BasesTableReferences
+                              ._rentersRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$BasesTableReferences(db, table, p0).rentersRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.baseId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -2447,6 +2655,7 @@ typedef $$BasesTableProcessedTableManager =
       PrefetchHooks Function({
         bool baseAccountNumbersRefs,
         bool bankStatementsRefs,
+        bool rentersRefs,
       })
     >;
 typedef $$BaseAccountNumbersTableCreateCompanionBuilder =
@@ -3858,19 +4067,41 @@ typedef $$BankStatementOperationsTableProcessedTableManager =
 typedef $$RentersTableCreateCompanionBuilder =
     RentersCompanion Function({
       required String id,
+      required String baseId,
       required String name,
+      Value<bool> isArchived,
       Value<int> rowid,
     });
 typedef $$RentersTableUpdateCompanionBuilder =
     RentersCompanion Function({
       Value<String> id,
+      Value<String> baseId,
       Value<String> name,
+      Value<bool> isArchived,
       Value<int> rowid,
     });
 
 final class $$RentersTableReferences
     extends BaseReferences<_$AppDatabase, $RentersTable, RenterRow> {
   $$RentersTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $BasesTable _baseIdTable(_$AppDatabase db) => db.bases.createAlias(
+    $_aliasNameGenerator(db.renters.baseId, db.bases.id),
+  );
+
+  $$BasesTableProcessedTableManager get baseId {
+    final $_column = $_itemColumn<String>('base_id')!;
+
+    final manager = $$BasesTableTableManager(
+      $_db,
+      $_db.bases,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_baseIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
 
   static MultiTypedResultKey<
     $RenterAccountNumbersTable,
@@ -3920,6 +4151,34 @@ class $$RentersTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$BasesTableFilterComposer get baseId {
+    final $$BasesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.baseId,
+      referencedTable: $db.bases,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BasesTableFilterComposer(
+            $db: $db,
+            $table: $db.bases,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
   Expression<bool> renterAccountNumbersRefs(
     Expression<bool> Function($$RenterAccountNumbersTableFilterComposer f) f,
   ) {
@@ -3964,6 +4223,34 @@ class $$RentersTableOrderingComposer
     column: $table.name,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$BasesTableOrderingComposer get baseId {
+    final $$BasesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.baseId,
+      referencedTable: $db.bases,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BasesTableOrderingComposer(
+            $db: $db,
+            $table: $db.bases,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$RentersTableAnnotationComposer
@@ -3980,6 +4267,34 @@ class $$RentersTableAnnotationComposer
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => column,
+  );
+
+  $$BasesTableAnnotationComposer get baseId {
+    final $$BasesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.baseId,
+      referencedTable: $db.bases,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BasesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.bases,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   Expression<T> renterAccountNumbersRefs<T extends Object>(
     Expression<T> Function($$RenterAccountNumbersTableAnnotationComposer a) f,
@@ -4021,7 +4336,7 @@ class $$RentersTableTableManager
           $$RentersTableUpdateCompanionBuilder,
           (RenterRow, $$RentersTableReferences),
           RenterRow,
-          PrefetchHooks Function({bool renterAccountNumbersRefs})
+          PrefetchHooks Function({bool baseId, bool renterAccountNumbersRefs})
         > {
   $$RentersTableTableManager(_$AppDatabase db, $RentersTable table)
     : super(
@@ -4037,15 +4352,31 @@ class $$RentersTableTableManager
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
+                Value<String> baseId = const Value.absent(),
                 Value<String> name = const Value.absent(),
+                Value<bool> isArchived = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
-              }) => RentersCompanion(id: id, name: name, rowid: rowid),
+              }) => RentersCompanion(
+                id: id,
+                baseId: baseId,
+                name: name,
+                isArchived: isArchived,
+                rowid: rowid,
+              ),
           createCompanionCallback:
               ({
                 required String id,
+                required String baseId,
                 required String name,
+                Value<bool> isArchived = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
-              }) => RentersCompanion.insert(id: id, name: name, rowid: rowid),
+              }) => RentersCompanion.insert(
+                id: id,
+                baseId: baseId,
+                name: name,
+                isArchived: isArchived,
+                rowid: rowid,
+              ),
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
@@ -4054,37 +4385,72 @@ class $$RentersTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({renterAccountNumbersRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [
-                if (renterAccountNumbersRefs) db.renterAccountNumbers,
-              ],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (renterAccountNumbersRefs)
-                    await $_getPrefetchedData<
-                      RenterRow,
-                      $RentersTable,
-                      RenterAccountNumber
-                    >(
-                      currentTable: table,
-                      referencedTable: $$RentersTableReferences
-                          ._renterAccountNumbersRefsTable(db),
-                      managerFromTypedResult: (p0) => $$RentersTableReferences(
-                        db,
-                        table,
-                        p0,
-                      ).renterAccountNumbersRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.renterId == item.id),
-                      typedResults: items,
-                    ),
-                ];
+          prefetchHooksCallback:
+              ({baseId = false, renterAccountNumbersRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (renterAccountNumbersRefs) db.renterAccountNumbers,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (baseId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.baseId,
+                                    referencedTable: $$RentersTableReferences
+                                        ._baseIdTable(db),
+                                    referencedColumn: $$RentersTableReferences
+                                        ._baseIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (renterAccountNumbersRefs)
+                        await $_getPrefetchedData<
+                          RenterRow,
+                          $RentersTable,
+                          RenterAccountNumber
+                        >(
+                          currentTable: table,
+                          referencedTable: $$RentersTableReferences
+                              ._renterAccountNumbersRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$RentersTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).renterAccountNumbersRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.renterId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -4101,7 +4467,7 @@ typedef $$RentersTableProcessedTableManager =
       $$RentersTableUpdateCompanionBuilder,
       (RenterRow, $$RentersTableReferences),
       RenterRow,
-      PrefetchHooks Function({bool renterAccountNumbersRefs})
+      PrefetchHooks Function({bool baseId, bool renterAccountNumbersRefs})
     >;
 typedef $$RenterAccountNumbersTableCreateCompanionBuilder =
     RenterAccountNumbersCompanion Function({

@@ -1,4 +1,5 @@
 import 'package:easy_fin/data/renters_storage/renters_storage.dart';
+import 'package:easy_fin/utils/account_number_validator.dart';
 import 'package:easy_fin/models/base.dart';
 import 'package:easy_fin/models/renter.dart';
 import 'package:easy_fin/utils/amount_input_formatter.dart';
@@ -139,13 +140,25 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
     if (result == null) return;
 
     try {
+      final baseId = _selectedBase?.id;
+      if (baseId == null) return;
+
       await ref.read(rentersStorageProvider).save(
-        Renter.create(result.name, result.accountNumbers),
+        Renter.create(
+          baseId: baseId,
+          name: result.name,
+          accountNumbers: result.accountNumbers,
+        ),
       );
       ref.invalidate(rentersListProvider);
     } on DuplicateRenterAccountNumbersError {
       if (!mounted) return;
       await _showRenterSaveError('Счета не должны повторяться');
+    } on InvalidRenterAccountNumberError {
+      if (!mounted) return;
+      await _showRenterSaveError(
+        'Номер р/с должен содержать $accountNumberLength символов',
+      );
     } on AccountBelongsToAnotherRenterError catch (error) {
       if (!mounted) return;
       await _showRenterSaveError(
@@ -173,7 +186,9 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
   @override
   Widget build(BuildContext context) {
     final basesAsync = ref.watch(basesListProvider);
-    final rentersAsync = ref.watch(rentersListProvider);
+    final rentersAsync = ref.watch(
+      rentersListProvider(RentersListFilter(baseId: _selectedBase?.id)),
+    );
 
     return Scaffold(
       body: TemplatePage(

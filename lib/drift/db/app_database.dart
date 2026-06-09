@@ -27,7 +27,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -41,6 +41,16 @@ class AppDatabase extends _$AppDatabase {
       if (from < 3) {
         await migrator.createTable(renters);
         await migrator.createTable(renterAccountNumbers);
+      }
+      if (from < 4) {
+        await migrator.database.customStatement(
+          'ALTER TABLE renters ADD COLUMN base_id TEXT REFERENCES bases (id) ON DELETE CASCADE',
+        );
+      }
+      if (from < 5) {
+        await migrator.database.customStatement(
+          'ALTER TABLE renters ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0',
+        );
       }
     },
   );

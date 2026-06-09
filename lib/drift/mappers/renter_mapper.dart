@@ -6,7 +6,9 @@ extension RenterMapper on domain.Renter {
   RentersCompanion toCompanion() {
     return RentersCompanion(
       id: Value(id),
+      baseId: Value(baseId),
       name: Value(name),
+      isArchived: Value(isArchived),
     );
   }
 }
@@ -15,8 +17,10 @@ extension RenterRowMapper on RenterRow {
   domain.Renter toDomain({required List<String> accountNumbers}) {
     return domain.Renter(
       id: id,
+      baseId: baseId,
       name: name,
       accountNumbers: accountNumbers,
+      isArchived: isArchived,
     );
   }
 }

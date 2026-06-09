@@ -4,6 +4,7 @@ import 'package:easy_fin/drift/db/app_database_provider.dart';
 import 'package:easy_fin/drift/mappers/renter_mapper.dart';
 import 'package:easy_fin/models/base.dart';
 import 'package:easy_fin/models/renter.dart';
+import 'package:easy_fin/utils/account_number_validator.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final rentersStorageProvider = Provider<RentersStorage>(
@@ -24,11 +25,21 @@ class AccountBelongsToAnotherRenterError extends RentersStorageError {
   final AccountNumber accountNumber;
 }
 
+class InvalidRenterAccountNumberError extends RentersStorageError {
+  const InvalidRenterAccountNumberError(this.accountNumber);
+
+  final AccountNumber accountNumber;
+}
+
 abstract class RentersStorage {
   Future<void> save(Renter renter);
+  Future<void> archive(RenterId id);
+  Future<void> unarchive(RenterId id);
   Future<Renter?> findById(RenterId id);
   Future<Renter?> findByAccount(AccountNumber accountNumber);
   Future<List<Renter>> getAll();
+  Future<List<Renter>> getByBase(BaseId baseId);
+  Future<List<Renter>> getArchivedByBase(BaseId baseId);
 }
 
 class RentersStorageImpl implements RentersStorage {
@@ -69,10 +80,44 @@ class RentersStorageImpl implements RentersStorage {
   @override
   Future<List<Renter>> getAll() async {
     final db = ref.read(appDatabaseProvider);
+    return _mapRenterRows(await db.select(db.renters).get());
+  }
 
-    final renterRows = await db.select(db.renters).get();
+  @override
+  Future<List<Renter>> getByBase(BaseId baseId) async {
+    final db = ref.read(appDatabaseProvider);
+
+    final renterRows = await (db.select(db.renters)..where(
+      (table) =>
+          table.baseId.equals(baseId) & table.isArchived.equals(false),
+    )).get();
+
+    return _sortByName(await _mapRenterRows(renterRows));
+  }
+
+  @override
+  Future<List<Renter>> getArchivedByBase(BaseId baseId) async {
+    final db = ref.read(appDatabaseProvider);
+
+    final renterRows = await (db.select(db.renters)..where(
+      (table) => table.baseId.equals(baseId) & table.isArchived.equals(true),
+    )).get();
+
+    return _sortByName(await _mapRenterRows(renterRows));
+  }
+
+  List<Renter> _sortByName(List<Renter> renters) {
+    final sorted = List<Renter>.from(renters);
+    sorted.sort(
+      (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+    );
+    return sorted;
+  }
+
+  Future<List<Renter>> _mapRenterRows(List<RenterRow> renterRows) async {
     if (renterRows.isEmpty) return [];
 
+    final db = ref.read(appDatabaseProvider);
     final accountRows = await db.select(db.renterAccountNumbers).get();
     final accountNumbersByRenterId = <RenterId, List<AccountNumber>>{};
     for (final row in accountRows) {
@@ -91,10 +136,34 @@ class RentersStorageImpl implements RentersStorage {
   }
 
   @override
+  Future<void> archive(RenterId id) async {
+    final db = ref.read(appDatabaseProvider);
+
+    await (db.update(db.renters)..where((table) => table.id.equals(id))).write(
+      const RentersCompanion(isArchived: Value(true)),
+    );
+  }
+
+  @override
+  Future<void> unarchive(RenterId id) async {
+    final db = ref.read(appDatabaseProvider);
+
+    await (db.update(db.renters)..where((table) => table.id.equals(id))).write(
+      const RentersCompanion(isArchived: Value(false)),
+    );
+  }
+
+  @override
   Future<void> save(Renter renter) async {
     final uniqueAccountNumbers = renter.accountNumbers.toSet().toList();
     if (uniqueAccountNumbers.length != renter.accountNumbers.length) {
       throw const DuplicateRenterAccountNumbersError();
+    }
+
+    for (final accountNumber in uniqueAccountNumbers) {
+      if (!isValidAccountNumber(accountNumber)) {
+        throw InvalidRenterAccountNumberError(accountNumber);
+      }
     }
 
     for (final accountNumber in uniqueAccountNumbers) {

@@ -1,12 +1,12 @@
-import 'package:easy_fin/utils/account_number_validator.dart';
+import 'package:easy_fin/models/base.dart';
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-class AddRenterDialogResult {
-  const AddRenterDialogResult({
+class EditBaseDialogResult {
+  const EditBaseDialogResult({
     required this.name,
     required this.accountNumbers,
   });
@@ -15,18 +15,18 @@ class AddRenterDialogResult {
   final List<String> accountNumbers;
 }
 
-class AddRenterDialog extends StatefulWidget {
-  const AddRenterDialog({super.key});
+class EditBaseDialog extends StatefulWidget {
+  const EditBaseDialog({required this.base, super.key});
+
+  final Base base;
 
   @override
-  State<AddRenterDialog> createState() => _AddRenterDialogState();
+  State<EditBaseDialog> createState() => _EditBaseDialogState();
 }
 
-class _AddRenterDialogState extends State<AddRenterDialog> {
-  final _nameController = TextEditingController();
-  final List<TextEditingController> _accountControllers = [
-    TextEditingController(),
-  ];
+class _EditBaseDialogState extends State<EditBaseDialog> {
+  late final TextEditingController _nameController;
+  late final List<TextEditingController> _accountControllers;
 
   static const _fieldDecoration = InputDecoration(
     filled: true,
@@ -48,6 +48,17 @@ class _AddRenterDialogState extends State<AddRenterDialog> {
     ),
   );
 
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.base.name);
+    _accountControllers = widget.base.accountNumbers.isEmpty
+        ? [TextEditingController()]
+        : widget.base.accountNumbers
+            .map((accountNumber) => TextEditingController(text: accountNumber))
+            .toList();
+  }
+
   List<String> get _accountNumbers {
     return _accountControllers
         .map((controller) => controller.text.trim())
@@ -60,19 +71,11 @@ class _AddRenterDialogState extends State<AddRenterDialog> {
     return accounts.length != accounts.toSet().length;
   }
 
-  bool get _hasInvalidAccountNumbers {
-    return _accountControllers.any((controller) {
-      final value = controller.text.trim();
-      return value.isNotEmpty && !isValidAccountNumber(value);
-    });
-  }
-
   bool get _canSave {
     if (_nameController.text.trim().isEmpty) return false;
     if (_accountControllers.any((controller) => controller.text.trim().isEmpty)) {
       return false;
     }
-    if (_hasInvalidAccountNumbers) return false;
     return !_hasDuplicateAccounts;
   }
 
@@ -104,7 +107,7 @@ class _AddRenterDialogState extends State<AddRenterDialog> {
     if (!_canSave) return;
 
     Navigator.of(context).pop(
-      AddRenterDialogResult(
+      EditBaseDialogResult(
         name: _nameController.text.trim(),
         accountNumbers: _accountNumbers,
       ),
@@ -127,7 +130,7 @@ class _AddRenterDialogState extends State<AddRenterDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Добавить арендатора',
+                'Редактировать базу',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -185,11 +188,9 @@ class _AddRenterDialogState extends State<AddRenterDialog> {
                                 child: TextField(
                                   controller: _accountControllers[index],
                                   style: filterFieldTextStyle,
-                                  maxLength: accountNumberLength,
                                   decoration: _fieldDecoration.copyWith(
-                                    hintText: 'Введите номер счёта (20 символов)',
+                                    hintText: 'Введите номер счёта',
                                     hintStyle: filterFieldHintTextStyle,
-                                    counterText: '',
                                   ),
                                   onChanged: (_) => setState(() {}),
                                   onSubmitted: _canSave ? (_) => _onSave() : null,
@@ -235,16 +236,6 @@ class _AddRenterDialogState extends State<AddRenterDialog> {
                           ),
                         ),
                       ),
-                      if (_hasInvalidAccountNumbers) ...[
-                        const Gap(8),
-                        Text(
-                          'Номер р/с должен содержать $accountNumberLength символов',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.red.shade700,
-                          ),
-                        ),
-                      ],
                       if (_hasDuplicateAccounts) ...[
                         const Gap(8),
                         Text(
@@ -292,7 +283,7 @@ class _AddRenterDialogState extends State<AddRenterDialog> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Text(
-                      'Добавить',
+                      'Сохранить',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 14,

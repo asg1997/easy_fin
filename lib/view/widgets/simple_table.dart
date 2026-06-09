@@ -10,6 +10,8 @@ class SimpleTable extends StatelessWidget {
     this.columnFlex = const [],
     this.alignRightColumns = const {},
     this.onRowDoubleTap,
+    this.rowLeadingBuilder,
+    this.leadingWidth = 32,
     this.belowHeader,
     super.key,
   });
@@ -20,6 +22,8 @@ class SimpleTable extends StatelessWidget {
   final List<int> columnFlex;
   final Set<int> alignRightColumns;
   final void Function(int index)? onRowDoubleTap;
+  final Widget? Function(int index)? rowLeadingBuilder;
+  final double leadingWidth;
   final Widget? belowHeader;
 
   @override
@@ -37,6 +41,8 @@ class SimpleTable extends StatelessWidget {
               columns: columns,
               columnFlex: columnFlex,
               alignRightColumns: alignRightColumns,
+              hasLeading: rowLeadingBuilder != null,
+              leadingWidth: leadingWidth,
             ),
             if (belowHeader != null) ...[
               const Divider(
@@ -75,6 +81,10 @@ class SimpleTable extends StatelessWidget {
                           ),
                           child: Row(
                             children: [
+                              if (rowLeadingBuilder != null) ...[
+                                rowLeadingBuilder!(index)!,
+                                const SizedBox(width: 4),
+                              ],
                               for (var i = 0; i < columns.length; i++)
                                 _SimpleTableCell(
                                   flex: _flexForColumn(i),
@@ -123,11 +133,15 @@ class _SimpleTableHeader extends StatelessWidget {
     required this.columns,
     required this.columnFlex,
     required this.alignRightColumns,
+    required this.hasLeading,
+    required this.leadingWidth,
   });
 
   final List<String> columns;
   final List<int> columnFlex;
   final Set<int> alignRightColumns;
+  final bool hasLeading;
+  final double leadingWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -136,6 +150,8 @@ class _SimpleTableHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
+          if (hasLeading) SizedBox(width: leadingWidth),
+          if (hasLeading) const SizedBox(width: 4),
           for (var i = 0; i < columns.length; i++)
             _SimpleTableCell(
               flex: i < columnFlex.length ? columnFlex[i] : 1,

@@ -1,12 +1,18 @@
+import 'package:easy_fin/models/renter.dart';
 import 'package:easy_fin/utils/account_number_validator.dart';
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/view/widgets/confirm_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-class AddRenterDialogResult {
-  const AddRenterDialogResult({
+sealed class EditRenterDialogOutcome {
+  const EditRenterDialogOutcome();
+}
+
+final class EditRenterDialogSaved extends EditRenterDialogOutcome {
+  const EditRenterDialogSaved({
     required this.name,
     required this.accountNumbers,
   });
@@ -15,18 +21,26 @@ class AddRenterDialogResult {
   final List<String> accountNumbers;
 }
 
-class AddRenterDialog extends StatefulWidget {
-  const AddRenterDialog({super.key});
-
-  @override
-  State<AddRenterDialog> createState() => _AddRenterDialogState();
+final class EditRenterDialogArchived extends EditRenterDialogOutcome {
+  const EditRenterDialogArchived();
 }
 
-class _AddRenterDialogState extends State<AddRenterDialog> {
-  final _nameController = TextEditingController();
-  final List<TextEditingController> _accountControllers = [
-    TextEditingController(),
-  ];
+final class EditRenterDialogRestored extends EditRenterDialogOutcome {
+  const EditRenterDialogRestored();
+}
+
+class EditRenterDialog extends StatefulWidget {
+  const EditRenterDialog({required this.renter, super.key});
+
+  final Renter renter;
+
+  @override
+  State<EditRenterDialog> createState() => _EditRenterDialogState();
+}
+
+class _EditRenterDialogState extends State<EditRenterDialog> {
+  late final TextEditingController _nameController;
+  late final List<TextEditingController> _accountControllers;
 
   static const _fieldDecoration = InputDecoration(
     filled: true,
@@ -47,6 +61,17 @@ class _AddRenterDialogState extends State<AddRenterDialog> {
       borderSide: BorderSide(color: AppColors.primary),
     ),
   );
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.renter.name);
+    _accountControllers = widget.renter.accountNumbers.isEmpty
+        ? [TextEditingController()]
+        : widget.renter.accountNumbers
+            .map((accountNumber) => TextEditingController(text: accountNumber))
+            .toList();
+  }
 
   List<String> get _accountNumbers {
     return _accountControllers
@@ -104,11 +129,45 @@ class _AddRenterDialogState extends State<AddRenterDialog> {
     if (!_canSave) return;
 
     Navigator.of(context).pop(
-      AddRenterDialogResult(
+      EditRenterDialogSaved(
         name: _nameController.text.trim(),
         accountNumbers: _accountNumbers,
       ),
     );
+  }
+
+  Future<void> _onArchive() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return const ConfirmDialog(
+          title: 'Архивировать арендатора?',
+          message:
+              'Арендатор будет скрыт из списка, '
+              'но останется в базе данных.',
+          confirmLabel: 'Архивировать',
+        );
+      },
+    );
+    if (confirmed != true || !mounted) return;
+
+    Navigator.of(context).pop(const EditRenterDialogArchived());
+  }
+
+  Future<void> _onRestore() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return const ConfirmDialog(
+          title: 'Восстановить арендатора?',
+          message: 'Арендатор снова появится в списке активных.',
+          confirmLabel: 'Восстановить',
+        );
+      },
+    );
+    if (confirmed != true || !mounted) return;
+
+    Navigator.of(context).pop(const EditRenterDialogRestored());
   }
 
   @override
@@ -127,7 +186,7 @@ class _AddRenterDialogState extends State<AddRenterDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Добавить арендатора',
+                'Редактировать арендатора',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -261,8 +320,46 @@ class _AddRenterDialogState extends State<AddRenterDialog> {
               ),
               const Gap(24),
               Row(
-                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
+                  if (widget.renter.isArchived)
+                    TextButton.icon(
+                      onPressed: _onRestore,
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.purple,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 10,
+                        ),
+                      ),
+                      icon: const Icon(LucideIcons.archiveRestore, size: 16),
+                      label: const Text(
+                        'Восстановить',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    )
+                  else
+                    TextButton.icon(
+                      onPressed: _onArchive,
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.red.shade700,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 10,
+                        ),
+                      ),
+                      icon: const Icon(LucideIcons.archive, size: 16),
+                      label: const Text(
+                        'В архив',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  const Spacer(),
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
                     style: TextButton.styleFrom(
@@ -292,7 +389,7 @@ class _AddRenterDialogState extends State<AddRenterDialog> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Text(
-                      'Добавить',
+                      'Сохранить',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 14,
