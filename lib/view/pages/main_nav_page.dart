@@ -1,6 +1,8 @@
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/view/controllers/import_controller.dart';
+import 'package:easy_fin/view/pages/add_expense_page.dart';
 import 'package:easy_fin/view/pages/add_income_page.dart';
+import 'package:easy_fin/view/pages/add_rent_accrual_page.dart';
 import 'package:easy_fin/view/pages/database_page.dart';
 import 'package:easy_fin/view/pages/documents_page.dart';
 import 'package:easy_fin/view/pages/reports_page.dart';
@@ -142,6 +144,83 @@ class _MainNavPageState extends ConsumerState<MainNavPage> {
                                 const Gap(10),
                                 const Text(
                                   'Добавить приход',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                      const Gap(10),
+
+                      /// КНОПКА РАСХОД
+                      Tooltip(
+                        message: !isExpanded ? 'Расход' : '',
+                        child: MaterialButton(
+                          onPressed: () => AddExpensePage.navigate(context),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isExpanded ? 20 : 0,
+                          ),
+                          minWidth: 50,
+                          height: 50,
+                          color: AppColors.red,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                LucideIcons.circleMinus,
+                                size: 20,
+                                color: Colors.white,
+                              ),
+                              if (isExpanded) ...[
+                                const Gap(10),
+                                const Text(
+                                  'Добавить расход',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                      const Gap(10),
+
+                      /// КНОПКА НАЧИСЛЕНИЕ ПО АРЕНДЕ
+                      Tooltip(
+                        message: !isExpanded ? 'Начисление по аренде' : '',
+                        child: MaterialButton(
+                          onPressed: () =>
+                              AddRentAccrualPage.navigate(context),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isExpanded ? 20 : 0,
+                          ),
+                          minWidth: 50,
+                          height: 50,
+                          color: AppColors.primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                LucideIcons.building2,
+                                size: 20,
+                                color: Colors.white,
+                              ),
+                              if (isExpanded) ...[
+                                const Gap(10),
+                                const Text(
+                                  'Начисление по аренде',
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 14,
