@@ -63,7 +63,7 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
   void initState() {
     super.initState();
     final now = DateTime.now();
-    _selectedDate = DateTime(now.year, now.month, 1);
+    _selectedDate = DateTime(now.year, now.month);
   }
 
   @override
@@ -114,6 +114,10 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
     });
   }
 
+  void _onCopyFromPreviousMonth() {}
+
+  void _onSave() {}
+
   @override
   Widget build(BuildContext context) {
     final basesAsync = ref.watch(basesListProvider);
@@ -137,7 +141,8 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
                       labelBuilder: (item) => item.name,
                       onChanged: _onBaseChanged,
                     ),
-                    loading: () => const _FilterPlaceholder(label: 'Выбор базы'),
+                    loading: () =>
+                        const _FilterPlaceholder(label: 'Выбор базы'),
                     error: (_, _) =>
                         const _FilterPlaceholder(label: 'Выбор базы'),
                   ),
@@ -157,6 +162,28 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
                     },
                   ),
                 ),
+                const Gap(12),
+                SizedBox(
+                  height: filterFieldHeight,
+                  child: MaterialButton(
+                    onPressed: _onCopyFromPreviousMonth,
+                    elevation: 0,
+                    color: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                      side: const BorderSide(color: AppColors.purple),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 28),
+                    child: const Text(
+                      'Скопировать с пред. месяца',
+                      style: TextStyle(
+                        color: AppColors.purple,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
             if (_selectedBase != null) ...[
@@ -168,9 +195,35 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Expanded(
-                        child: _RentAccrualsTable(
-                          entries: _accrualEntries,
-                          onRemoveEntry: _removeAccrualEntry,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: _RentAccrualsTable(
+                                entries: _accrualEntries,
+                                onRemoveEntry: _removeAccrualEntry,
+                              ),
+                            ),
+                            const Gap(12),
+                            MaterialButton(
+                              onPressed: _onSave,
+                              height: filterFieldHeight,
+                              minWidth: 140,
+                              color: AppColors.purple,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(25),
+                              ),
+                              child: const Text(
+                                'Сохранить',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const Gap(12),
@@ -394,8 +447,8 @@ class _RentAccrualsTable extends StatelessWidget {
                                   textAlign: TextAlign.right,
                                   keyboardType:
                                       const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
+                                        decimal: true,
+                                      ),
                                   inputFormatters: const [
                                     AmountInputFormatter(),
                                   ],
