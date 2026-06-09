@@ -1,8 +1,12 @@
+import 'package:easy_fin/data/renters_storage/renters_storage.dart';
 import 'package:easy_fin/models/base.dart';
+import 'package:easy_fin/models/renter.dart';
 import 'package:easy_fin/utils/amount_input_formatter.dart';
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
+import 'package:easy_fin/view/providers/renters_list_provider.dart';
+import 'package:easy_fin/view/widgets/add_renter_dialog.dart';
 import 'package:easy_fin/view/widgets/date_picker_field.dart';
 import 'package:easy_fin/view/widgets/dropdown_widget.dart';
 import 'package:easy_fin/view/widgets/simple_table.dart';
@@ -49,12 +53,6 @@ class AddRentAccrualPage extends ConsumerStatefulWidget {
 }
 
 class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
-  static const _testRenters = [
-    _RenterRow(name: 'ООО «Ромашка»', accountNumber: '40702810123456789012'),
-    _RenterRow(name: 'ИП Иванов А.С.', accountNumber: '40802810987654321098'),
-    _RenterRow(name: 'ООО «Вектор»', accountNumber: '40702810555555555555'),
-  ];
-
   Base? _selectedBase;
   late DateTime _selectedDate;
   final List<_AccrualEntry> _accrualEntries = [];
@@ -118,9 +116,64 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
 
   void _onSave() {}
 
+  List<_RenterRow> _toRenterRows(List<Renter> renters) {
+    return renters.expand((renter) {
+      if (renter.accountNumbers.isEmpty) {
+        return [_RenterRow(name: renter.name, accountNumber: '')];
+      }
+
+      return renter.accountNumbers.map(
+        (accountNumber) => _RenterRow(
+          name: renter.name,
+          accountNumber: accountNumber,
+        ),
+      );
+    }).toList();
+  }
+
+  Future<void> _onAddRenter() async {
+    final result = await showDialog<AddRenterDialogResult>(
+      context: context,
+      builder: (context) => const AddRenterDialog(),
+    );
+    if (result == null) return;
+
+    try {
+      await ref.read(rentersStorageProvider).save(
+        Renter.create(result.name, result.accountNumbers),
+      );
+      ref.invalidate(rentersListProvider);
+    } on DuplicateRenterAccountNumbersError {
+      if (!mounted) return;
+      await _showRenterSaveError('Счета не должны повторяться');
+    } on AccountBelongsToAnotherRenterError catch (error) {
+      if (!mounted) return;
+      await _showRenterSaveError(
+        'Счёт ${error.accountNumber} уже привязан к другому арендатору',
+      );
+    }
+  }
+
+  Future<void> _showRenterSaveError(String message) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Ошибка'),
+        content: Text(message),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('ОК'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final basesAsync = ref.watch(basesListProvider);
+    final rentersAsync = ref.watch(rentersListProvider);
 
     return Scaffold(
       body: TemplatePage(
@@ -228,9 +281,14 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
                       ),
                       const Gap(12),
                       Expanded(
-                        child: _RentersTable(
-                          renters: _testRenters,
-                          onRenterDoubleTap: _addRenterToAccruals,
+                        child: rentersAsync.when(
+                          data: (renters) => _RentersTable(
+                            renters: _toRenterRows(renters),
+                            onRenterDoubleTap: _addRenterToAccruals,
+                            onAddRenter: _onAddRenter,
+                          ),
+                          loading: () => const _RentersTablePlaceholder(),
+                          error: (_, _) => const _RentersTablePlaceholder(),
                         ),
                       ),
                     ],
@@ -249,10 +307,12 @@ class _RentersTable extends StatefulWidget {
   const _RentersTable({
     required this.renters,
     required this.onRenterDoubleTap,
+    required this.onAddRenter,
   });
 
   final List<_RenterRow> renters;
   final void Function(_RenterRow renter) onRenterDoubleTap;
+  final VoidCallback onAddRenter;
 
   @override
   State<_RentersTable> createState() => _RentersTableState();
@@ -298,57 +358,102 @@ class _RentersTableState extends State<_RentersTable> {
           : 'Ничего не найдено',
       belowHeader: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: TextField(
-          controller: _searchController,
-          style: filterFieldTextStyle,
-          decoration: InputDecoration(
-            isDense: true,
-            hintText: 'Поиск арендатора',
-            hintStyle: filterFieldHintTextStyle,
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 10,
-              vertical: 10,
-            ),
-            prefixIcon: const Icon(
-              LucideIcons.search,
-              size: 16,
-              color: Colors.grey,
-            ),
-            suffixIcon: _searchQuery.isEmpty
-                ? null
-                : IconButton(
-                    tooltip: 'Очистить',
-                    onPressed: () {
-                      _searchController.clear();
-                      setState(() => _searchQuery = '');
-                    },
-                    icon: const Icon(
-                      LucideIcons.x,
-                      size: 16,
-                      color: Colors.grey,
-                    ),
+        child: Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _searchController,
+                style: filterFieldTextStyle,
+                decoration: InputDecoration(
+                  isDense: true,
+                  hintText: 'Поиск арендатора',
+                  hintStyle: filterFieldHintTextStyle,
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 10,
                   ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColors.border),
+                  prefixIcon: const Icon(
+                    LucideIcons.search,
+                    size: 16,
+                    color: Colors.grey,
+                  ),
+                  suffixIcon: _searchQuery.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: 'Очистить',
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                          icon: const Icon(
+                            LucideIcons.x,
+                            size: 16,
+                            color: Colors.grey,
+                          ),
+                        ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: AppColors.primary),
+                  ),
+                ),
+                onChanged: (value) => setState(() => _searchQuery = value),
+              ),
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColors.border),
+            const Gap(8),
+            IconButton(
+              tooltip: 'Добавить арендатора',
+              onPressed: widget.onAddRenter,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(
+                minWidth: 36,
+                minHeight: 36,
+              ),
+              style: IconButton.styleFrom(
+                backgroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: const BorderSide(color: AppColors.border),
+                ),
+              ),
+              icon: const Icon(
+                LucideIcons.plus,
+                size: 18,
+                color: AppColors.purple,
+              ),
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColors.primary),
-            ),
-          ),
-          onChanged: (value) => setState(() => _searchQuery = value),
+          ],
         ),
       ),
       onRowDoubleTap: (index) {
         widget.onRenterDoubleTap(filteredRenters[index]);
       },
+    );
+  }
+}
+
+class _RentersTablePlaceholder extends StatelessWidget {
+  const _RentersTablePlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: const Center(
+        child: CircularProgressIndicator(),
+      ),
     );
   }
 }
@@ -379,9 +484,19 @@ class _RentAccrualsTable extends StatelessWidget {
               child: const Row(
                 children: [
                   Expanded(
-                    flex: 3,
+                    flex: 2,
                     child: Text(
                       'Арендатор',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 3,
+                    child: Text(
+                      'р/с',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -431,9 +546,18 @@ class _RentAccrualsTable extends StatelessWidget {
                           child: Row(
                             children: [
                               Expanded(
-                                flex: 3,
+                                flex: 2,
                                 child: Text(
                                   entry.renter.name,
+                                  style: filterFieldTextStyle,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              Expanded(
+                                flex: 3,
+                                child: Text(
+                                  entry.renter.accountNumber,
                                   style: filterFieldTextStyle,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,

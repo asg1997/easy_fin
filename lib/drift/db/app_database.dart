@@ -6,6 +6,8 @@ import 'package:easy_fin/drift/models/bank_statement_operations_table.dart';
 import 'package:easy_fin/drift/models/bank_statements_table.dart';
 import 'package:easy_fin/drift/models/base_account_numbers_table.dart';
 import 'package:easy_fin/drift/models/bases_table.dart';
+import 'package:easy_fin/drift/models/renter_account_numbers_table.dart';
+import 'package:easy_fin/drift/models/renters_table.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -17,13 +19,15 @@ part 'app_database.g.dart';
     BaseAccountNumbers,
     BankStatements,
     BankStatementOperations,
+    Renters,
+    RenterAccountNumbers,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -33,6 +37,10 @@ class AppDatabase extends _$AppDatabase {
     onUpgrade: (migrator, from, to) async {
       if (from < 2) {
         await _migrateToV2(migrator);
+      }
+      if (from < 3) {
+        await migrator.createTable(renters);
+        await migrator.createTable(renterAccountNumbers);
       }
     },
   );

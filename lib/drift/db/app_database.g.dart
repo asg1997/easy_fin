@@ -1572,6 +1572,473 @@ class BankStatementOperationsCompanion
   }
 }
 
+class $RentersTable extends Renters with TableInfo<$RentersTable, RenterRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RentersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, name];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'renters';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RenterRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  RenterRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RenterRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+    );
+  }
+
+  @override
+  $RentersTable createAlias(String alias) {
+    return $RentersTable(attachedDatabase, alias);
+  }
+}
+
+class RenterRow extends DataClass implements Insertable<RenterRow> {
+  final String id;
+  final String name;
+  const RenterRow({required this.id, required this.name});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    return map;
+  }
+
+  RentersCompanion toCompanion(bool nullToAbsent) {
+    return RentersCompanion(id: Value(id), name: Value(name));
+  }
+
+  factory RenterRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RenterRow(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+    };
+  }
+
+  RenterRow copyWith({String? id, String? name}) =>
+      RenterRow(id: id ?? this.id, name: name ?? this.name);
+  RenterRow copyWithCompanion(RentersCompanion data) {
+    return RenterRow(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RenterRow(')
+          ..write('id: $id, ')
+          ..write('name: $name')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RenterRow && other.id == this.id && other.name == this.name);
+}
+
+class RentersCompanion extends UpdateCompanion<RenterRow> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<int> rowid;
+  const RentersCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RentersCompanion.insert({
+    required String id,
+    required String name,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name);
+  static Insertable<RenterRow> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RentersCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<int>? rowid,
+  }) {
+    return RentersCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RentersCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $RenterAccountNumbersTable extends RenterAccountNumbers
+    with TableInfo<$RenterAccountNumbersTable, RenterAccountNumber> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RenterAccountNumbersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _renterIdMeta = const VerificationMeta(
+    'renterId',
+  );
+  @override
+  late final GeneratedColumn<String> renterId = GeneratedColumn<String>(
+    'renter_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES renters (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _accountNumberMeta = const VerificationMeta(
+    'accountNumber',
+  );
+  @override
+  late final GeneratedColumn<String> accountNumber = GeneratedColumn<String>(
+    'account_number',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, renterId, accountNumber];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'renter_account_numbers';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RenterAccountNumber> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('renter_id')) {
+      context.handle(
+        _renterIdMeta,
+        renterId.isAcceptableOrUnknown(data['renter_id']!, _renterIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_renterIdMeta);
+    }
+    if (data.containsKey('account_number')) {
+      context.handle(
+        _accountNumberMeta,
+        accountNumber.isAcceptableOrUnknown(
+          data['account_number']!,
+          _accountNumberMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_accountNumberMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  RenterAccountNumber map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RenterAccountNumber(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      renterId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}renter_id'],
+      )!,
+      accountNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}account_number'],
+      )!,
+    );
+  }
+
+  @override
+  $RenterAccountNumbersTable createAlias(String alias) {
+    return $RenterAccountNumbersTable(attachedDatabase, alias);
+  }
+}
+
+class RenterAccountNumber extends DataClass
+    implements Insertable<RenterAccountNumber> {
+  final int id;
+  final String renterId;
+  final String accountNumber;
+  const RenterAccountNumber({
+    required this.id,
+    required this.renterId,
+    required this.accountNumber,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['renter_id'] = Variable<String>(renterId);
+    map['account_number'] = Variable<String>(accountNumber);
+    return map;
+  }
+
+  RenterAccountNumbersCompanion toCompanion(bool nullToAbsent) {
+    return RenterAccountNumbersCompanion(
+      id: Value(id),
+      renterId: Value(renterId),
+      accountNumber: Value(accountNumber),
+    );
+  }
+
+  factory RenterAccountNumber.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RenterAccountNumber(
+      id: serializer.fromJson<int>(json['id']),
+      renterId: serializer.fromJson<String>(json['renterId']),
+      accountNumber: serializer.fromJson<String>(json['accountNumber']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'renterId': serializer.toJson<String>(renterId),
+      'accountNumber': serializer.toJson<String>(accountNumber),
+    };
+  }
+
+  RenterAccountNumber copyWith({
+    int? id,
+    String? renterId,
+    String? accountNumber,
+  }) => RenterAccountNumber(
+    id: id ?? this.id,
+    renterId: renterId ?? this.renterId,
+    accountNumber: accountNumber ?? this.accountNumber,
+  );
+  RenterAccountNumber copyWithCompanion(RenterAccountNumbersCompanion data) {
+    return RenterAccountNumber(
+      id: data.id.present ? data.id.value : this.id,
+      renterId: data.renterId.present ? data.renterId.value : this.renterId,
+      accountNumber: data.accountNumber.present
+          ? data.accountNumber.value
+          : this.accountNumber,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RenterAccountNumber(')
+          ..write('id: $id, ')
+          ..write('renterId: $renterId, ')
+          ..write('accountNumber: $accountNumber')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, renterId, accountNumber);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RenterAccountNumber &&
+          other.id == this.id &&
+          other.renterId == this.renterId &&
+          other.accountNumber == this.accountNumber);
+}
+
+class RenterAccountNumbersCompanion
+    extends UpdateCompanion<RenterAccountNumber> {
+  final Value<int> id;
+  final Value<String> renterId;
+  final Value<String> accountNumber;
+  const RenterAccountNumbersCompanion({
+    this.id = const Value.absent(),
+    this.renterId = const Value.absent(),
+    this.accountNumber = const Value.absent(),
+  });
+  RenterAccountNumbersCompanion.insert({
+    this.id = const Value.absent(),
+    required String renterId,
+    required String accountNumber,
+  }) : renterId = Value(renterId),
+       accountNumber = Value(accountNumber);
+  static Insertable<RenterAccountNumber> custom({
+    Expression<int>? id,
+    Expression<String>? renterId,
+    Expression<String>? accountNumber,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (renterId != null) 'renter_id': renterId,
+      if (accountNumber != null) 'account_number': accountNumber,
+    });
+  }
+
+  RenterAccountNumbersCompanion copyWith({
+    Value<int>? id,
+    Value<String>? renterId,
+    Value<String>? accountNumber,
+  }) {
+    return RenterAccountNumbersCompanion(
+      id: id ?? this.id,
+      renterId: renterId ?? this.renterId,
+      accountNumber: accountNumber ?? this.accountNumber,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (renterId.present) {
+      map['renter_id'] = Variable<String>(renterId.value);
+    }
+    if (accountNumber.present) {
+      map['account_number'] = Variable<String>(accountNumber.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RenterAccountNumbersCompanion(')
+          ..write('id: $id, ')
+          ..write('renterId: $renterId, ')
+          ..write('accountNumber: $accountNumber')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1581,6 +2048,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $BankStatementsTable bankStatements = $BankStatementsTable(this);
   late final $BankStatementOperationsTable bankStatementOperations =
       $BankStatementOperationsTable(this);
+  late final $RentersTable renters = $RentersTable(this);
+  late final $RenterAccountNumbersTable renterAccountNumbers =
+      $RenterAccountNumbersTable(this);
   late final Index bankStatementsAccountPeriod = Index(
     'bank_statements_account_period',
     'CREATE UNIQUE INDEX bank_statements_account_period ON bank_statements (account_number, start_date, end_date)',
@@ -1598,6 +2068,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     baseAccountNumbers,
     bankStatements,
     bankStatementOperations,
+    renters,
+    renterAccountNumbers,
     bankStatementsAccountPeriod,
     bankStatementsBaseStartDate,
   ];
@@ -1625,6 +2097,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       result: [
         TableUpdate('bank_statement_operations', kind: UpdateKind.delete),
       ],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'renters',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('renter_account_numbers', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -3376,6 +3855,550 @@ typedef $$BankStatementOperationsTableProcessedTableManager =
       BankStatementOperationRow,
       PrefetchHooks Function({bool statementId})
     >;
+typedef $$RentersTableCreateCompanionBuilder =
+    RentersCompanion Function({
+      required String id,
+      required String name,
+      Value<int> rowid,
+    });
+typedef $$RentersTableUpdateCompanionBuilder =
+    RentersCompanion Function({
+      Value<String> id,
+      Value<String> name,
+      Value<int> rowid,
+    });
+
+final class $$RentersTableReferences
+    extends BaseReferences<_$AppDatabase, $RentersTable, RenterRow> {
+  $$RentersTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<
+    $RenterAccountNumbersTable,
+    List<RenterAccountNumber>
+  >
+  _renterAccountNumbersRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.renterAccountNumbers,
+        aliasName: $_aliasNameGenerator(
+          db.renters.id,
+          db.renterAccountNumbers.renterId,
+        ),
+      );
+
+  $$RenterAccountNumbersTableProcessedTableManager
+  get renterAccountNumbersRefs {
+    final manager = $$RenterAccountNumbersTableTableManager(
+      $_db,
+      $_db.renterAccountNumbers,
+    ).filter((f) => f.renterId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _renterAccountNumbersRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$RentersTableFilterComposer
+    extends Composer<_$AppDatabase, $RentersTable> {
+  $$RentersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> renterAccountNumbersRefs(
+    Expression<bool> Function($$RenterAccountNumbersTableFilterComposer f) f,
+  ) {
+    final $$RenterAccountNumbersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.renterAccountNumbers,
+      getReferencedColumn: (t) => t.renterId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RenterAccountNumbersTableFilterComposer(
+            $db: $db,
+            $table: $db.renterAccountNumbers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$RentersTableOrderingComposer
+    extends Composer<_$AppDatabase, $RentersTable> {
+  $$RentersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RentersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RentersTable> {
+  $$RentersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  Expression<T> renterAccountNumbersRefs<T extends Object>(
+    Expression<T> Function($$RenterAccountNumbersTableAnnotationComposer a) f,
+  ) {
+    final $$RenterAccountNumbersTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.renterAccountNumbers,
+          getReferencedColumn: (t) => t.renterId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$RenterAccountNumbersTableAnnotationComposer(
+                $db: $db,
+                $table: $db.renterAccountNumbers,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+}
+
+class $$RentersTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RentersTable,
+          RenterRow,
+          $$RentersTableFilterComposer,
+          $$RentersTableOrderingComposer,
+          $$RentersTableAnnotationComposer,
+          $$RentersTableCreateCompanionBuilder,
+          $$RentersTableUpdateCompanionBuilder,
+          (RenterRow, $$RentersTableReferences),
+          RenterRow,
+          PrefetchHooks Function({bool renterAccountNumbersRefs})
+        > {
+  $$RentersTableTableManager(_$AppDatabase db, $RentersTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RentersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RentersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RentersTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RentersCompanion(id: id, name: name, rowid: rowid),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                Value<int> rowid = const Value.absent(),
+              }) => RentersCompanion.insert(id: id, name: name, rowid: rowid),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$RentersTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({renterAccountNumbersRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (renterAccountNumbersRefs) db.renterAccountNumbers,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (renterAccountNumbersRefs)
+                    await $_getPrefetchedData<
+                      RenterRow,
+                      $RentersTable,
+                      RenterAccountNumber
+                    >(
+                      currentTable: table,
+                      referencedTable: $$RentersTableReferences
+                          ._renterAccountNumbersRefsTable(db),
+                      managerFromTypedResult: (p0) => $$RentersTableReferences(
+                        db,
+                        table,
+                        p0,
+                      ).renterAccountNumbersRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.renterId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$RentersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RentersTable,
+      RenterRow,
+      $$RentersTableFilterComposer,
+      $$RentersTableOrderingComposer,
+      $$RentersTableAnnotationComposer,
+      $$RentersTableCreateCompanionBuilder,
+      $$RentersTableUpdateCompanionBuilder,
+      (RenterRow, $$RentersTableReferences),
+      RenterRow,
+      PrefetchHooks Function({bool renterAccountNumbersRefs})
+    >;
+typedef $$RenterAccountNumbersTableCreateCompanionBuilder =
+    RenterAccountNumbersCompanion Function({
+      Value<int> id,
+      required String renterId,
+      required String accountNumber,
+    });
+typedef $$RenterAccountNumbersTableUpdateCompanionBuilder =
+    RenterAccountNumbersCompanion Function({
+      Value<int> id,
+      Value<String> renterId,
+      Value<String> accountNumber,
+    });
+
+final class $$RenterAccountNumbersTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $RenterAccountNumbersTable,
+          RenterAccountNumber
+        > {
+  $$RenterAccountNumbersTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $RentersTable _renterIdTable(_$AppDatabase db) =>
+      db.renters.createAlias(
+        $_aliasNameGenerator(db.renterAccountNumbers.renterId, db.renters.id),
+      );
+
+  $$RentersTableProcessedTableManager get renterId {
+    final $_column = $_itemColumn<String>('renter_id')!;
+
+    final manager = $$RentersTableTableManager(
+      $_db,
+      $_db.renters,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_renterIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$RenterAccountNumbersTableFilterComposer
+    extends Composer<_$AppDatabase, $RenterAccountNumbersTable> {
+  $$RenterAccountNumbersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get accountNumber => $composableBuilder(
+    column: $table.accountNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$RentersTableFilterComposer get renterId {
+    final $$RentersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.renterId,
+      referencedTable: $db.renters,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RentersTableFilterComposer(
+            $db: $db,
+            $table: $db.renters,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$RenterAccountNumbersTableOrderingComposer
+    extends Composer<_$AppDatabase, $RenterAccountNumbersTable> {
+  $$RenterAccountNumbersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get accountNumber => $composableBuilder(
+    column: $table.accountNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$RentersTableOrderingComposer get renterId {
+    final $$RentersTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.renterId,
+      referencedTable: $db.renters,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RentersTableOrderingComposer(
+            $db: $db,
+            $table: $db.renters,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$RenterAccountNumbersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RenterAccountNumbersTable> {
+  $$RenterAccountNumbersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get accountNumber => $composableBuilder(
+    column: $table.accountNumber,
+    builder: (column) => column,
+  );
+
+  $$RentersTableAnnotationComposer get renterId {
+    final $$RentersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.renterId,
+      referencedTable: $db.renters,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RentersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.renters,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$RenterAccountNumbersTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RenterAccountNumbersTable,
+          RenterAccountNumber,
+          $$RenterAccountNumbersTableFilterComposer,
+          $$RenterAccountNumbersTableOrderingComposer,
+          $$RenterAccountNumbersTableAnnotationComposer,
+          $$RenterAccountNumbersTableCreateCompanionBuilder,
+          $$RenterAccountNumbersTableUpdateCompanionBuilder,
+          (RenterAccountNumber, $$RenterAccountNumbersTableReferences),
+          RenterAccountNumber,
+          PrefetchHooks Function({bool renterId})
+        > {
+  $$RenterAccountNumbersTableTableManager(
+    _$AppDatabase db,
+    $RenterAccountNumbersTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RenterAccountNumbersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RenterAccountNumbersTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$RenterAccountNumbersTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> renterId = const Value.absent(),
+                Value<String> accountNumber = const Value.absent(),
+              }) => RenterAccountNumbersCompanion(
+                id: id,
+                renterId: renterId,
+                accountNumber: accountNumber,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String renterId,
+                required String accountNumber,
+              }) => RenterAccountNumbersCompanion.insert(
+                id: id,
+                renterId: renterId,
+                accountNumber: accountNumber,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$RenterAccountNumbersTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({renterId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (renterId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.renterId,
+                                referencedTable:
+                                    $$RenterAccountNumbersTableReferences
+                                        ._renterIdTable(db),
+                                referencedColumn:
+                                    $$RenterAccountNumbersTableReferences
+                                        ._renterIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$RenterAccountNumbersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RenterAccountNumbersTable,
+      RenterAccountNumber,
+      $$RenterAccountNumbersTableFilterComposer,
+      $$RenterAccountNumbersTableOrderingComposer,
+      $$RenterAccountNumbersTableAnnotationComposer,
+      $$RenterAccountNumbersTableCreateCompanionBuilder,
+      $$RenterAccountNumbersTableUpdateCompanionBuilder,
+      (RenterAccountNumber, $$RenterAccountNumbersTableReferences),
+      RenterAccountNumber,
+      PrefetchHooks Function({bool renterId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3391,4 +4414,8 @@ class $AppDatabaseManager {
         _db,
         _db.bankStatementOperations,
       );
+  $$RentersTableTableManager get renters =>
+      $$RentersTableTableManager(_db, _db.renters);
+  $$RenterAccountNumbersTableTableManager get renterAccountNumbers =>
+      $$RenterAccountNumbersTableTableManager(_db, _db.renterAccountNumbers);
 }
