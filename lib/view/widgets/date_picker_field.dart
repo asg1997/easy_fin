@@ -2,6 +2,7 @@ import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class DatePickerField extends StatelessWidget {
   const DatePickerField({
@@ -29,45 +30,73 @@ class DatePickerField extends StatelessWidget {
           side: const BorderSide(color: AppColors.border),
         ),
         clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () async {
-            final now = DateTime.now();
-            final today = DateTime(now.year, now.month, now.day);
-            var initialDate = selectedDate ?? today;
-            if (initialDate.isAfter(today)) {
-              initialDate = today;
-            }
+        child: Row(
+          children: [
+            Expanded(
+              child: InkWell(
+                onTap: () async {
+                  final now = DateTime.now();
+                  final today = DateTime(now.year, now.month, now.day);
+                  var initialDate = selectedDate ?? today;
+                  if (initialDate.isAfter(today)) {
+                    initialDate = today;
+                  }
 
-            final date = await showDatePicker(
-              context: context,
-              locale: const Locale('ru'),
-              initialDate: initialDate,
-              firstDate: DateTime(2000),
-              lastDate: today,
-            );
-            if (date != null) {
-              onChanged(date);
-            }
-          },
-          child: SizedBox(
-            height: filterFieldHeight,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: filterFieldHorizontalPadding,
-              ),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  selectedDate == null
-                      ? hint
-                      : DateFormat('dd.MM.yyyy', 'ru').format(selectedDate!),
-                  style: selectedDate == null
-                      ? filterFieldHintTextStyle
-                      : filterFieldTextStyle,
+                  final date = await showDatePicker(
+                    context: context,
+                    locale: const Locale('ru'),
+                    initialDate: initialDate,
+                    firstDate: DateTime(2000),
+                    lastDate: today,
+                  );
+                  if (date != null) {
+                    onChanged(date);
+                  }
+                },
+                child: SizedBox(
+                  height: filterFieldHeight,
+                  child: Padding(
+                    padding: const EdgeInsets.only(
+                      left: filterFieldHorizontalPadding,
+                    ),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        selectedDate == null
+                            ? hint
+                            : DateFormat(
+                                'dd.MM.yyyy',
+                                'ru',
+                              ).format(selectedDate!),
+                        style: selectedDate == null
+                            ? filterFieldHintTextStyle
+                            : filterFieldTextStyle,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
+            if (selectedDate != null)
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: IconButton(
+                  tooltip: 'Сбросить',
+                  onPressed: () => onChanged(null),
+                  icon: const Icon(
+                    LucideIcons.x,
+                    size: 16,
+                    color: Colors.grey,
+                  ),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+          ],
         ),
       ),
     );
