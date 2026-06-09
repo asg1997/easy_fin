@@ -2,11 +2,14 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
+class Xls2CvsConverterError extends Error {
+  Xls2CvsConverterError({required this.message});
+
+  final String message;
+}
+
 /// Конвертация .xls/.xlsx → .csv через LibreOffice.
-///
-/// На macOS в [DebugProfile.entitlements] и [Release.entitlements] должен
-/// быть отключён App Sandbox (`com.apple.security.app-sandbox` = false),
-/// иначе внешний `soffice` не сможет записать CSV.
+/// Выбрасывает ошибку [Xls2CvsConverterError].
 class Xls2CvsConverter {
   const Xls2CvsConverter._();
   static Xls2CvsConverter get instance => _instance;
@@ -38,8 +41,8 @@ class Xls2CvsConverter {
       ],
     );
     if (result.exitCode != 0) {
-      throw Exception(
-        'Convert error (exit ${result.exitCode}): ${result.stderr}',
+      throw Xls2CvsConverterError(
+        message: 'Ошибка при конвертации: ${result.stderr}',
       );
     }
 
@@ -53,7 +56,9 @@ class Xls2CvsConverter {
         .where((file) => file.path.toLowerCase().endsWith('.csv'))
         .toList();
     if (csvFiles.isEmpty) {
-      throw Exception('CSV not found after conversion in ${workDir.path}');
+      throw Xls2CvsConverterError(
+        message: 'CSV не найден после конвертации в ${workDir.path}',
+      );
     }
 
     final exactMatch = csvFiles.where(
@@ -67,9 +72,10 @@ class Xls2CvsConverter {
       return csvFiles.first;
     }
 
-    throw Exception(
-      'Ambiguous CSV after conversion in ${workDir.path}: '
-      '${csvFiles.map((f) => p.basename(f.path)).join(', ')}',
+    throw Xls2CvsConverterError(
+      message:
+          'Неоднозначный CSV после конвертации в ${workDir.path}: '
+          '${csvFiles.map((f) => p.basename(f.path)).join(', ')}',
     );
   }
 }

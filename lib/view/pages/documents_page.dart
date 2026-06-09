@@ -2,8 +2,9 @@ import 'package:easy_fin/models/account_filter_type.dart';
 import 'package:easy_fin/models/base.dart';
 import 'package:easy_fin/models/document_type.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
-import 'package:easy_fin/view/data/documents_mock_data.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
+import 'package:easy_fin/view/providers/documents_filters_provider.dart';
+import 'package:easy_fin/view/providers/documents_list_provider.dart';
 import 'package:easy_fin/view/widgets/date_picker_field.dart';
 import 'package:easy_fin/view/widgets/documents_table.dart';
 import 'package:easy_fin/view/widgets/multi_dropdown_widget.dart';
@@ -12,23 +13,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
-class DocumentsPage extends ConsumerStatefulWidget {
+class DocumentsPage extends ConsumerWidget {
   const DocumentsPage({super.key});
 
   @override
-  ConsumerState<DocumentsPage> createState() => _DocumentsPageState();
-}
-
-class _DocumentsPageState extends ConsumerState<DocumentsPage> {
-  Set<DocumentType> _documentTypes = {};
-  Set<Base> _selectedBases = {};
-  Set<AccountFilterType> _accountFilters = {};
-  DateTime? _startDate;
-  DateTime? _endDate;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final basesAsync = ref.watch(basesListProvider);
+    final filters = ref.watch(documentsFiltersProvider);
+    final documentsAsync = ref.watch(documentsListProvider);
+    final filtersNotifier = ref.read(documentsFiltersProvider.notifier);
 
     return TemplatePage(
       title: 'Документы',
@@ -42,13 +35,9 @@ class _DocumentsPageState extends ConsumerState<DocumentsPage> {
                   expand: true,
                   items: DocumentType.values,
                   hint: 'Тип',
-                  selectedItems: _documentTypes,
+                  selectedItems: filters.documentTypes,
                   labelBuilder: (item) => item.label,
-                  onChanged: (items) {
-                    setState(() {
-                      _documentTypes = items;
-                    });
-                  },
+                  onChanged: filtersNotifier.setDocumentTypes,
                 ),
               ),
               const Gap(12),
@@ -58,13 +47,9 @@ class _DocumentsPageState extends ConsumerState<DocumentsPage> {
                     expand: true,
                     items: bases,
                     hint: 'Выбор базы',
-                    selectedItems: _selectedBases,
+                    selectedItems: filters.selectedBases,
                     labelBuilder: (item) => item.name,
-                    onChanged: (items) {
-                      setState(() {
-                        _selectedBases = items;
-                      });
-                    },
+                    onChanged: filtersNotifier.setSelectedBases,
                   ),
                   loading: () => const _FilterPlaceholder(label: 'Выбор базы'),
                   error: (_, _) =>
@@ -77,13 +62,9 @@ class _DocumentsPageState extends ConsumerState<DocumentsPage> {
                   expand: true,
                   items: AccountFilterType.values,
                   hint: 'Касса/Банк',
-                  selectedItems: _accountFilters,
+                  selectedItems: filters.accountFilters,
                   labelBuilder: (item) => item.label,
-                  onChanged: (items) {
-                    setState(() {
-                      _accountFilters = items;
-                    });
-                  },
+                  onChanged: filtersNotifier.setAccountFilters,
                 ),
               ),
             ],
@@ -95,12 +76,8 @@ class _DocumentsPageState extends ConsumerState<DocumentsPage> {
                 child: DatePickerField(
                   expand: true,
                   hint: 'Дата начала',
-                  selectedDate: _startDate,
-                  onChanged: (date) {
-                    setState(() {
-                      _startDate = date;
-                    });
-                  },
+                  selectedDate: filters.startDate,
+                  onChanged: filtersNotifier.setStartDate,
                 ),
               ),
               const Gap(12),
@@ -108,12 +85,8 @@ class _DocumentsPageState extends ConsumerState<DocumentsPage> {
                 child: DatePickerField(
                   expand: true,
                   hint: 'Дата конца',
-                  selectedDate: _endDate,
-                  onChanged: (date) {
-                    setState(() {
-                      _endDate = date;
-                    });
-                  },
+                  selectedDate: filters.endDate,
+                  onChanged: filtersNotifier.setEndDate,
                 ),
               ),
             ],
@@ -122,7 +95,13 @@ class _DocumentsPageState extends ConsumerState<DocumentsPage> {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.only(bottom: 20),
-              child: DocumentsTable(items: documentsMockData),
+              child: documentsAsync.when(
+                data: (items) => DocumentsTable(items: items),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (_, _) => const Center(
+                  child: Text('Не удалось загрузить документы'),
+                ),
+              ),
             ),
           ),
         ],

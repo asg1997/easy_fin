@@ -1,5 +1,6 @@
 import 'package:easy_fin/data/bank_statements_importing/bank_statement_parser/bank_statement_parser.dart';
 import 'package:easy_fin/data/bank_statements_importing/bank_statement_parser/xls2_cvs_converter.dart';
+import 'package:easy_fin/data/bank_statements_importing/errors/bank_statement_import_error.dart';
 import 'package:easy_fin/data/models/back_statement.dart';
 import 'package:easy_fin/models/bank_statement_import_request.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +15,11 @@ final bankStatementsImporterProvider = Provider<BankStatementsImporter>(
 );
 
 /// Импортер выписок по банковскому счету
+///
+/// Выбрасывает ошибку [BankStatementImportError].
+///
+/// Если возникает ошибка при конвертации, выбрасывает ошибку [Xls2CvsConverterError].
+
 abstract class BankStatementsImporter {
   Future<BankStatementResult> import(BankStatementImportRequest request);
 }

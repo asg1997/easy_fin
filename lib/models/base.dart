@@ -10,6 +10,12 @@ class Base extends Equatable {
     required this.accountNumbers,
   });
 
+  factory Base.create(String name, List<AccountNumber> accountNumbers) => Base(
+    id: DateTime.now().microsecondsSinceEpoch.toString(),
+    name: name,
+    accountNumbers: accountNumbers,
+  );
+
   final BaseId id;
   final String name;
   final List<AccountNumber> accountNumbers;

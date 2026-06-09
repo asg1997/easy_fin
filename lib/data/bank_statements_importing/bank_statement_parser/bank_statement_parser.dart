@@ -17,8 +17,11 @@ final bankStatementParserProvider = Provider<BankStatementParser>(
 
 /// Парсит выписки по банковскому счету из списка файлов.
 /// Автоматически определяет банк по файлу
-/// Выбрасывает ошибку [BankStatementImportError]
-
+/// Выбрасывает ошибку [BankStatementImportError].
+///
+/// Если банк не определен, выбрасывает ошибку [BankStatementUnknownBankError].
+///
+/// Если возникает другая ошибка, выбрасывает ошибку [BankStatementImportErrorUnknown].
 abstract class BankStatementParser {
   Future<List<BankStatement>> parse(List<File> files);
 }
@@ -53,7 +56,7 @@ class BankStatementParserImpl implements BankStatementParser {
       return BankAccount.vtb;
     }
     throw BankStatementUnknownBankError(
-      message: 'Unknown bank: $lowerCasePath',
+      message: 'Неизвестный банк: $lowerCasePath',
     );
   }
 }

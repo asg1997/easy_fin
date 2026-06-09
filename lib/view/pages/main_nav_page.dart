@@ -5,6 +5,7 @@ import 'package:easy_fin/view/pages/database_page.dart';
 import 'package:easy_fin/view/pages/documents_page.dart';
 import 'package:easy_fin/view/pages/reports_page.dart';
 import 'package:easy_fin/view/pages/settings_page.dart';
+import 'package:easy_fin/view/widgets/import_state_listener.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
@@ -35,9 +36,10 @@ class _MainNavPageState extends ConsumerState<MainNavPage> {
   @override
   Widget build(BuildContext context) {
     final importState = ref.watch(importControllerProvider);
-    final isImportLoading = importState.isLoading;
+    final isImportLoading = importState.isImportInProgress;
 
-    return Scaffold(
+    return ImportStateListener(
+      child: Scaffold(
       body: Row(
         mainAxisSize: MainAxisSize.min,
 
@@ -222,6 +224,7 @@ class _MainNavPageState extends ConsumerState<MainNavPage> {
           ),
         ],
       ),
+    ),
     );
   }
 }

@@ -8,15 +8,17 @@ sealed class BankStatementImportError with EquatableMixin implements Exception {
   final String? message;
 }
 
-class BankStatementImportErrorUnknown extends BankStatementImportError {
-  BankStatementImportErrorUnknown({required super.message});
+/// Неизвестный банк
+class BankStatementUnknownBankError extends BankStatementImportError {
+  BankStatementUnknownBankError({super.message});
 
   @override
   List<Object?> get props => [message];
 }
 
-class BankStatementUnknownBankError extends BankStatementImportError {
-  BankStatementUnknownBankError({required super.message});
+/// Неизвестная ошибка при импорте выписок
+class BankStatementImportErrorUnknown extends BankStatementImportError {
+  BankStatementImportErrorUnknown({super.message});
 
   @override
   List<Object?> get props => [message];
