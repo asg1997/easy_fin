@@ -50,6 +50,7 @@ class DocumentsStorageImpl implements DocumentsStorage {
             accountType: AccountFilterType.bank.label,
             baseName: baseName,
             amount: operation.credit ?? operation.debit ?? 0,
+            note: operation.note,
           ),
         );
       }

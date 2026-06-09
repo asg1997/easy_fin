@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:easy_fin/models/document_type.dart';
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
@@ -10,13 +12,15 @@ enum DocumentsTableColumn {
   date,
   bankCash,
   base,
-  amount;
+  amount,
+  description;
 
   String get label => switch (this) {
     DocumentsTableColumn.date => 'Дата',
     DocumentsTableColumn.bankCash => 'Банк/Касса',
     DocumentsTableColumn.base => 'База',
     DocumentsTableColumn.amount => 'Сумма',
+    DocumentsTableColumn.description => 'Описание',
   };
 
   bool get canHide => this != date && this != amount;
@@ -105,6 +109,9 @@ class _DocumentsTableState extends State<DocumentsTable> {
   Future<void> _showColumnSettings() async {
     var showBankCash = _visibleColumns.contains(DocumentsTableColumn.bankCash);
     var showBase = _visibleColumns.contains(DocumentsTableColumn.base);
+    var showDescription = _visibleColumns.contains(
+      DocumentsTableColumn.description,
+    );
 
     await showDialog<void>(
       context: context,
@@ -148,6 +155,16 @@ class _DocumentsTableState extends State<DocumentsTable> {
                     value: true,
                     onChanged: null,
                   ),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Описание'),
+                    value: showDescription,
+                    onChanged: (value) {
+                      setDialogState(() {
+                        showDescription = value ?? false;
+                      });
+                    },
+                  ),
                 ],
               ),
               actions: [
@@ -159,6 +176,10 @@ class _DocumentsTableState extends State<DocumentsTable> {
                   onPressed: () {
                     _toggleColumn(DocumentsTableColumn.bankCash, showBankCash);
                     _toggleColumn(DocumentsTableColumn.base, showBase);
+                    _toggleColumn(
+                      DocumentsTableColumn.description,
+                      showDescription,
+                    );
                     Navigator.pop(context);
                   },
                   child: const Text('Применить'),
@@ -201,48 +222,65 @@ class _DocumentsTableState extends State<DocumentsTable> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(10),
-              child: Column(
-                children: [
-                  _DocumentsTableHeader(
-                    columns: visibleColumns,
-                    isAmountSearchVisible: _isAmountSearchVisible,
-                    amountSearchController: _amountSearchController,
-                    amountSearchFocusNode: _amountSearchFocusNode,
-                    onAmountSearchToggle: _toggleAmountSearch,
-                    onAmountSearchChanged: (value) {
-                      setState(() {
-                        _amountSearchQuery = value;
-                      });
-                    },
-                  ),
-                  Expanded(
-                    child: filteredItems.isEmpty
-                        ? Center(
-                            child: Text(
-                              widget.items.isEmpty
-                                  ? 'Нет документов'
-                                  : 'Ничего не найдено',
-                              style: filterFieldHintTextStyle,
-                            ),
-                          )
-                        : ListView.separated(
-                            itemCount: filteredItems.length,
-                            separatorBuilder: (_, _) => const Divider(
-                              height: 1,
-                              thickness: 1,
-                              color: AppColors.border,
-                            ),
-                            itemBuilder: (context, index) {
-                              return _DocumentsTableRow(
-                                item: filteredItems[index],
-                                columns: visibleColumns,
-                                dateFormat: _dateFormat,
-                                amountFormat: _amountFormat,
-                              );
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final tableWidth = math.max(
+                    constraints.maxWidth,
+                    _DocumentsTableLayout.minWidthFor(visibleColumns),
+                  );
+
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: tableWidth,
+                      height: constraints.maxHeight,
+                      child: Column(
+                        children: [
+                          _DocumentsTableHeader(
+                            columns: visibleColumns,
+                            isAmountSearchVisible: _isAmountSearchVisible,
+                            amountSearchController: _amountSearchController,
+                            amountSearchFocusNode: _amountSearchFocusNode,
+                            onAmountSearchToggle: _toggleAmountSearch,
+                            onAmountSearchChanged: (value) {
+                              setState(() {
+                                _amountSearchQuery = value;
+                              });
                             },
                           ),
-                  ),
-                ],
+                          Expanded(
+                            child: filteredItems.isEmpty
+                                ? Center(
+                                    child: Text(
+                                      widget.items.isEmpty
+                                          ? 'Нет документов'
+                                          : 'Ничего не найдено',
+                                      style: filterFieldHintTextStyle,
+                                    ),
+                                  )
+                                : ListView.separated(
+                                    itemCount: filteredItems.length,
+                                    separatorBuilder: (_, _) =>
+                                        const Divider(
+                                      height: 1,
+                                      thickness: 1,
+                                      color: AppColors.border,
+                                    ),
+                                    itemBuilder: (context, index) {
+                                      return _DocumentsTableRow(
+                                        item: filteredItems[index],
+                                        columns: visibleColumns,
+                                        dateFormat: _dateFormat,
+                                        amountFormat: _amountFormat,
+                                      );
+                                    },
+                                  ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ),
@@ -377,11 +415,14 @@ class _AmountColumnHeader extends StatelessWidget {
             color: Colors.grey,
           ),
         ),
-        const Text(
-          'Сумма',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
+        const Flexible(
+          child: Text(
+            'Сумма',
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
       ],
@@ -414,13 +455,20 @@ class _DocumentsTableRow extends StatelessWidget {
               child: column == DocumentsTableColumn.amount
                   ? Text(
                       amountFormat.format(item.amount),
+                      textAlign: TextAlign.right,
                       style: filterFieldTextStyle.copyWith(
                         color: _amountColor(item.documentType),
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     )
                   : Text(
                       _valueForColumn(column),
                       style: filterFieldTextStyle,
+                      maxLines: column == DocumentsTableColumn.description
+                          ? 2
+                          : 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
             ),
         ],
@@ -434,6 +482,7 @@ class _DocumentsTableRow extends StatelessWidget {
       DocumentsTableColumn.bankCash => item.accountType,
       DocumentsTableColumn.base => item.baseName,
       DocumentsTableColumn.amount => amountFormat.format(item.amount),
+      DocumentsTableColumn.description => item.note,
     };
   }
 
@@ -446,6 +495,43 @@ class _DocumentsTableRow extends StatelessWidget {
   }
 }
 
+class _DocumentsTableLayout {
+  static const Map<DocumentsTableColumn, int> flexByColumn = {
+    DocumentsTableColumn.date: 2,
+    DocumentsTableColumn.bankCash: 2,
+    DocumentsTableColumn.base: 3,
+    DocumentsTableColumn.amount: 2,
+    DocumentsTableColumn.description: 4,
+  };
+
+  static const Map<DocumentsTableColumn, double> minWidthByColumn = {
+    DocumentsTableColumn.date: 96,
+    DocumentsTableColumn.bankCash: 110,
+    DocumentsTableColumn.base: 120,
+    DocumentsTableColumn.amount: 130,
+    DocumentsTableColumn.description: 200,
+  };
+
+  static const double horizontalPadding = 32;
+
+  static EdgeInsets paddingForColumn(DocumentsTableColumn column) {
+    return switch (column) {
+      DocumentsTableColumn.amount => const EdgeInsets.only(right: 20),
+      DocumentsTableColumn.description => const EdgeInsets.only(left: 4),
+      _ => EdgeInsets.zero,
+    };
+  }
+
+  static double minWidthFor(List<DocumentsTableColumn> columns) {
+    var width = horizontalPadding;
+    for (final column in columns) {
+      width +=
+          minWidthByColumn[column]! + paddingForColumn(column).horizontal;
+    }
+    return width;
+  }
+}
+
 class _DocumentsTableCell extends StatelessWidget {
   const _DocumentsTableCell({
     required this.column,
@@ -455,21 +541,12 @@ class _DocumentsTableCell extends StatelessWidget {
   final DocumentsTableColumn column;
   final Widget child;
 
-  static const Map<DocumentsTableColumn, int> _flexByColumn = {
-    DocumentsTableColumn.date: 2,
-    DocumentsTableColumn.bankCash: 2,
-    DocumentsTableColumn.base: 3,
-    DocumentsTableColumn.amount: 2,
-  };
-
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      flex: _flexByColumn[column]!,
-      child: Align(
-        alignment: column == DocumentsTableColumn.amount
-            ? Alignment.centerRight
-            : Alignment.centerLeft,
+      flex: _DocumentsTableLayout.flexByColumn[column]!,
+      child: Padding(
+        padding: _DocumentsTableLayout.paddingForColumn(column),
         child: child,
       ),
     );

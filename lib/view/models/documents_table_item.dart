@@ -7,6 +7,7 @@ class DocumentsTableItem {
     required this.accountType,
     required this.baseName,
     required this.amount,
+    required this.note,
   });
 
   final DateTime date;
@@ -14,4 +15,5 @@ class DocumentsTableItem {
   final String accountType;
   final String baseName;
   final double amount;
+  final String note;
 }
