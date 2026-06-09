@@ -43,8 +43,12 @@ class DocumentsStorageImpl implements DocumentsStorage {
       final baseName = baseByAccountNumber[statement.accountNumber] ?? '';
 
       for (final operation in statement.operations) {
+        final operationId = operation.id;
+        if (operationId == null) continue;
+
         items.add(
           DocumentsTableItem(
+            operationId: operationId,
             date: operation.date,
             documentType: _documentType(operation.isCredit),
             accountType: AccountFilterType.bank.label,

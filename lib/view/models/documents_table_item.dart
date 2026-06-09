@@ -2,6 +2,7 @@ import 'package:easy_fin/models/document_type.dart';
 
 class DocumentsTableItem {
   const DocumentsTableItem({
+    required this.operationId,
     required this.date,
     required this.documentType,
     required this.accountType,
@@ -10,6 +11,7 @@ class DocumentsTableItem {
     required this.note,
   });
 
+  final int operationId;
   final DateTime date;
   final DocumentType documentType;
   final String accountType;

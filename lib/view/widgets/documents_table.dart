@@ -1,10 +1,14 @@
 import 'dart:math' as math;
 
+import 'package:easy_fin/data/bank_statements_storage/bank_statement_storage.dart';
 import 'package:easy_fin/models/document_type.dart';
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:easy_fin/view/models/documents_table_item.dart';
+import 'package:easy_fin/view/providers/documents_list_provider.dart';
+import 'package:easy_fin/view/widgets/confirm_dialog.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -26,7 +30,7 @@ enum DocumentsTableColumn {
   bool get canHide => this != date && this != amount;
 }
 
-class DocumentsTable extends StatefulWidget {
+class DocumentsTable extends ConsumerStatefulWidget {
   const DocumentsTable({
     required this.items,
     super.key,
@@ -35,10 +39,10 @@ class DocumentsTable extends StatefulWidget {
   final List<DocumentsTableItem> items;
 
   @override
-  State<DocumentsTable> createState() => _DocumentsTableState();
+  ConsumerState<DocumentsTable> createState() => _DocumentsTableState();
 }
 
-class _DocumentsTableState extends State<DocumentsTable> {
+class _DocumentsTableState extends ConsumerState<DocumentsTable> {
   final Set<DocumentsTableColumn> _visibleColumns =
       DocumentsTableColumn.values.toSet();
   final TextEditingController _amountSearchController =
@@ -92,6 +96,24 @@ class _DocumentsTableState extends State<DocumentsTable> {
 
   List<DocumentsTableItem> get _filteredItems {
     return widget.items.where(_matchesAmountSearch).toList();
+  }
+
+  Future<void> _confirmDeleteOperation(DocumentsTableItem item) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return const ConfirmDialog(
+          title: 'Удалить операцию?',
+          message: 'Операция будет удалена безвозвратно.',
+          confirmLabel: 'Удалить',
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    await ref.read(bankStatementStorageProvider).deleteOperation(item.operationId);
+    ref.invalidate(documentsListProvider);
   }
 
   void _toggleColumn(DocumentsTableColumn column, bool isVisible) {
@@ -267,11 +289,14 @@ class _DocumentsTableState extends State<DocumentsTable> {
                                       color: AppColors.border,
                                     ),
                                     itemBuilder: (context, index) {
+                                      final item = filteredItems[index];
                                       return _DocumentsTableRow(
-                                        item: filteredItems[index],
+                                        item: item,
                                         columns: visibleColumns,
                                         dateFormat: _dateFormat,
                                         amountFormat: _amountFormat,
+                                        onDelete: () =>
+                                            _confirmDeleteOperation(item),
                                       );
                                     },
                                   ),
@@ -436,42 +461,72 @@ class _DocumentsTableRow extends StatelessWidget {
     required this.columns,
     required this.dateFormat,
     required this.amountFormat,
+    required this.onDelete,
   });
 
   final DocumentsTableItem item;
   final List<DocumentsTableColumn> columns;
   final DateFormat dateFormat;
   final NumberFormat amountFormat;
+  final VoidCallback onDelete;
+
+  Future<void> _showContextMenu(BuildContext context, Offset globalPosition) async {
+    final overlay = Overlay.of(context).context.findRenderObject()! as RenderBox;
+    final position = RelativeRect.fromRect(
+      Rect.fromPoints(globalPosition, globalPosition),
+      Offset.zero & overlay.size,
+    );
+
+    final action = await showMenu<String>(
+      context: context,
+      position: position,
+      items: const [
+        PopupMenuItem(
+          value: 'delete',
+          child: Text('Удалить'),
+        ),
+      ],
+    );
+
+    if (action == 'delete') {
+      onDelete();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          for (final column in columns)
-            _DocumentsTableCell(
-              column: column,
-              child: column == DocumentsTableColumn.amount
-                  ? Text(
-                      amountFormat.format(item.amount),
-                      textAlign: TextAlign.right,
-                      style: filterFieldTextStyle.copyWith(
-                        color: _amountColor(item.documentType),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onSecondaryTapUp: (details) =>
+          _showContextMenu(context, details.globalPosition),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            for (final column in columns)
+              _DocumentsTableCell(
+                column: column,
+                child: column == DocumentsTableColumn.amount
+                    ? Text(
+                        amountFormat.format(item.amount),
+                        textAlign: TextAlign.right,
+                        style: filterFieldTextStyle.copyWith(
+                          color: _amountColor(item.documentType),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      )
+                    : Text(
+                        _valueForColumn(column),
+                        style: filterFieldTextStyle,
+                        maxLines: column == DocumentsTableColumn.description
+                            ? 2
+                            : 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    )
-                  : Text(
-                      _valueForColumn(column),
-                      style: filterFieldTextStyle,
-                      maxLines: column == DocumentsTableColumn.description
-                          ? 2
-                          : 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-            ),
-        ],
+              ),
+          ],
+        ),
       ),
     );
   }

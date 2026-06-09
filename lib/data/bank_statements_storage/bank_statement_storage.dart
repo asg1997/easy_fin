@@ -20,6 +20,7 @@ abstract class BankStatementStorage {
   Future<List<BankStatement>> getStatements(
     GetStatementsFilters filters,
   );
+  Future<void> deleteOperation(int operationId);
 }
 
 class BankStatementStorageImpl implements BankStatementStorage {
@@ -133,5 +134,34 @@ class BankStatementStorageImpl implements BankStatementStorage {
     }
 
     return operation.isDebit && documentTypes.contains(DocumentType.outcome);
+  }
+
+  @override
+  Future<void> deleteOperation(int operationId) async {
+    final db = ref.read(appDatabaseProvider);
+
+    await db.transaction(() async {
+      final operation =
+          await (db.select(db.bankStatementOperations)
+                ..where((table) => table.id.equals(operationId)))
+              .getSingleOrNull();
+      if (operation == null) return;
+
+      final statementId = operation.statementId;
+
+      await (db.delete(db.bankStatementOperations)
+            ..where((table) => table.id.equals(operationId)))
+          .go();
+
+      final remainingOperations =
+          await (db.select(db.bankStatementOperations)
+                ..where((table) => table.statementId.equals(statementId)))
+              .get();
+      if (remainingOperations.isEmpty) {
+        await (db.delete(db.bankStatements)
+              ..where((table) => table.id.equals(statementId)))
+            .go();
+      }
+    });
   }
 }

@@ -54,6 +54,7 @@ extension BankStatementRowMapper on BankStatementRow {
 extension BankStatementOperationRowMapper on BankStatementOperationRow {
   domain.BankStatementOperation toDomain() {
     return domain.BankStatementOperation(
+      id: id,
       date: date,
       debitInn: debitInn,
       debitBankAccount: debitBankAccount,
