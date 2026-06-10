@@ -1,6 +1,10 @@
 import 'package:easy_fin/data/bases_storage/bases_storage.dart';
 import 'package:easy_fin/models/base.dart';
+import 'package:easy_fin/view/providers/account_balances_provider.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
+import 'package:easy_fin/view/providers/documents_filters_provider.dart';
+import 'package:easy_fin/view/providers/documents_list_provider.dart';
+import 'package:easy_fin/view/providers/renters_list_provider.dart';
 import 'package:easy_fin/view/widgets/edit_base_dialog.dart';
 import 'package:easy_fin/view/widgets/simple_table.dart';
 import 'package:easy_fin/view/widgets/template_page.dart';
@@ -23,37 +27,59 @@ class BasesPage extends ConsumerWidget {
     WidgetRef ref,
     Base base,
   ) async {
-    final result = await showDialog<EditBaseDialogResult>(
+    final outcome = await showDialog<EditBaseDialogOutcome>(
       context: context,
       builder: (context) => EditBaseDialog(base: base),
     );
-    if (result == null) return;
+    if (outcome == null) return;
 
-    try {
-      await ref.read(basesStorageProvider).save(
-        Base(
-          id: base.id,
-          name: result.name,
-          accountNumbers: result.accountNumbers,
-        ),
-      );
-      ref.invalidate(basesListProvider);
-    } on DuplicateAccountNumbersError {
-      if (!context.mounted) return;
-      await _showSaveError(context, 'Счета не должны повторяться');
-    } on AccountBelongsToAnotherBaseError catch (error) {
-      if (!context.mounted) return;
-      await _showSaveError(
-        context,
-        'Счёт ${error.accountNumber} уже привязан к другой базе',
-      );
-    } on AccountHasStatementsError catch (error) {
-      if (!context.mounted) return;
-      await _showSaveError(
-        context,
-        'Нельзя удалить счёт ${error.accountNumber}: по нему есть выписки',
+    switch (outcome) {
+      case EditBaseDialogDeleted():
+        await _deleteBase(ref, base);
+      case EditBaseDialogSaved(:final name, :final accounts):
+        try {
+          await ref.read(basesStorageProvider).save(
+            Base(
+              id: base.id,
+              name: name,
+              accounts: accounts,
+            ),
+          );
+          ref.invalidate(basesListProvider);
+          ref.invalidate(accountBalancesProvider);
+        } on DuplicateAccountNumbersError {
+          if (!context.mounted) return;
+          await _showSaveError(context, 'Счета не должны повторяться');
+        } on AccountBelongsToAnotherBaseError catch (error) {
+          if (!context.mounted) return;
+          await _showSaveError(
+            context,
+            'Счёт ${error.accountNumber} уже привязан к другой базе',
+          );
+        } on AccountHasStatementsError catch (error) {
+          if (!context.mounted) return;
+          await _showSaveError(
+            context,
+            'Нельзя удалить счёт ${error.accountNumber}: по нему есть выписки',
+          );
+        }
+    }
+  }
+
+  Future<void> _deleteBase(WidgetRef ref, Base base) async {
+    await ref.read(basesStorageProvider).delete(base.id);
+
+    final filters = ref.read(documentsFiltersProvider);
+    if (filters.selectedBases.any((item) => item.id == base.id)) {
+      ref.read(documentsFiltersProvider.notifier).setSelectedBases(
+        filters.selectedBases.where((item) => item.id != base.id).toSet(),
       );
     }
+
+    ref.invalidate(basesListProvider);
+    ref.invalidate(accountBalancesProvider);
+    ref.invalidate(documentsListProvider);
+    ref.invalidate(rentersListProvider);
   }
 
   Future<void> _showSaveError(BuildContext context, String message) async {
@@ -82,13 +108,18 @@ class BasesPage extends ConsumerWidget {
         title: 'Базы',
         child: basesAsync.when(
           data: (bases) => SimpleTable(
-            columns: const ['Название', 'Расчётные счета'],
+            columns: const ['Название', 'Счета'],
             columnFlex: const [2, 3],
             rows: bases
                 .map(
                   (base) => [
                     base.name,
-                    base.accountNumbers.join(', '),
+                    base.accounts
+                        .map(
+                          (account) =>
+                              '${account.displayName} (${account.accountNumber})',
+                        )
+                        .join(', '),
                   ],
                 )
                 .toList(),

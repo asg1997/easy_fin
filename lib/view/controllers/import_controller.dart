@@ -9,7 +9,9 @@ import 'package:easy_fin/data/bases_storage/bases_storage.dart';
 import 'package:easy_fin/data/models/back_statement.dart';
 import 'package:easy_fin/models/bank_statement_import_request.dart';
 import 'package:easy_fin/models/base.dart';
+import 'package:easy_fin/models/base_account.dart';
 import 'package:easy_fin/view/controllers/import_state.dart';
+import 'package:easy_fin/view/providers/account_balances_provider.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/providers/documents_list_provider.dart';
 import 'package:file_picker/file_picker.dart';
@@ -65,7 +67,12 @@ class ImportController extends Notifier<ImportState> {
 
     final base = Base.create(
       trimmedName,
-      [currentState.accountNumber],
+      [
+        BaseAccount(
+          accountNumber: currentState.accountNumber,
+          bankName: currentState.bankName,
+        ),
+      ],
     );
 
     await ref.read(basesStorageProvider).save(base);
@@ -87,7 +94,13 @@ class ImportController extends Notifier<ImportState> {
       final updatedBase = Base(
         id: existingBase.id,
         name: existingBase.name,
-        accountNumbers: [...existingBase.accountNumbers, accountNumber],
+        accounts: [
+          ...existingBase.accounts,
+          BaseAccount(
+            accountNumber: accountNumber,
+            bankName: currentState.bankName,
+          ),
+        ],
       );
       await storage.save(updatedBase);
       ref.invalidate(basesListProvider);
@@ -129,6 +142,7 @@ class ImportController extends Notifier<ImportState> {
       } on BankAccountNotFoundError {
         state = ImportAwaitingBase(
           accountNumber: statement.accountNumber,
+          bankName: statement.bankName,
         );
         return;
       }
@@ -140,6 +154,7 @@ class ImportController extends Notifier<ImportState> {
   void _finishImport() {
     if (_savedCount > 0) {
       ref.invalidate(documentsListProvider);
+      ref.invalidate(accountBalancesProvider);
     }
     _reset();
   }

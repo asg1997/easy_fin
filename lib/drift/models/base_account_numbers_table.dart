@@ -9,4 +9,6 @@ class BaseAccountNumbers extends Table {
       text().references(Bases, #id, onDelete: KeyAction.cascade)();
 
   TextColumn get accountNumber => text().unique()();
+
+  TextColumn get bankName => text().withDefault(const Constant(''))();
 }

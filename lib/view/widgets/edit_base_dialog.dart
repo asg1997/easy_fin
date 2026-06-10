@@ -1,18 +1,40 @@
 import 'package:easy_fin/models/base.dart';
+import 'package:easy_fin/models/base_account.dart';
+import 'package:easy_fin/models/bank_name.dart';
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/view/widgets/confirm_dialog.dart';
+import 'package:easy_fin/view/widgets/dropdown_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-class EditBaseDialogResult {
-  const EditBaseDialogResult({
+sealed class EditBaseDialogOutcome {
+  const EditBaseDialogOutcome();
+}
+
+final class EditBaseDialogSaved extends EditBaseDialogOutcome {
+  const EditBaseDialogSaved({
     required this.name,
-    required this.accountNumbers,
+    required this.accounts,
   });
 
   final String name;
-  final List<String> accountNumbers;
+  final List<BaseAccount> accounts;
+}
+
+final class EditBaseDialogDeleted extends EditBaseDialogOutcome {
+  const EditBaseDialogDeleted();
+}
+
+class _AccountField {
+  _AccountField({
+    required this.accountController,
+    required this.bankName,
+  });
+
+  final TextEditingController accountController;
+  String bankName;
 }
 
 class EditBaseDialog extends StatefulWidget {
@@ -26,7 +48,7 @@ class EditBaseDialog extends StatefulWidget {
 
 class _EditBaseDialogState extends State<EditBaseDialog> {
   late final TextEditingController _nameController;
-  late final List<TextEditingController> _accountControllers;
+  late final List<_AccountField> _accountFields;
 
   static const _fieldDecoration = InputDecoration(
     filled: true,
@@ -52,28 +74,53 @@ class _EditBaseDialogState extends State<EditBaseDialog> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.base.name);
-    _accountControllers = widget.base.accountNumbers.isEmpty
-        ? [TextEditingController()]
-        : widget.base.accountNumbers
-            .map((accountNumber) => TextEditingController(text: accountNumber))
+    _accountFields = widget.base.accounts.isEmpty
+        ? [
+            _AccountField(
+              accountController: TextEditingController(),
+              bankName: BankName.sber,
+            ),
+          ]
+        : widget.base.accounts
+            .map(
+              (account) => _AccountField(
+                accountController: TextEditingController(
+                  text: account.accountNumber,
+                ),
+                bankName: account.bankName.isEmpty
+                    ? BankName.sber
+                    : account.bankName,
+              ),
+            )
             .toList();
   }
 
-  List<String> get _accountNumbers {
-    return _accountControllers
-        .map((controller) => controller.text.trim())
-        .where((accountNumber) => accountNumber.isNotEmpty)
+  List<BaseAccount> get _accounts {
+    return _accountFields
+        .map(
+          (field) => BaseAccount(
+            accountNumber: field.accountController.text.trim(),
+            bankName: field.bankName,
+          ),
+        )
+        .where((account) => account.accountNumber.isNotEmpty)
         .toList();
   }
 
   bool get _hasDuplicateAccounts {
-    final accounts = _accountNumbers;
-    return accounts.length != accounts.toSet().length;
+    final accounts = _accounts;
+    return accounts.length !=
+        accounts.map((account) => account.accountNumber).toSet().length;
   }
 
   bool get _canSave {
     if (_nameController.text.trim().isEmpty) return false;
-    if (_accountControllers.any((controller) => controller.text.trim().isEmpty)) {
+    if (_accountFields.any(
+      (field) => field.accountController.text.trim().isEmpty,
+    )) {
+      return false;
+    }
+    if (_accountFields.any((field) => field.bankName.isEmpty)) {
       return false;
     }
     return !_hasDuplicateAccounts;
@@ -82,24 +129,29 @@ class _EditBaseDialogState extends State<EditBaseDialog> {
   @override
   void dispose() {
     _nameController.dispose();
-    for (final controller in _accountControllers) {
-      controller.dispose();
+    for (final field in _accountFields) {
+      field.accountController.dispose();
     }
     super.dispose();
   }
 
   void _addAccountField() {
     setState(() {
-      _accountControllers.add(TextEditingController());
+      _accountFields.add(
+        _AccountField(
+          accountController: TextEditingController(),
+          bankName: BankName.sber,
+        ),
+      );
     });
   }
 
   void _removeAccountField(int index) {
-    if (_accountControllers.length <= 1) return;
+    if (_accountFields.length <= 1) return;
 
-    _accountControllers[index].dispose();
+    _accountFields[index].accountController.dispose();
     setState(() {
-      _accountControllers.removeAt(index);
+      _accountFields.removeAt(index);
     });
   }
 
@@ -107,11 +159,27 @@ class _EditBaseDialogState extends State<EditBaseDialog> {
     if (!_canSave) return;
 
     Navigator.of(context).pop(
-      EditBaseDialogResult(
+      EditBaseDialogSaved(
         name: _nameController.text.trim(),
-        accountNumbers: _accountNumbers,
+        accounts: _accounts,
       ),
     );
+  }
+
+  Future<void> _onDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => ConfirmDialog(
+        title: 'Удалить базу?',
+        message:
+            'База «${widget.base.name}» и все связанные данные '
+            '(выписки, арендаторы, счета) будут удалены безвозвратно.',
+        confirmLabel: 'Удалить',
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    Navigator.of(context).pop(const EditBaseDialogDeleted());
   }
 
   @override
@@ -122,7 +190,7 @@ class _EditBaseDialogState extends State<EditBaseDialog> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 440, maxHeight: 520),
+        constraints: const BoxConstraints(maxWidth: 440, maxHeight: 560),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
           child: Column(
@@ -171,46 +239,101 @@ class _EditBaseDialogState extends State<EditBaseDialog> {
                       ),
                       const Gap(16),
                       const Text(
-                        'Номера р/с',
+                        'Счета',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       const Gap(8),
-                      for (var index = 0; index < _accountControllers.length; index++) ...[
-                        if (index > 0) const Gap(8),
+                      for (var index = 0; index < _accountFields.length; index++) ...[
+                        if (index > 0) const Gap(12),
                         Row(
                           children: [
                             Expanded(
-                              child: SizedBox(
-                                height: filterFieldHeight,
-                                child: TextField(
-                                  controller: _accountControllers[index],
-                                  style: filterFieldTextStyle,
-                                  decoration: _fieldDecoration.copyWith(
-                                    hintText: 'Введите номер счёта',
-                                    hintStyle: filterFieldHintTextStyle,
+                              flex: 3,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (index == 0)
+                                    const Text(
+                                      'Банк',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  if (index == 0) const Gap(6),
+                                  SizedBox(
+                                    height: filterFieldHeight,
+                                    child: DropdownWidget<String>(
+                                      expand: true,
+                                      items: BankName.values,
+                                      selectedItem: _accountFields[index].bankName,
+                                      hint: 'Банк',
+                                      labelBuilder: (item) => item,
+                                      onChanged: (bankName) {
+                                        setState(() {
+                                          _accountFields[index].bankName = bankName;
+                                        });
+                                      },
+                                    ),
                                   ),
-                                  onChanged: (_) => setState(() {}),
-                                  onSubmitted: _canSave ? (_) => _onSave() : null,
-                                ),
+                                ],
                               ),
                             ),
-                            if (_accountControllers.length > 1) ...[
+                            const Gap(8),
+                            Expanded(
+                              flex: 5,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (index == 0)
+                                    const Text(
+                                      'Номер р/с',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  if (index == 0) const Gap(6),
+                                  SizedBox(
+                                    height: filterFieldHeight,
+                                    child: TextField(
+                                      controller:
+                                          _accountFields[index].accountController,
+                                      style: filterFieldTextStyle,
+                                      decoration: _fieldDecoration.copyWith(
+                                        hintText: 'Введите номер счёта',
+                                        hintStyle: filterFieldHintTextStyle,
+                                      ),
+                                      onChanged: (_) => setState(() {}),
+                                      onSubmitted:
+                                          _canSave ? (_) => _onSave() : null,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (_accountFields.length > 1) ...[
                               const Gap(4),
-                              IconButton(
-                                tooltip: 'Удалить счёт',
-                                onPressed: () => _removeAccountField(index),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(
-                                  minWidth: 32,
-                                  minHeight: 32,
-                                ),
-                                icon: const Icon(
-                                  LucideIcons.x,
-                                  size: 16,
-                                  color: Colors.grey,
+                              Padding(
+                                padding: EdgeInsets.only(top: index == 0 ? 22 : 0),
+                                child: IconButton(
+                                  tooltip: 'Удалить счёт',
+                                  onPressed: () => _removeAccountField(index),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(
+                                    minWidth: 32,
+                                    minHeight: 32,
+                                  ),
+                                  icon: const Icon(
+                                    LucideIcons.x,
+                                    size: 16,
+                                    color: Colors.grey,
+                                  ),
                                 ),
                               ),
                             ],
@@ -252,8 +375,26 @@ class _EditBaseDialogState extends State<EditBaseDialog> {
               ),
               const Gap(24),
               Row(
-                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
+                  TextButton.icon(
+                    onPressed: _onDelete,
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.red.shade700,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 10,
+                      ),
+                    ),
+                    icon: const Icon(LucideIcons.trash2, size: 16),
+                    label: const Text(
+                      'Удалить',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
                     style: TextButton.styleFrom(

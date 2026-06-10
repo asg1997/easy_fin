@@ -248,8 +248,20 @@ class $BaseAccountNumbersTable extends BaseAccountNumbers
     requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
   );
+  static const VerificationMeta _bankNameMeta = const VerificationMeta(
+    'bankName',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, baseId, accountNumber];
+  late final GeneratedColumn<String> bankName = GeneratedColumn<String>(
+    'bank_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, baseId, accountNumber, bankName];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -284,6 +296,12 @@ class $BaseAccountNumbersTable extends BaseAccountNumbers
     } else if (isInserting) {
       context.missing(_accountNumberMeta);
     }
+    if (data.containsKey('bank_name')) {
+      context.handle(
+        _bankNameMeta,
+        bankName.isAcceptableOrUnknown(data['bank_name']!, _bankNameMeta),
+      );
+    }
     return context;
   }
 
@@ -305,6 +323,10 @@ class $BaseAccountNumbersTable extends BaseAccountNumbers
         DriftSqlType.string,
         data['${effectivePrefix}account_number'],
       )!,
+      bankName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}bank_name'],
+      )!,
     );
   }
 
@@ -319,10 +341,12 @@ class BaseAccountNumber extends DataClass
   final int id;
   final String baseId;
   final String accountNumber;
+  final String bankName;
   const BaseAccountNumber({
     required this.id,
     required this.baseId,
     required this.accountNumber,
+    required this.bankName,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -330,6 +354,7 @@ class BaseAccountNumber extends DataClass
     map['id'] = Variable<int>(id);
     map['base_id'] = Variable<String>(baseId);
     map['account_number'] = Variable<String>(accountNumber);
+    map['bank_name'] = Variable<String>(bankName);
     return map;
   }
 
@@ -338,6 +363,7 @@ class BaseAccountNumber extends DataClass
       id: Value(id),
       baseId: Value(baseId),
       accountNumber: Value(accountNumber),
+      bankName: Value(bankName),
     );
   }
 
@@ -350,6 +376,7 @@ class BaseAccountNumber extends DataClass
       id: serializer.fromJson<int>(json['id']),
       baseId: serializer.fromJson<String>(json['baseId']),
       accountNumber: serializer.fromJson<String>(json['accountNumber']),
+      bankName: serializer.fromJson<String>(json['bankName']),
     );
   }
   @override
@@ -359,6 +386,7 @@ class BaseAccountNumber extends DataClass
       'id': serializer.toJson<int>(id),
       'baseId': serializer.toJson<String>(baseId),
       'accountNumber': serializer.toJson<String>(accountNumber),
+      'bankName': serializer.toJson<String>(bankName),
     };
   }
 
@@ -366,10 +394,12 @@ class BaseAccountNumber extends DataClass
     int? id,
     String? baseId,
     String? accountNumber,
+    String? bankName,
   }) => BaseAccountNumber(
     id: id ?? this.id,
     baseId: baseId ?? this.baseId,
     accountNumber: accountNumber ?? this.accountNumber,
+    bankName: bankName ?? this.bankName,
   );
   BaseAccountNumber copyWithCompanion(BaseAccountNumbersCompanion data) {
     return BaseAccountNumber(
@@ -378,6 +408,7 @@ class BaseAccountNumber extends DataClass
       accountNumber: data.accountNumber.present
           ? data.accountNumber.value
           : this.accountNumber,
+      bankName: data.bankName.present ? data.bankName.value : this.bankName,
     );
   }
 
@@ -386,46 +417,53 @@ class BaseAccountNumber extends DataClass
     return (StringBuffer('BaseAccountNumber(')
           ..write('id: $id, ')
           ..write('baseId: $baseId, ')
-          ..write('accountNumber: $accountNumber')
+          ..write('accountNumber: $accountNumber, ')
+          ..write('bankName: $bankName')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, baseId, accountNumber);
+  int get hashCode => Object.hash(id, baseId, accountNumber, bankName);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is BaseAccountNumber &&
           other.id == this.id &&
           other.baseId == this.baseId &&
-          other.accountNumber == this.accountNumber);
+          other.accountNumber == this.accountNumber &&
+          other.bankName == this.bankName);
 }
 
 class BaseAccountNumbersCompanion extends UpdateCompanion<BaseAccountNumber> {
   final Value<int> id;
   final Value<String> baseId;
   final Value<String> accountNumber;
+  final Value<String> bankName;
   const BaseAccountNumbersCompanion({
     this.id = const Value.absent(),
     this.baseId = const Value.absent(),
     this.accountNumber = const Value.absent(),
+    this.bankName = const Value.absent(),
   });
   BaseAccountNumbersCompanion.insert({
     this.id = const Value.absent(),
     required String baseId,
     required String accountNumber,
+    this.bankName = const Value.absent(),
   }) : baseId = Value(baseId),
        accountNumber = Value(accountNumber);
   static Insertable<BaseAccountNumber> custom({
     Expression<int>? id,
     Expression<String>? baseId,
     Expression<String>? accountNumber,
+    Expression<String>? bankName,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (baseId != null) 'base_id': baseId,
       if (accountNumber != null) 'account_number': accountNumber,
+      if (bankName != null) 'bank_name': bankName,
     });
   }
 
@@ -433,11 +471,13 @@ class BaseAccountNumbersCompanion extends UpdateCompanion<BaseAccountNumber> {
     Value<int>? id,
     Value<String>? baseId,
     Value<String>? accountNumber,
+    Value<String>? bankName,
   }) {
     return BaseAccountNumbersCompanion(
       id: id ?? this.id,
       baseId: baseId ?? this.baseId,
       accountNumber: accountNumber ?? this.accountNumber,
+      bankName: bankName ?? this.bankName,
     );
   }
 
@@ -453,6 +493,9 @@ class BaseAccountNumbersCompanion extends UpdateCompanion<BaseAccountNumber> {
     if (accountNumber.present) {
       map['account_number'] = Variable<String>(accountNumber.value);
     }
+    if (bankName.present) {
+      map['bank_name'] = Variable<String>(bankName.value);
+    }
     return map;
   }
 
@@ -461,7 +504,8 @@ class BaseAccountNumbersCompanion extends UpdateCompanion<BaseAccountNumber> {
     return (StringBuffer('BaseAccountNumbersCompanion(')
           ..write('id: $id, ')
           ..write('baseId: $baseId, ')
-          ..write('accountNumber: $accountNumber')
+          ..write('accountNumber: $accountNumber, ')
+          ..write('bankName: $bankName')
           ..write(')'))
         .toString();
   }
@@ -2663,12 +2707,14 @@ typedef $$BaseAccountNumbersTableCreateCompanionBuilder =
       Value<int> id,
       required String baseId,
       required String accountNumber,
+      Value<String> bankName,
     });
 typedef $$BaseAccountNumbersTableUpdateCompanionBuilder =
     BaseAccountNumbersCompanion Function({
       Value<int> id,
       Value<String> baseId,
       Value<String> accountNumber,
+      Value<String> bankName,
     });
 
 final class $$BaseAccountNumbersTableReferences
@@ -2745,6 +2791,11 @@ class $$BaseAccountNumbersTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get bankName => $composableBuilder(
+    column: $table.bankName,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$BasesTableFilterComposer get baseId {
     final $$BasesTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -2813,6 +2864,11 @@ class $$BaseAccountNumbersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get bankName => $composableBuilder(
+    column: $table.bankName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$BasesTableOrderingComposer get baseId {
     final $$BasesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -2853,6 +2909,9 @@ class $$BaseAccountNumbersTableAnnotationComposer
     column: $table.accountNumber,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get bankName =>
+      $composableBuilder(column: $table.bankName, builder: (column) => column);
 
   $$BasesTableAnnotationComposer get baseId {
     final $$BasesTableAnnotationComposer composer = $composerBuilder(
@@ -2939,20 +2998,24 @@ class $$BaseAccountNumbersTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<String> baseId = const Value.absent(),
                 Value<String> accountNumber = const Value.absent(),
+                Value<String> bankName = const Value.absent(),
               }) => BaseAccountNumbersCompanion(
                 id: id,
                 baseId: baseId,
                 accountNumber: accountNumber,
+                bankName: bankName,
               ),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
                 required String baseId,
                 required String accountNumber,
+                Value<String> bankName = const Value.absent(),
               }) => BaseAccountNumbersCompanion.insert(
                 id: id,
                 baseId: baseId,
                 accountNumber: accountNumber,
+                bankName: bankName,
               ),
           withReferenceMapper: (p0) => p0
               .map(

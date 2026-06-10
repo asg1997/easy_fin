@@ -4,11 +4,19 @@ import 'package:easy_fin/data/bank_statements_importing/bank_statement_parser/sb
 import 'package:easy_fin/data/bank_statements_importing/bank_statement_parser/vtb_parser.dart';
 import 'package:easy_fin/data/bank_statements_importing/errors/bank_statement_import_error.dart';
 import 'package:easy_fin/data/models/back_statement.dart';
+import 'package:easy_fin/models/bank_name.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum BankAccount {
   sber,
   vtb,
+}
+
+extension BankAccountLabel on BankAccount {
+  String get label => switch (this) {
+    BankAccount.sber => BankName.sber,
+    BankAccount.vtb => BankName.vtb,
+  };
 }
 
 final bankStatementParserProvider = Provider<BankStatementParser>(
@@ -39,7 +47,9 @@ class BankStatementParserImpl implements BankStatementParser {
         BankAccount.sber => await SberParser().parse(file),
         BankAccount.vtb => await VtbParser().parse(file),
       };
-      bankStatements.add(bankStatement);
+      bankStatements.add(
+        bankStatement.copyWith(bankName: bankAccount.label),
+      );
     }
     return bankStatements;
   }

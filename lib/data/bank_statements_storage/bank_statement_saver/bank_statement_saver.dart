@@ -40,6 +40,12 @@ class BankStatementSaverImpl implements BankStatementSaver {
     if (base == null) throw BankAccountNotFoundError();
 
     await _saveToDatabase(bankStatement, baseId: base.id);
+    await ref
+        .read(basesStorageProvider)
+        .updateAccountBankName(
+          bankStatement.accountNumber,
+          bankStatement.bankName,
+        );
   }
 
   Future<void> _saveToDatabase(

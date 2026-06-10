@@ -27,7 +27,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -50,6 +50,11 @@ class AppDatabase extends _$AppDatabase {
       if (from < 5) {
         await migrator.database.customStatement(
           'ALTER TABLE renters ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0',
+        );
+      }
+      if (from < 6) {
+        await migrator.database.customStatement(
+          'ALTER TABLE base_account_numbers ADD COLUMN bank_name TEXT NOT NULL DEFAULT \'\'',
         );
       }
     },

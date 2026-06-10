@@ -20,6 +20,7 @@ class VtbParser {
       startDate: startDate,
       endDate: endDate,
       accountNumber: accountNumber,
+      bankName: '',
       initialBalance: initialBalance,
       finalBalance: finalBalance,
       operations: operations,

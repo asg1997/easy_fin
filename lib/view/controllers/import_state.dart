@@ -27,12 +27,16 @@ final class ImportLoading extends ImportState {
 }
 
 final class ImportAwaitingBase extends ImportState {
-  const ImportAwaitingBase({required this.accountNumber});
+  const ImportAwaitingBase({
+    required this.accountNumber,
+    required this.bankName,
+  });
 
   final AccountNumber accountNumber;
+  final String bankName;
 
   @override
-  List<Object?> get props => [accountNumber];
+  List<Object?> get props => [accountNumber, bankName];
 }
 
 final class ImportError extends ImportState {

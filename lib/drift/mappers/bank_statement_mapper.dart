@@ -44,6 +44,7 @@ extension BankStatementRowMapper on BankStatementRow {
       startDate: startDate,
       endDate: endDate,
       accountNumber: accountNumber,
+      bankName: '',
       initialBalance: moneyFromMinor(initialBalanceMinor),
       finalBalance: moneyFromMinor(finalBalanceMinor),
       operations: operations,

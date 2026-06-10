@@ -3,6 +3,7 @@ import 'package:easy_fin/drift/db/app_database.dart';
 import 'package:easy_fin/drift/db/app_database_provider.dart';
 import 'package:easy_fin/drift/mappers/base_mapper.dart';
 import 'package:easy_fin/models/base.dart';
+import 'package:easy_fin/models/base_account.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final basesStorageProvider = Provider<BasesStorage>(
@@ -31,9 +32,14 @@ class AccountHasStatementsError extends BasesStorageError {
 
 abstract class BasesStorage {
   Future<void> save(Base base);
+  Future<void> delete(BaseId id);
   Future<Base?> findById(BaseId id);
   Future<Base?> findByAccount(AccountNumber accountNumber);
   Future<List<Base>> getAll();
+  Future<void> updateAccountBankName(
+    AccountNumber accountNumber,
+    String bankName,
+  );
 }
 
 class BasesStorageImpl implements BasesStorage {
@@ -54,7 +60,7 @@ class BasesStorageImpl implements BasesStorage {
     )..where((table) => table.baseId.equals(id))).get();
 
     return baseRow.toDomain(
-      accountNumbers: accountRows.map((row) => row.accountNumber).toList(),
+      accounts: accountRows.map((row) => row.toAccountDomain()).toList(),
     );
   }
 
@@ -79,49 +85,81 @@ class BasesStorageImpl implements BasesStorage {
     if (baseRows.isEmpty) return [];
 
     final accountRows = await db.select(db.baseAccountNumbers).get();
-    final accountNumbersByBaseId = <BaseId, List<AccountNumber>>{};
+    final accountsByBaseId = <BaseId, List<BaseAccount>>{};
     for (final row in accountRows) {
-      accountNumbersByBaseId
+      accountsByBaseId
           .putIfAbsent(row.baseId, () => [])
-          .add(row.accountNumber);
+          .add(row.toAccountDomain());
     }
 
     return baseRows
         .map(
           (row) => row.toDomain(
-            accountNumbers: accountNumbersByBaseId[row.id] ?? [],
+            accounts: accountsByBaseId[row.id] ?? [],
           ),
         )
         .toList();
   }
 
   @override
+  Future<void> delete(BaseId id) async {
+    final db = ref.read(appDatabaseProvider);
+
+    await db.transaction(() async {
+      final statementIds = await (db.select(db.bankStatements)
+            ..where((table) => table.baseId.equals(id)))
+          .map((row) => row.id)
+          .get();
+
+      if (statementIds.isNotEmpty) {
+        await (db.delete(db.bankStatementOperations)
+              ..where((table) => table.statementId.isIn(statementIds)))
+            .go();
+        await (db.delete(db.bankStatements)
+              ..where((table) => table.baseId.equals(id)))
+            .go();
+      }
+
+      await (db.delete(db.renters)..where((table) => table.baseId.equals(id)))
+          .go();
+      await (db.delete(db.baseAccountNumbers)
+            ..where((table) => table.baseId.equals(id)))
+          .go();
+      await (db.delete(db.bases)..where((table) => table.id.equals(id))).go();
+    });
+  }
+
+  @override
   Future<void> save(Base base) async {
-    final uniqueAccountNumbers = base.accountNumbers.toSet().toList();
-    if (uniqueAccountNumbers.length != base.accountNumbers.length) {
+    final uniqueAccounts = _uniqueAccounts(base.accounts);
+    if (uniqueAccounts.length != base.accounts.length) {
       throw const DuplicateAccountNumbersError();
     }
 
-    for (final accountNumber in uniqueAccountNumbers) {
-      final existingBase = await findByAccount(accountNumber);
+    for (final account in uniqueAccounts) {
+      final existingBase = await findByAccount(account.accountNumber);
       if (existingBase != null && existingBase.id != base.id) {
-        throw AccountBelongsToAnotherBaseError(accountNumber);
+        throw AccountBelongsToAnotherBaseError(account.accountNumber);
       }
     }
 
     final db = ref.read(appDatabaseProvider);
     final currentBase = await findById(base.id);
     if (currentBase != null) {
-      final newAccounts = uniqueAccountNumbers.toSet();
-      for (final accountNumber in currentBase.accountNumbers) {
-        if (newAccounts.contains(accountNumber)) continue;
+      final newAccountNumbers = uniqueAccounts
+          .map((account) => account.accountNumber)
+          .toSet();
+      for (final account in currentBase.accounts) {
+        if (newAccountNumbers.contains(account.accountNumber)) continue;
 
         final hasStatements =
             await (db.select(db.bankStatements)
-                  ..where((table) => table.accountNumber.equals(accountNumber)))
+                  ..where(
+                    (table) => table.accountNumber.equals(account.accountNumber),
+                  ))
                 .getSingleOrNull();
         if (hasStatements != null) {
-          throw AccountHasStatementsError(accountNumber);
+          throw AccountHasStatementsError(account.accountNumber);
         }
       }
     }
@@ -133,21 +171,48 @@ class BasesStorageImpl implements BasesStorage {
         db.baseAccountNumbers,
       )..where((table) => table.baseId.equals(base.id))).go();
 
-      if (uniqueAccountNumbers.isEmpty) return;
+      if (uniqueAccounts.isEmpty) return;
 
       await db.batch((batch) {
         batch.insertAll(
           db.baseAccountNumbers,
-          uniqueAccountNumbers
+          uniqueAccounts
               .map(
-                (accountNumber) => BaseAccountNumbersCompanion(
+                (account) => BaseAccountNumbersCompanion(
                   baseId: Value(base.id),
-                  accountNumber: Value(accountNumber),
+                  accountNumber: Value(account.accountNumber),
+                  bankName: Value(account.bankName),
                 ),
               )
               .toList(),
         );
       });
     });
+  }
+
+  @override
+  Future<void> updateAccountBankName(
+    AccountNumber accountNumber,
+    String bankName,
+  ) async {
+    if (bankName.isEmpty) return;
+
+    final db = ref.read(appDatabaseProvider);
+    await (db.update(db.baseAccountNumbers)
+          ..where((table) => table.accountNumber.equals(accountNumber)))
+        .write(BaseAccountNumbersCompanion(bankName: Value(bankName)));
+  }
+
+  List<BaseAccount> _uniqueAccounts(List<BaseAccount> accounts) {
+    final uniqueAccounts = <BaseAccount>[];
+    final seenAccountNumbers = <AccountNumber>{};
+
+    for (final account in accounts) {
+      if (seenAccountNumbers.add(account.accountNumber)) {
+        uniqueAccounts.add(account);
+      }
+    }
+
+    return uniqueAccounts;
   }
 }
