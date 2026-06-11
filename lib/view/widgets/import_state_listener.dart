@@ -6,6 +6,7 @@ import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/widgets/import_balance_gap_dialog.dart';
 import 'package:easy_fin/view/widgets/import_base_creation_dialog.dart';
 import 'package:easy_fin/view/widgets/import_error_dialog.dart';
+import 'package:easy_fin/view/widgets/import_period_overlap_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -22,6 +23,7 @@ class ImportStateListener extends ConsumerStatefulWidget {
 class _ImportStateListenerState extends ConsumerState<ImportStateListener> {
   var _isHandlingBase = false;
   var _isHandlingBalance = false;
+  var _isHandlingPeriodOverlap = false;
   var _isHandlingError = false;
 
   @override
@@ -45,6 +47,19 @@ class _ImportStateListenerState extends ConsumerState<ImportStateListener> {
           unawaited(
             _handleAwaitingBalanceConfirmation().whenComplete(
               () => _isHandlingBalance = false,
+            ),
+          );
+        });
+      }
+
+      if (next is ImportPeriodOverlapBlocked &&
+          previous is! ImportPeriodOverlapBlocked) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted || _isHandlingPeriodOverlap) return;
+          _isHandlingPeriodOverlap = true;
+          unawaited(
+            _handlePeriodOverlapBlocked().whenComplete(
+              () => _isHandlingPeriodOverlap = false,
             ),
           );
         });
@@ -117,6 +132,35 @@ class _ImportStateListenerState extends ConsumerState<ImportStateListener> {
 
     if (!context.mounted) return;
     await _handleAwaitingBase();
+  }
+
+  Future<void> _handlePeriodOverlapBlocked() async {
+    if (!context.mounted) return;
+
+    final currentState = ref.read(importControllerProvider);
+    if (currentState is! ImportPeriodOverlapBlocked) return;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return ImportPeriodOverlapDialog(
+          existingStartDate: currentState.existingStartDate,
+          existingEndDate: currentState.existingEndDate,
+          newStartDate: currentState.newStartDate,
+          newEndDate: currentState.newEndDate,
+        );
+      },
+    );
+
+    if (!context.mounted) return;
+
+    final notifier = ref.read(importControllerProvider.notifier);
+    if (ref.read(importControllerProvider) is! ImportPeriodOverlapBlocked) {
+      return;
+    }
+
+    await notifier.dismissPeriodOverlapAndContinue();
   }
 
   Future<void> _handleAwaitingBalanceConfirmation() async {

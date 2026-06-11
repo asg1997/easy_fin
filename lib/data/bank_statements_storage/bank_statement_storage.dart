@@ -24,6 +24,11 @@ abstract class BankStatementStorage {
     String accountNumber,
     DateTime startDate,
   );
+  Future<BankStatement?> findOverlappingStatement(
+    String accountNumber,
+    DateTime startDate,
+    DateTime endDate,
+  );
   Future<void> deleteOperation(int operationId);
 }
 
@@ -155,6 +160,30 @@ class BankStatementStorageImpl implements BankStatementStorage {
                     table.endDate.isSmallerThanValue(startDate),
               )
               ..orderBy([(table) => OrderingTerm.desc(table.endDate)])
+              ..limit(1))
+            .getSingleOrNull();
+
+    return row?.toDomain(operations: []);
+  }
+
+  @override
+  Future<BankStatement?> findOverlappingStatement(
+    String accountNumber,
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
+    final db = ref.read(appDatabaseProvider);
+
+    final row =
+        await (db.select(db.bankStatements)
+              ..where(
+                (table) =>
+                    table.accountNumber.equals(accountNumber) &
+                    table.startDate.isSmallerOrEqualValue(endDate) &
+                    table.endDate.isBiggerOrEqualValue(startDate) &
+                    (table.startDate.equals(startDate).not() |
+                        table.endDate.equals(endDate).not()),
+              )
               ..limit(1))
             .getSingleOrNull();
 

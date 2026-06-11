@@ -12,7 +12,8 @@ sealed class ImportState extends Equatable {
   bool get isImportInProgress => switch (this) {
     ImportLoading() ||
     ImportAwaitingBase() ||
-    ImportAwaitingBalanceConfirmation() =>
+    ImportAwaitingBalanceConfirmation() ||
+    ImportPeriodOverlapBlocked() =>
       true,
     _ => false,
   };
@@ -62,6 +63,28 @@ final class ImportAwaitingBalanceConfirmation extends ImportState {
     previousEndDate,
     previousFinalBalance,
     newInitialBalance,
+    newStartDate,
+    newEndDate,
+  ];
+}
+
+final class ImportPeriodOverlapBlocked extends ImportState {
+  const ImportPeriodOverlapBlocked({
+    required this.existingStartDate,
+    required this.existingEndDate,
+    required this.newStartDate,
+    required this.newEndDate,
+  });
+
+  final DateTime existingStartDate;
+  final DateTime existingEndDate;
+  final DateTime newStartDate;
+  final DateTime newEndDate;
+
+  @override
+  List<Object?> get props => [
+    existingStartDate,
+    existingEndDate,
     newStartDate,
     newEndDate,
   ];

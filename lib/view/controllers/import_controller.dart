@@ -24,7 +24,7 @@ final importControllerProvider =
 class ImportController extends Notifier<ImportState> {
   static const _allowedExtension = 'xls';
 
-  static const _balanceValidator = BankStatementImportValidator();
+  static const _importValidator = BankStatementImportValidator();
 
   final List<BankStatement> _pendingStatements = [];
   var _savedCount = 0;
@@ -131,6 +131,14 @@ class ImportController extends Notifier<ImportState> {
     await _processQueue();
   }
 
+  Future<void> dismissPeriodOverlapAndContinue() async {
+    if (state is! ImportPeriodOverlapBlocked) return;
+
+    _pendingStatements.removeAt(0);
+    state = const ImportLoading();
+    await _processQueue();
+  }
+
   Future<void> _saveCurrentStatementAndContinue() async {
     if (_pendingStatements.isEmpty) return;
 
@@ -178,6 +186,18 @@ class ImportController extends Notifier<ImportState> {
       return false;
     }
 
+    final overlapIssue = await _findPeriodOverlapIssue(statement);
+    if (overlapIssue != null) {
+      final existing = overlapIssue.overlappingStatement!;
+      state = ImportPeriodOverlapBlocked(
+        existingStartDate: existing.startDate,
+        existingEndDate: existing.endDate,
+        newStartDate: statement.startDate,
+        newEndDate: statement.endDate,
+      );
+      return false;
+    }
+
     if (!_skipBalanceCheckForCurrent) {
       final balanceIssue = await _findBalanceContinuityIssue(statement);
       if (balanceIssue != null) {
@@ -207,6 +227,32 @@ class ImportController extends Notifier<ImportState> {
     }
   }
 
+  Future<BankStatementImportIssue?> _findPeriodOverlapIssue(
+    BankStatement statement,
+  ) async {
+    final overlapping = await ref
+        .read(bankStatementStorageProvider)
+        .findOverlappingStatement(
+          statement.accountNumber,
+          statement.startDate,
+          statement.endDate,
+        );
+    if (overlapping == null) return null;
+
+    final issues = _importValidator.validate(
+      statement,
+      overlappingStatement: overlapping,
+    );
+
+    return issues
+        .where(
+          (issue) =>
+              issue.type == BankStatementImportIssueType.periodOverlap &&
+              issue.level == BankStatementImportIssueLevel.error,
+        )
+        .firstOrNull;
+  }
+
   Future<BankStatementImportIssue?> _findBalanceContinuityIssue(
     BankStatement statement,
   ) async {
@@ -215,7 +261,7 @@ class ImportController extends Notifier<ImportState> {
         .findPreviousStatement(statement.accountNumber, statement.startDate);
     if (previous == null) return null;
 
-    final issues = _balanceValidator.validate(
+    final issues = _importValidator.validate(
       statement,
       previousStatement: previous,
     );

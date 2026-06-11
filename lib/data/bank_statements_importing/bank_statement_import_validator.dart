@@ -3,7 +3,7 @@ import 'package:easy_fin/utils/money.dart';
 
 enum BankStatementImportIssueLevel { error, warning, info }
 
-enum BankStatementImportIssueType { balanceContinuity }
+enum BankStatementImportIssueType { balanceContinuity, periodOverlap }
 
 class BankStatementImportIssue {
   const BankStatementImportIssue({
@@ -13,6 +13,7 @@ class BankStatementImportIssue {
     this.expectedBalance,
     this.actualBalance,
     this.previousStatement,
+    this.overlappingStatement,
   });
 
   final BankStatementImportIssueLevel level;
@@ -21,16 +22,38 @@ class BankStatementImportIssue {
   final double? expectedBalance;
   final double? actualBalance;
   final BankStatement? previousStatement;
+  final BankStatement? overlappingStatement;
 }
 
 class BankStatementImportValidator {
   const BankStatementImportValidator();
 
+  static bool periodsOverlap(
+    DateTime aStart,
+    DateTime aEnd,
+    DateTime bStart,
+    DateTime bEnd,
+  ) =>
+      !aStart.isAfter(bEnd) && !aEnd.isBefore(bStart);
+
   List<BankStatementImportIssue> validate(
     BankStatement statement, {
     BankStatement? previousStatement,
+    BankStatement? overlappingStatement,
   }) {
     final issues = <BankStatementImportIssue>[];
+
+    if (overlappingStatement != null) {
+      issues.add(
+        BankStatementImportIssue(
+          level: BankStatementImportIssueLevel.error,
+          type: BankStatementImportIssueType.periodOverlap,
+          message:
+              'Период выписки пересекается с уже загруженной выпиской по этому счёту',
+          overlappingStatement: overlappingStatement,
+        ),
+      );
+    }
 
     if (previousStatement != null &&
         moneyToMinor(statement.initialBalance) !=
