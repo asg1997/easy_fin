@@ -13,6 +13,7 @@ sealed class ImportState extends Equatable {
     ImportLoading() ||
     ImportAwaitingBase() ||
     ImportAwaitingBalanceConfirmation() ||
+    ImportAwaitingOutOfOrderConfirmation() ||
     ImportPeriodOverlapBlocked() =>
       true,
     _ => false,
@@ -65,6 +66,37 @@ final class ImportAwaitingBalanceConfirmation extends ImportState {
     newInitialBalance,
     newStartDate,
     newEndDate,
+  ];
+}
+
+final class ImportAwaitingOutOfOrderConfirmation extends ImportState {
+  const ImportAwaitingOutOfOrderConfirmation({
+    required this.newStartDate,
+    required this.newEndDate,
+    required this.newFinalBalance,
+    required this.nextStartDate,
+    required this.nextEndDate,
+    required this.nextInitialBalance,
+    required this.hasBalanceGap,
+  });
+
+  final DateTime newStartDate;
+  final DateTime newEndDate;
+  final double newFinalBalance;
+  final DateTime nextStartDate;
+  final DateTime nextEndDate;
+  final double nextInitialBalance;
+  final bool hasBalanceGap;
+
+  @override
+  List<Object?> get props => [
+    newStartDate,
+    newEndDate,
+    newFinalBalance,
+    nextStartDate,
+    nextEndDate,
+    nextInitialBalance,
+    hasBalanceGap,
   ];
 }
 

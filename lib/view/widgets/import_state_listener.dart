@@ -6,6 +6,7 @@ import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/widgets/import_balance_gap_dialog.dart';
 import 'package:easy_fin/view/widgets/import_base_creation_dialog.dart';
 import 'package:easy_fin/view/widgets/import_error_dialog.dart';
+import 'package:easy_fin/view/widgets/import_out_of_order_dialog.dart';
 import 'package:easy_fin/view/widgets/import_period_overlap_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -24,6 +25,7 @@ class _ImportStateListenerState extends ConsumerState<ImportStateListener> {
   var _isHandlingBase = false;
   var _isHandlingBalance = false;
   var _isHandlingPeriodOverlap = false;
+  var _isHandlingOutOfOrder = false;
   var _isHandlingError = false;
 
   @override
@@ -47,6 +49,19 @@ class _ImportStateListenerState extends ConsumerState<ImportStateListener> {
           unawaited(
             _handleAwaitingBalanceConfirmation().whenComplete(
               () => _isHandlingBalance = false,
+            ),
+          );
+        });
+      }
+
+      if (next is ImportAwaitingOutOfOrderConfirmation &&
+          previous is! ImportAwaitingOutOfOrderConfirmation) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted || _isHandlingOutOfOrder) return;
+          _isHandlingOutOfOrder = true;
+          unawaited(
+            _handleOutOfOrderConfirmation().whenComplete(
+              () => _isHandlingOutOfOrder = false,
             ),
           );
         });
@@ -132,6 +147,45 @@ class _ImportStateListenerState extends ConsumerState<ImportStateListener> {
 
     if (!context.mounted) return;
     await _handleAwaitingBase();
+  }
+
+  Future<void> _handleOutOfOrderConfirmation() async {
+    if (!context.mounted) return;
+
+    final currentState = ref.read(importControllerProvider);
+    if (currentState is! ImportAwaitingOutOfOrderConfirmation) return;
+
+    final result = await showDialog<ImportOutOfOrderDialogResult>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return ImportOutOfOrderDialog(
+          newStartDate: currentState.newStartDate,
+          newEndDate: currentState.newEndDate,
+          newFinalBalance: currentState.newFinalBalance,
+          nextStartDate: currentState.nextStartDate,
+          nextEndDate: currentState.nextEndDate,
+          nextInitialBalance: currentState.nextInitialBalance,
+          hasBalanceGap: currentState.hasBalanceGap,
+        );
+      },
+    );
+
+    if (!context.mounted) return;
+
+    final notifier = ref.read(importControllerProvider.notifier);
+    if (ref.read(importControllerProvider)
+        is! ImportAwaitingOutOfOrderConfirmation) {
+      return;
+    }
+
+    switch (result) {
+      case ImportOutOfOrderDialogResult.import:
+        await notifier.confirmOutOfOrderImport();
+      case ImportOutOfOrderDialogResult.cancel:
+      case null:
+        await notifier.cancelOutOfOrderImport();
+    }
   }
 
   Future<void> _handlePeriodOverlapBlocked() async {

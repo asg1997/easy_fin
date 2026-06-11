@@ -11,6 +11,7 @@ import 'package:easy_fin/data/models/back_statement.dart';
 import 'package:easy_fin/models/bank_statement_import_request.dart';
 import 'package:easy_fin/models/base.dart';
 import 'package:easy_fin/models/base_account.dart';
+import 'package:easy_fin/utils/money.dart';
 import 'package:easy_fin/view/controllers/import_state.dart';
 import 'package:easy_fin/view/providers/account_balances_provider.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
@@ -29,6 +30,7 @@ class ImportController extends Notifier<ImportState> {
   final List<BankStatement> _pendingStatements = [];
   var _savedCount = 0;
   var _skipBalanceCheckForCurrent = false;
+  var _skipOutOfOrderCheckForCurrent = false;
 
   @override
   ImportState build() => const ImportIdle();
@@ -131,6 +133,24 @@ class ImportController extends Notifier<ImportState> {
     await _processQueue();
   }
 
+  Future<void> confirmOutOfOrderImport() async {
+    if (state is! ImportAwaitingOutOfOrderConfirmation) return;
+    if (_pendingStatements.isEmpty) return;
+
+    _skipOutOfOrderCheckForCurrent = true;
+
+    state = const ImportLoading();
+    await _processQueue();
+  }
+
+  Future<void> cancelOutOfOrderImport() async {
+    if (state is! ImportAwaitingOutOfOrderConfirmation) return;
+
+    _pendingStatements.removeAt(0);
+    state = const ImportLoading();
+    await _processQueue();
+  }
+
   Future<void> dismissPeriodOverlapAndContinue() async {
     if (state is! ImportPeriodOverlapBlocked) return;
 
@@ -198,6 +218,27 @@ class ImportController extends Notifier<ImportState> {
       return false;
     }
 
+    if (!_skipOutOfOrderCheckForCurrent) {
+      final outOfOrderIssue = await _findOutOfOrderIssue(statement);
+      if (outOfOrderIssue != null) {
+        final next = outOfOrderIssue.nextStatement!;
+        state = ImportAwaitingOutOfOrderConfirmation(
+          newStartDate: statement.startDate,
+          newEndDate: statement.endDate,
+          newFinalBalance: statement.finalBalance,
+          nextStartDate: next.startDate,
+          nextEndDate: next.endDate,
+          nextInitialBalance: next.initialBalance,
+          hasBalanceGap:
+              outOfOrderIssue.expectedBalance != null &&
+              outOfOrderIssue.actualBalance != null &&
+              moneyToMinor(outOfOrderIssue.expectedBalance!) !=
+                  moneyToMinor(outOfOrderIssue.actualBalance!),
+        );
+        return false;
+      }
+    }
+
     if (!_skipBalanceCheckForCurrent) {
       final balanceIssue = await _findBalanceContinuityIssue(statement);
       if (balanceIssue != null) {
@@ -214,6 +255,7 @@ class ImportController extends Notifier<ImportState> {
     }
 
     _skipBalanceCheckForCurrent = false;
+    _skipOutOfOrderCheckForCurrent = false;
 
     try {
       await ref.read(bankStatementStorageProvider).save(statement);
@@ -253,6 +295,28 @@ class ImportController extends Notifier<ImportState> {
         .firstOrNull;
   }
 
+  Future<BankStatementImportIssue?> _findOutOfOrderIssue(
+    BankStatement statement,
+  ) async {
+    final next = await ref
+        .read(bankStatementStorageProvider)
+        .findNextStatement(statement.accountNumber, statement.endDate);
+    if (next == null) return null;
+
+    final issues = _importValidator.validate(
+      statement,
+      nextStatement: next,
+    );
+
+    return issues
+        .where(
+          (issue) =>
+              issue.type == BankStatementImportIssueType.outOfOrder &&
+              issue.level == BankStatementImportIssueLevel.warning,
+        )
+        .firstOrNull;
+  }
+
   Future<BankStatementImportIssue?> _findBalanceContinuityIssue(
     BankStatement statement,
   ) async {
@@ -287,6 +351,7 @@ class ImportController extends Notifier<ImportState> {
     _pendingStatements.clear();
     _savedCount = 0;
     _skipBalanceCheckForCurrent = false;
+    _skipOutOfOrderCheckForCurrent = false;
     state = const ImportIdle();
   }
 
@@ -294,6 +359,7 @@ class ImportController extends Notifier<ImportState> {
     _pendingStatements.clear();
     _savedCount = 0;
     _skipBalanceCheckForCurrent = false;
+    _skipOutOfOrderCheckForCurrent = false;
     state = ImportError(message: _mapErrorMessage(error));
   }
 

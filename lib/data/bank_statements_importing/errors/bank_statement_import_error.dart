@@ -16,6 +16,14 @@ class BankStatementUnknownBankError extends BankStatementImportError {
   List<Object?> get props => [message];
 }
 
+/// Внутренняя проверка выписки не пройдена
+class BankStatementInternalBalanceError extends BankStatementImportError {
+  BankStatementInternalBalanceError({super.message});
+
+  @override
+  List<Object?> get props => [message];
+}
+
 /// Неизвестная ошибка при импорте выписок
 class BankStatementImportErrorUnknown extends BankStatementImportError {
   BankStatementImportErrorUnknown({super.message});

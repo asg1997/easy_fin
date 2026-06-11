@@ -1,3 +1,4 @@
+import 'package:easy_fin/data/bank_statements_importing/bank_statement_import_validator.dart';
 import 'package:easy_fin/data/bank_statements_importing/bank_statement_parser/bank_statement_parser.dart';
 import 'package:easy_fin/data/bank_statements_importing/bank_statement_parser/xls2_cvs_converter.dart';
 import 'package:easy_fin/data/bank_statements_importing/errors/bank_statement_import_error.dart';
@@ -11,6 +12,7 @@ final bankStatementsImporterProvider = Provider<BankStatementsImporter>(
   (ref) => BankStatementsImporterImpl(
     ref.read(bankStatementParserProvider),
     Xls2CvsConverter.instance,
+    const BankStatementImportValidator(),
   ),
 );
 
@@ -28,10 +30,12 @@ class BankStatementsImporterImpl implements BankStatementsImporter {
   BankStatementsImporterImpl(
     this._bankStatementParser,
     this._xls2CsvConverter,
+    this._importValidator,
   );
 
   final BankStatementParser _bankStatementParser;
   final Xls2CvsConverter _xls2CsvConverter;
+  final BankStatementImportValidator _importValidator;
 
   @override
   Future<BankStatementResult> import(BankStatementImportRequest request) async {
@@ -39,6 +43,12 @@ class BankStatementsImporterImpl implements BankStatementsImporter {
       request.xlsFiles.map(_xls2CsvConverter.convert),
     );
     final bankStatements = await _bankStatementParser.parse(csvFiles);
+    for (final statement in bankStatements) {
+      final issue = _importValidator.findInternalBalanceIssue(statement);
+      if (issue != null) {
+        throw BankStatementInternalBalanceError(message: issue.message);
+      }
+    }
     return bankStatements;
   }
 }
