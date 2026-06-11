@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:easy_fin/data/bank_statements_importing/bank_statemenets_importer.dart';
+import 'package:easy_fin/data/bank_statements_importing/bank_statement_import_validator.dart';
 import 'package:easy_fin/data/bank_statements_importing/bank_statement_parser/xls2_cvs_converter.dart';
 import 'package:easy_fin/data/bank_statements_importing/errors/bank_statement_import_error.dart';
 import 'package:easy_fin/data/bank_statements_storage/bank_statement_saver/bank_statement_saver.dart';
@@ -23,8 +24,11 @@ final importControllerProvider =
 class ImportController extends Notifier<ImportState> {
   static const _allowedExtension = 'xls';
 
+  static const _balanceValidator = BankStatementImportValidator();
+
   final List<BankStatement> _pendingStatements = [];
   var _savedCount = 0;
+  var _skipBalanceCheckForCurrent = false;
 
   @override
   ImportState build() => const ImportIdle();
@@ -109,11 +113,31 @@ class ImportController extends Notifier<ImportState> {
     await _saveCurrentStatementAndContinue();
   }
 
+  Future<void> confirmBalanceImport() async {
+    if (state is! ImportAwaitingBalanceConfirmation) return;
+    if (_pendingStatements.isEmpty) return;
+
+    _skipBalanceCheckForCurrent = true;
+
+    state = const ImportLoading();
+    await _processQueue();
+  }
+
+  Future<void> cancelBalanceImport() async {
+    if (state is! ImportAwaitingBalanceConfirmation) return;
+
+    _pendingStatements.removeAt(0);
+    state = const ImportLoading();
+    await _processQueue();
+  }
+
   Future<void> _saveCurrentStatementAndContinue() async {
     if (_pendingStatements.isEmpty) return;
 
     final statement = _pendingStatements.first;
-    await ref.read(bankStatementStorageProvider).save(statement);
+    final saved = await _trySaveStatement(statement);
+    if (!saved) return;
+
     _pendingStatements.removeAt(0);
     _savedCount++;
 
@@ -130,25 +154,79 @@ class ImportController extends Notifier<ImportState> {
   }
 
   Future<void> _processQueue() async {
-    final storage = ref.read(bankStatementStorageProvider);
-
     while (_pendingStatements.isNotEmpty) {
       final statement = _pendingStatements.first;
+      final saved = await _trySaveStatement(statement);
+      if (!saved) return;
 
-      try {
-        await storage.save(statement);
-        _pendingStatements.removeAt(0);
-        _savedCount++;
-      } on BankAccountNotFoundError {
-        state = ImportAwaitingBase(
-          accountNumber: statement.accountNumber,
-          bankName: statement.bankName,
-        );
-        return;
-      }
+      _pendingStatements.removeAt(0);
+      _savedCount++;
     }
 
     _finishImport();
+  }
+
+  Future<bool> _trySaveStatement(BankStatement statement) async {
+    final base = await ref
+        .read(basesStorageProvider)
+        .findByAccount(statement.accountNumber);
+    if (base == null) {
+      state = ImportAwaitingBase(
+        accountNumber: statement.accountNumber,
+        bankName: statement.bankName,
+      );
+      return false;
+    }
+
+    if (!_skipBalanceCheckForCurrent) {
+      final balanceIssue = await _findBalanceContinuityIssue(statement);
+      if (balanceIssue != null) {
+        final previous = balanceIssue.previousStatement!;
+        state = ImportAwaitingBalanceConfirmation(
+          previousEndDate: previous.endDate,
+          previousFinalBalance: balanceIssue.expectedBalance!,
+          newInitialBalance: balanceIssue.actualBalance!,
+          newStartDate: statement.startDate,
+          newEndDate: statement.endDate,
+        );
+        return false;
+      }
+    }
+
+    _skipBalanceCheckForCurrent = false;
+
+    try {
+      await ref.read(bankStatementStorageProvider).save(statement);
+      return true;
+    } on BankAccountNotFoundError {
+      state = ImportAwaitingBase(
+        accountNumber: statement.accountNumber,
+        bankName: statement.bankName,
+      );
+      return false;
+    }
+  }
+
+  Future<BankStatementImportIssue?> _findBalanceContinuityIssue(
+    BankStatement statement,
+  ) async {
+    final previous = await ref
+        .read(bankStatementStorageProvider)
+        .findPreviousStatement(statement.accountNumber, statement.startDate);
+    if (previous == null) return null;
+
+    final issues = _balanceValidator.validate(
+      statement,
+      previousStatement: previous,
+    );
+
+    return issues
+        .where(
+          (issue) =>
+              issue.type == BankStatementImportIssueType.balanceContinuity &&
+              issue.level == BankStatementImportIssueLevel.warning,
+        )
+        .firstOrNull;
   }
 
   void _finishImport() {
@@ -162,12 +240,14 @@ class ImportController extends Notifier<ImportState> {
   void _reset() {
     _pendingStatements.clear();
     _savedCount = 0;
+    _skipBalanceCheckForCurrent = false;
     state = const ImportIdle();
   }
 
   void _failImport(Object error) {
     _pendingStatements.clear();
     _savedCount = 0;
+    _skipBalanceCheckForCurrent = false;
     state = ImportError(message: _mapErrorMessage(error));
   }
 

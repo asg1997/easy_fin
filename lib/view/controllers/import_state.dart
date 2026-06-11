@@ -10,7 +10,10 @@ sealed class ImportState extends Equatable {
   };
 
   bool get isImportInProgress => switch (this) {
-    ImportLoading() || ImportAwaitingBase() => true,
+    ImportLoading() ||
+    ImportAwaitingBase() ||
+    ImportAwaitingBalanceConfirmation() =>
+      true,
     _ => false,
   };
 
@@ -37,6 +40,31 @@ final class ImportAwaitingBase extends ImportState {
 
   @override
   List<Object?> get props => [accountNumber, bankName];
+}
+
+final class ImportAwaitingBalanceConfirmation extends ImportState {
+  const ImportAwaitingBalanceConfirmation({
+    required this.previousEndDate,
+    required this.previousFinalBalance,
+    required this.newInitialBalance,
+    required this.newStartDate,
+    required this.newEndDate,
+  });
+
+  final DateTime previousEndDate;
+  final double previousFinalBalance;
+  final double newInitialBalance;
+  final DateTime newStartDate;
+  final DateTime newEndDate;
+
+  @override
+  List<Object?> get props => [
+    previousEndDate,
+    previousFinalBalance,
+    newInitialBalance,
+    newStartDate,
+    newEndDate,
+  ];
 }
 
 final class ImportError extends ImportState {

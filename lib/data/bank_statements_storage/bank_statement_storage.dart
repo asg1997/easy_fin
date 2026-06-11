@@ -20,6 +20,10 @@ abstract class BankStatementStorage {
   Future<List<BankStatement>> getStatements(
     GetStatementsFilters filters,
   );
+  Future<BankStatement?> findPreviousStatement(
+    String accountNumber,
+    DateTime startDate,
+  );
   Future<void> deleteOperation(int operationId);
 }
 
@@ -134,6 +138,27 @@ class BankStatementStorageImpl implements BankStatementStorage {
     }
 
     return operation.isDebit && documentTypes.contains(DocumentType.outcome);
+  }
+
+  @override
+  Future<BankStatement?> findPreviousStatement(
+    String accountNumber,
+    DateTime startDate,
+  ) async {
+    final db = ref.read(appDatabaseProvider);
+
+    final row =
+        await (db.select(db.bankStatements)
+              ..where(
+                (table) =>
+                    table.accountNumber.equals(accountNumber) &
+                    table.endDate.isSmallerThanValue(startDate),
+              )
+              ..orderBy([(table) => OrderingTerm.desc(table.endDate)])
+              ..limit(1))
+            .getSingleOrNull();
+
+    return row?.toDomain(operations: []);
   }
 
   @override

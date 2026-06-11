@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:easy_fin/view/controllers/import_controller.dart';
 import 'package:easy_fin/view/controllers/import_state.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
+import 'package:easy_fin/view/widgets/import_balance_gap_dialog.dart';
 import 'package:easy_fin/view/widgets/import_base_creation_dialog.dart';
 import 'package:easy_fin/view/widgets/import_error_dialog.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +21,7 @@ class ImportStateListener extends ConsumerStatefulWidget {
 
 class _ImportStateListenerState extends ConsumerState<ImportStateListener> {
   var _isHandlingBase = false;
+  var _isHandlingBalance = false;
   var _isHandlingError = false;
 
   @override
@@ -31,6 +33,19 @@ class _ImportStateListenerState extends ConsumerState<ImportStateListener> {
           _isHandlingBase = true;
           unawaited(
             _handleAwaitingBase().whenComplete(() => _isHandlingBase = false),
+          );
+        });
+      }
+
+      if (next is ImportAwaitingBalanceConfirmation &&
+          previous is! ImportAwaitingBalanceConfirmation) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted || _isHandlingBalance) return;
+          _isHandlingBalance = true;
+          unawaited(
+            _handleAwaitingBalanceConfirmation().whenComplete(
+              () => _isHandlingBalance = false,
+            ),
           );
         });
       }
@@ -102,5 +117,42 @@ class _ImportStateListenerState extends ConsumerState<ImportStateListener> {
 
     if (!context.mounted) return;
     await _handleAwaitingBase();
+  }
+
+  Future<void> _handleAwaitingBalanceConfirmation() async {
+    if (!context.mounted) return;
+
+    final currentState = ref.read(importControllerProvider);
+    if (currentState is! ImportAwaitingBalanceConfirmation) return;
+
+    final result = await showDialog<ImportBalanceGapDialogResult>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return ImportBalanceGapDialog(
+          previousEndDate: currentState.previousEndDate,
+          previousFinalBalance: currentState.previousFinalBalance,
+          newInitialBalance: currentState.newInitialBalance,
+          newStartDate: currentState.newStartDate,
+          newEndDate: currentState.newEndDate,
+        );
+      },
+    );
+
+    if (!context.mounted) return;
+
+    final notifier = ref.read(importControllerProvider.notifier);
+    if (ref.read(importControllerProvider)
+        is! ImportAwaitingBalanceConfirmation) {
+      return;
+    }
+
+    switch (result) {
+      case ImportBalanceGapDialogResult.import:
+        await notifier.confirmBalanceImport();
+      case ImportBalanceGapDialogResult.cancel:
+      case null:
+        await notifier.cancelBalanceImport();
+    }
   }
 }
