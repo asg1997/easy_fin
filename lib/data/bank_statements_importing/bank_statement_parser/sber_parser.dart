@@ -9,12 +9,6 @@ import 'package:intl/intl.dart';
 typedef Table = List<List<dynamic>>;
 typedef OperationRow = List<dynamic>;
 
-/// TODO: может быть несколько листов
-/// нужно распарсить каждый лист
-/// первый, средний и последний скорее всего парсятся иначе
-
-// нужно найти первый ряд, где дата во втором столбце
-// ряд это стринговое значение, попробовать преобразовать в дату
 class SberParser {
   static final _ruDateInText = RegExp(
     r'(\d{1,2})\s+'
@@ -43,12 +37,32 @@ class SberParser {
     'декабря': 12,
   };
 
-  Future<BankStatement> parse(File file) async {
-    final rows = await _parseTable(file);
-    final operations = _parseOperations(rows);
-    final accountNumber = rows[3][12] as String;
-    final (startDate, endDate) = _parseStatementPeriod(rows);
-    final (initialBalance, finalBalance) = _parseOpeningClosingBalances(rows);
+  Future<BankStatement> parse(File file) => parseSheets([file]);
+
+  /// Объединяет операции со всех листов многостраничной выписки в одну.
+  Future<BankStatement> parseSheets(List<File> files) async {
+    if (files.isEmpty) {
+      throw StateError('Список файлов выписки Сбера пуст');
+    }
+
+    final firstRows = await _parseTable(files.first);
+    final lastRows = files.length == 1
+        ? firstRows
+        : await _parseTable(files.last);
+
+    final operations = <BankStatementOperation>[];
+    for (final file in files) {
+      final rows = await _parseTable(file);
+      operations.addAll(_parseOperations(rows));
+    }
+
+    final accountNumber = firstRows[3][12] as String;
+    final (startDate, endDate) = _parseStatementPeriod(firstRows);
+    final initialBalance =
+        _parseBalanceFromLabeledRow(firstRows, 'Входящий остаток') ?? 0;
+    final finalBalance =
+        _parseBalanceFromLabeledRow(lastRows, 'Исходящий остаток') ?? 0;
+
     return BankStatement(
       startDate: startDate,
       endDate: endDate,
@@ -64,7 +78,7 @@ class SberParser {
     var currentOperationIndex = _findOperationsStartIndex(rows);
 
     final operations = <BankStatementOperation>[];
-    while (true) {
+    while (currentOperationIndex < rows.length) {
       final operationRow = rows[currentOperationIndex];
 
       if (!isOperationRow(operationRow)) break;
@@ -164,18 +178,6 @@ class SberParser {
     /// TODO: выбрасывать ошибку, если период не найден
     final now = DateTime.now();
     return (now, now);
-  }
-
-  /// Входящий / исходящий остаток: в строке две суммы (колонки «Дебет» и «Кредит» счёта),
-  /// для лицевого счёта ИП фактический баланс — во второй (кредитной) колонке.
-  (double initialBalance, double finalBalance) _parseOpeningClosingBalances(
-    Table rows,
-  ) {
-    final opening = _parseBalanceFromLabeledRow(rows, 'Входящий остаток');
-    final closing = _parseBalanceFromLabeledRow(rows, 'Исходящий остаток');
-
-    /// TODO: выбрасывать ошибку, если строки остатков не найдены
-    return (opening ?? 0, closing ?? 0);
   }
 
   double? _parseBalanceFromLabeledRow(Table rows, String label) {

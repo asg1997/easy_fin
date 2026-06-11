@@ -39,10 +39,13 @@ class BankStatementsImporterImpl implements BankStatementsImporter {
 
   @override
   Future<BankStatementResult> import(BankStatementImportRequest request) async {
-    final csvFiles = await Future.wait(
+    final csvGroups = await Future.wait(
       request.xlsFiles.map(_xls2CsvConverter.convert),
     );
-    final bankStatements = await _bankStatementParser.parse(csvFiles);
+    final bankStatements = <BankStatement>[];
+    for (final csvFiles in csvGroups) {
+      bankStatements.addAll(await _bankStatementParser.parse(csvFiles));
+    }
     for (final statement in bankStatements) {
       final issue = _importValidator.findInternalBalanceIssue(statement);
       if (issue != null) {

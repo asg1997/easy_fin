@@ -18,7 +18,8 @@ class Xls2CvsConverter {
   static const _libreofficePath =
       '/Applications/LibreOffice.app/Contents/MacOS/soffice';
 
-  Future<File> convert(File xlsFile) async {
+  /// Конвертирует XLS в CSV. Для многостраничных файлов возвращает CSV каждого листа.
+  Future<List<File>> convert(File xlsFile) async {
     if (!File(_libreofficePath).existsSync()) {
       throw Exception(
         'LibreOffice not found at $_libreofficePath. Install from libreoffice.org',
@@ -46,14 +47,15 @@ class Xls2CvsConverter {
       );
     }
 
-    return _findConvertedCsv(outDir, expectedBaseName);
+    return _findConvertedCsvs(outDir, expectedBaseName);
   }
 
-  File _findConvertedCsv(Directory workDir, String expectedBaseName) {
+  List<File> _findConvertedCsvs(Directory workDir, String expectedBaseName) {
     final csvFiles = workDir
         .listSync()
         .whereType<File>()
         .where((file) => file.path.toLowerCase().endsWith('.csv'))
+        .where((file) => _belongsToXls(expectedBaseName, file))
         .toList();
     if (csvFiles.isEmpty) {
       throw Xls2CvsConverterError(
@@ -61,21 +63,38 @@ class Xls2CvsConverter {
       );
     }
 
-    final exactMatch = csvFiles.where(
-      (file) => p.basenameWithoutExtension(file.path) == expectedBaseName,
+    csvFiles.sort(
+      (a, b) => _sheetOrder(expectedBaseName, a).compareTo(
+        _sheetOrder(expectedBaseName, b),
+      ),
     );
-    if (exactMatch.isNotEmpty) {
-      return exactMatch.first;
+    return csvFiles;
+  }
+
+  bool _belongsToXls(String baseName, File csvFile) {
+    final csvBaseName = p.basenameWithoutExtension(csvFile.path);
+    return csvBaseName == baseName || csvBaseName.startsWith('$baseName-');
+  }
+
+  /// Порядок листов: `name.csv`, затем `name-Sheet2.csv`, `name-Sheet3.csv` и т.д.
+  int _sheetOrder(String baseName, File csvFile) {
+    final csvBaseName = p.basenameWithoutExtension(csvFile.path);
+    if (csvBaseName == baseName) return 1;
+
+    final suffix = csvBaseName.substring(baseName.length + 1);
+    final sheetMatch = RegExp(
+      r'Sheet(\d+)$',
+      caseSensitive: false,
+    ).firstMatch(suffix);
+    if (sheetMatch != null) {
+      return int.parse(sheetMatch.group(1)!);
     }
 
-    if (csvFiles.length == 1) {
-      return csvFiles.first;
+    final numericMatch = RegExp(r'^(\d+)$').firstMatch(suffix);
+    if (numericMatch != null) {
+      return int.parse(numericMatch.group(1)!);
     }
 
-    throw Xls2CvsConverterError(
-      message:
-          'Неоднозначный CSV после конвертации в ${workDir.path}: '
-          '${csvFiles.map((f) => p.basename(f.path)).join(', ')}',
-    );
+    return 1000 + suffix.hashCode;
   }
 }

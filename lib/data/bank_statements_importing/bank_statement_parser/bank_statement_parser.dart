@@ -40,18 +40,23 @@ class BankStatementParserImpl implements BankStatementParser {
   final Ref ref;
   @override
   Future<List<BankStatement>> parse(List<File> files) async {
-    final bankStatements = <BankStatement>[];
-    for (final file in files) {
-      final bankAccount = await _detectBankAccount(file);
-      final bankStatement = switch (bankAccount) {
-        BankAccount.sber => await SberParser().parse(file),
-        BankAccount.vtb => await VtbParser().parse(file),
-      };
-      bankStatements.add(
-        bankStatement.copyWith(bankName: bankAccount.label),
-      );
-    }
-    return bankStatements;
+    if (files.isEmpty) return [];
+
+    final bankAccount = await _detectBankAccount(files.first);
+    final bankStatement = switch (bankAccount) {
+      BankAccount.sber when files.length == 1 => await SberParser().parse(
+        files.first,
+      ),
+      BankAccount.sber => await SberParser().parseSheets(files),
+      BankAccount.vtb when files.length == 1 => await VtbParser().parse(
+        files.first,
+      ),
+      BankAccount.vtb => throw BankStatementImportErrorUnknown(
+        message: 'Выписка ВТБ с несколькими листами не поддерживается',
+      ),
+    };
+
+    return [bankStatement.copyWith(bankName: bankAccount.label)];
   }
 
   Future<BankAccount> _detectBankAccount(
