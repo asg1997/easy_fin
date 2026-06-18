@@ -118,11 +118,19 @@ class AmountInputFormatter extends TextInputFormatter {
     return formatted.length;
   }
 
+  static String formatAmount(double value, {int decimalPlaces = 2}) {
+    final parts = value.toStringAsFixed(decimalPlaces).split('.');
+    final integerPart = parts[0];
+    final fractionPart = parts.length > 1 ? parts[1] : '';
+    return '${_formatWithSpaces(integerPart)},$fractionPart';
+  }
+
   static double? parseAmount(String formatted) {
     final trimmed = formatted.trim();
     if (trimmed.isEmpty) return null;
 
-    final normalized = trimmed.replaceAll(' ', '').replaceAll(',', '.');
+    final withoutSpaces = trimmed.replaceAll(RegExp(r'\s'), '');
+    final normalized = withoutSpaces.replaceAll(',', '.');
     return double.tryParse(normalized);
   }
 }

@@ -98,8 +98,14 @@ class DocumentsPage extends ConsumerWidget {
               child: documentsAsync.when(
                 data: (items) => DocumentsTable(items: items),
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, _) => const Center(
-                  child: Text('Не удалось загрузить документы'),
+                error: (error, _) => Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Text(
+                      'Не удалось загрузить документы\n$error',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
                 ),
               ),
             ),

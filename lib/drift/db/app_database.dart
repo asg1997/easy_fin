@@ -7,6 +7,7 @@ import 'package:easy_fin/drift/models/bank_statements_table.dart';
 import 'package:easy_fin/drift/models/base_account_numbers_table.dart';
 import 'package:easy_fin/drift/models/bases_table.dart';
 import 'package:easy_fin/drift/models/renter_account_numbers_table.dart';
+import 'package:easy_fin/drift/models/renter_assignments_table.dart';
 import 'package:easy_fin/drift/models/renters_table.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -21,13 +22,14 @@ part 'app_database.g.dart';
     BankStatementOperations,
     Renters,
     RenterAccountNumbers,
+    RenterAssignments,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -55,6 +57,38 @@ class AppDatabase extends _$AppDatabase {
       if (from < 6) {
         await migrator.database.customStatement(
           'ALTER TABLE base_account_numbers ADD COLUMN bank_name TEXT NOT NULL DEFAULT \'\'',
+        );
+      }
+      if (from < 7) {
+        await migrator.createTable(renterAssignments);
+      }
+      if (from < 8) {
+        final table = await migrator.database
+            .customSelect(
+              "SELECT name FROM sqlite_master "
+              "WHERE type = 'table' AND name = 'renter_assignments'",
+            )
+            .getSingleOrNull();
+        if (table == null) {
+          await migrator.createTable(renterAssignments);
+        }
+      }
+      if (from < 9) {
+        await migrator.database.customStatement('''
+          UPDATE renters
+          SET base_id = (SELECT id FROM bases ORDER BY id LIMIT 1)
+          WHERE base_id IS NULL
+            AND EXISTS (SELECT 1 FROM bases LIMIT 1)
+        ''');
+        await migrator.database.customStatement(
+          'DELETE FROM renters WHERE base_id IS NULL',
+        );
+        await migrator.database.customStatement(
+          'UPDATE renters SET is_archived = 0 WHERE is_archived IS NULL',
+        );
+        await migrator.database.customStatement(
+          "UPDATE base_account_numbers SET bank_name = '' "
+          'WHERE bank_name IS NULL',
         );
       }
     },

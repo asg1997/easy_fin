@@ -40,6 +40,7 @@ abstract class RentersStorage {
   Future<List<Renter>> getAll();
   Future<List<Renter>> getByBase(BaseId baseId);
   Future<List<Renter>> getArchivedByBase(BaseId baseId);
+  Future<Map<RenterId, String>> getNamesByIds(Iterable<RenterId> ids);
 }
 
 class RentersStorageImpl implements RentersStorage {
@@ -80,7 +81,10 @@ class RentersStorageImpl implements RentersStorage {
   @override
   Future<List<Renter>> getAll() async {
     final db = ref.read(appDatabaseProvider);
-    return _mapRenterRows(await db.select(db.renters).get());
+    return _mapRenterRows(
+      await (db.select(db.renters)..where((table) => table.baseId.isNotNull()))
+          .get(),
+    );
   }
 
   @override
@@ -104,6 +108,24 @@ class RentersStorageImpl implements RentersStorage {
     )).get();
 
     return _sortByName(await _mapRenterRows(renterRows));
+  }
+
+  @override
+  Future<Map<RenterId, String>> getNamesByIds(Iterable<RenterId> ids) async {
+    final uniqueIds = ids.where((id) => id.isNotEmpty).toSet();
+    if (uniqueIds.isEmpty) return {};
+
+    final db = ref.read(appDatabaseProvider);
+    final rows =
+        await (db.selectOnly(db.renters)
+              ..addColumns([db.renters.id, db.renters.name])
+              ..where(db.renters.id.isIn(uniqueIds.toList())))
+            .get();
+
+    return {
+      for (final row in rows)
+        row.read(db.renters.id)!: row.read(db.renters.name)!,
+    };
   }
 
   List<Renter> _sortByName(List<Renter> renters) {

@@ -5,6 +5,7 @@ import 'package:easy_fin/models/document_type.dart';
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:easy_fin/view/models/documents_table_item.dart';
+import 'package:easy_fin/view/pages/add_rent_accrual_page.dart';
 import 'package:easy_fin/view/providers/documents_list_provider.dart';
 import 'package:easy_fin/view/widgets/confirm_dialog.dart';
 import 'package:flutter/material.dart';
@@ -112,7 +113,10 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
 
     if (confirmed != true || !mounted) return;
 
-    await ref.read(bankStatementStorageProvider).deleteOperation(item.operationId);
+    final operationId = item.operationId;
+    if (operationId == null) return;
+
+    await ref.read(bankStatementStorageProvider).deleteOperation(operationId);
     ref.invalidate(documentsListProvider);
   }
 
@@ -297,6 +301,13 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
                                         amountFormat: _amountFormat,
                                         onDelete: () =>
                                             _confirmDeleteOperation(item),
+                                        onTap: item.isRenterAssignmentDocument
+                                            ? () => AddRentAccrualPage.navigate(
+                                                context,
+                                                baseId: item.baseId,
+                                                month: item.date,
+                                              )
+                                            : null,
                                       );
                                     },
                                   ),
@@ -462,6 +473,7 @@ class _DocumentsTableRow extends StatelessWidget {
     required this.dateFormat,
     required this.amountFormat,
     required this.onDelete,
+    this.onTap,
   });
 
   final DocumentsTableItem item;
@@ -469,6 +481,7 @@ class _DocumentsTableRow extends StatelessWidget {
   final DateFormat dateFormat;
   final NumberFormat amountFormat;
   final VoidCallback onDelete;
+  final VoidCallback? onTap;
 
   Future<void> _showContextMenu(BuildContext context, Offset globalPosition) async {
     final overlay = Overlay.of(context).context.findRenderObject()! as RenderBox;
@@ -476,6 +489,8 @@ class _DocumentsTableRow extends StatelessWidget {
       Rect.fromPoints(globalPosition, globalPosition),
       Offset.zero & overlay.size,
     );
+
+    if (!item.canDelete) return;
 
     final action = await showMenu<String>(
       context: context,
@@ -497,35 +512,41 @@ class _DocumentsTableRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
+      onTap: onTap,
       onSecondaryTapUp: (details) =>
           _showContextMenu(context, details.globalPosition),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            for (final column in columns)
-              _DocumentsTableCell(
-                column: column,
-                child: column == DocumentsTableColumn.amount
-                    ? Text(
-                        amountFormat.format(item.amount),
-                        textAlign: TextAlign.right,
-                        style: filterFieldTextStyle.copyWith(
-                          color: _amountColor(item.documentType),
+      child: MouseRegion(
+        cursor: onTap != null
+            ? SystemMouseCursors.click
+            : SystemMouseCursors.basic,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              for (final column in columns)
+                _DocumentsTableCell(
+                  column: column,
+                  child: column == DocumentsTableColumn.amount
+                      ? Text(
+                          amountFormat.format(item.amount),
+                          textAlign: TextAlign.right,
+                          style: filterFieldTextStyle.copyWith(
+                            color: _amountColor(item.documentType),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        )
+                      : Text(
+                          _valueForColumn(column),
+                          style: filterFieldTextStyle,
+                          maxLines: column == DocumentsTableColumn.description
+                              ? 2
+                              : 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      )
-                    : Text(
-                        _valueForColumn(column),
-                        style: filterFieldTextStyle,
-                        maxLines: column == DocumentsTableColumn.description
-                            ? 2
-                            : 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-              ),
-          ],
+                ),
+            ],
+          ),
         ),
       ),
     );

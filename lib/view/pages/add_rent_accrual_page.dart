@@ -1,11 +1,16 @@
+import 'dart:async';
+
+import 'package:easy_fin/data/renter_assignments_storage/renter_assignments_storage.dart';
 import 'package:easy_fin/data/renters_storage/renters_storage.dart';
-import 'package:easy_fin/utils/account_number_validator.dart';
 import 'package:easy_fin/models/base.dart';
 import 'package:easy_fin/models/renter.dart';
+import 'package:easy_fin/models/renter_assignment.dart';
+import 'package:easy_fin/utils/account_number_validator.dart';
 import 'package:easy_fin/utils/amount_input_formatter.dart';
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
+import 'package:easy_fin/view/providers/documents_list_provider.dart';
 import 'package:easy_fin/view/providers/renters_list_provider.dart';
 import 'package:easy_fin/view/widgets/add_renter_dialog.dart';
 import 'package:easy_fin/view/widgets/date_picker_field.dart';
@@ -19,10 +24,12 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class _RenterRow {
   const _RenterRow({
+    required this.renterId,
     required this.name,
     required this.accountNumber,
   });
 
+  final RenterId renterId;
   final String name;
   final String accountNumber;
 }
@@ -40,12 +47,28 @@ class _AccrualEntry {
 }
 
 class AddRentAccrualPage extends ConsumerStatefulWidget {
-  const AddRentAccrualPage({super.key});
+  const AddRentAccrualPage({
+    super.key,
+    this.initialBaseId,
+    this.initialMonth,
+  });
 
-  static Future<void> navigate(BuildContext context) async {
+  final String? initialBaseId;
+  final DateTime? initialMonth;
+
+  static Future<void> navigate(
+    BuildContext context, {
+    String? baseId,
+    DateTime? month,
+  }) async {
     await Navigator.push(
       context,
-      MaterialPageRoute<void>(builder: (context) => const AddRentAccrualPage()),
+      MaterialPageRoute<void>(
+        builder: (context) => AddRentAccrualPage(
+          initialBaseId: baseId,
+          initialMonth: month,
+        ),
+      ),
     );
   }
 
@@ -62,7 +85,27 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
   void initState() {
     super.initState();
     final now = DateTime.now();
-    _selectedDate = DateTime(now.year, now.month);
+    _selectedDate = widget.initialMonth ?? DateTime(now.year, now.month);
+    if (widget.initialBaseId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        unawaited(_loadInitialBase());
+      });
+    }
+  }
+
+  Future<void> _loadInitialBase() async {
+    final bases = await ref.read(basesListProvider.future);
+    if (!mounted) return;
+
+    final base = bases
+        .where((item) => item.id == widget.initialBaseId)
+        .firstOrNull;
+    if (base == null) return;
+
+    setState(() {
+      _selectedBase = base;
+    });
+    await _loadAccruals();
   }
 
   @override
@@ -84,9 +127,17 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
     setState(() {
       _selectedBase = base;
     });
+    unawaited(_loadAccruals());
   }
 
   void _addRenterToAccruals(_RenterRow renter) {
+    final alreadyAdded = _accrualEntries.any(
+      (entry) =>
+          entry.renter.renterId == renter.renterId &&
+          entry.renter.accountNumber == renter.accountNumber,
+    );
+    if (alreadyAdded) return;
+
     final focusNode = FocusNode();
 
     setState(() {
@@ -113,18 +164,177 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
     });
   }
 
-  void _onCopyFromPreviousMonth() {}
+  Future<void> _onCopyFromPreviousMonth() async {
+    final baseId = _selectedBase?.id;
+    if (baseId == null) return;
 
-  void _onSave() {}
+    final previousMonth = DateTime(
+      _selectedDate.month == 1
+          ? _selectedDate.year - 1
+          : _selectedDate.year,
+      _selectedDate.month == 1 ? 12 : _selectedDate.month - 1,
+    );
+
+    final assignments = await ref
+        .read(renterAssignmentsStorageProvider)
+        .getByBaseAndMonth(baseId, previousMonth);
+    if (!mounted) return;
+
+    if (assignments.isEmpty) {
+      await _showErrorDialog('Нет начислений за предыдущий месяц');
+      return;
+    }
+
+    final renters = await ref.read(rentersStorageProvider).getByBase(baseId);
+    final renterById = {for (final renter in renters) renter.id: renter};
+
+    _clearAccruals();
+
+    setState(() {
+      for (final assignment in assignments) {
+        final renter = renterById[assignment.renterId];
+        if (renter == null) continue;
+
+        _accrualEntries.add(
+          _AccrualEntry(
+            renter: _RenterRow(
+              renterId: assignment.renterId,
+              name: renter.name,
+              accountNumber: assignment.accountNumber,
+            ),
+            amountController: TextEditingController(
+              text: AmountInputFormatter.formatAmount(assignment.sum),
+            ),
+            amountFocusNode: FocusNode(),
+          ),
+        );
+      }
+    });
+  }
+
+  Future<void> _loadAccruals() async {
+    final baseId = _selectedBase?.id;
+    if (baseId == null) return;
+
+    final assignments = await ref
+        .read(renterAssignmentsStorageProvider)
+        .getByBaseAndMonth(baseId, _selectedDate);
+    if (!mounted) return;
+
+    final renters = await ref.read(rentersStorageProvider).getByBase(baseId);
+    final renterById = {for (final renter in renters) renter.id: renter};
+
+    _clearAccruals();
+
+    setState(() {
+      for (final assignment in assignments) {
+        final renter = renterById[assignment.renterId];
+        if (renter == null) continue;
+
+        _accrualEntries.add(
+          _AccrualEntry(
+            renter: _RenterRow(
+              renterId: assignment.renterId,
+              name: renter.name,
+              accountNumber: assignment.accountNumber,
+            ),
+            amountController: TextEditingController(
+              text: AmountInputFormatter.formatAmount(assignment.sum),
+            ),
+            amountFocusNode: FocusNode(),
+          ),
+        );
+      }
+    });
+  }
+
+  Future<void> _onSave() async {
+    final baseId = _selectedBase?.id;
+    if (baseId == null) return;
+
+    if (_accrualEntries.isEmpty) {
+      await _showErrorDialog('Добавьте хотя бы одно начисление');
+      return;
+    }
+
+    final seen = <String>{};
+    for (final entry in _accrualEntries) {
+      final key = '${entry.renter.renterId}:${entry.renter.accountNumber}';
+      if (seen.contains(key)) {
+        await _showErrorDialog(
+          'Арендатор «${entry.renter.name}» добавлен более одного раза',
+        );
+        return;
+      }
+      seen.add(key);
+    }
+
+    try {
+      final timestamp = DateTime.now().microsecondsSinceEpoch;
+      final month = normalizeRenterAssignmentMonth(_selectedDate);
+      final assignments = <RenterAssignment>[];
+
+      for (var i = 0; i < _accrualEntries.length; i++) {
+        final entry = _accrualEntries[i];
+        final amount = AmountInputFormatter.parseAmount(
+          entry.amountController.text,
+        );
+        if (amount == null || amount <= 0) {
+          await _showErrorDialog('Укажите сумму для «${entry.renter.name}»');
+          return;
+        }
+
+        assignments.add(
+          RenterAssignment(
+            id: '${timestamp}_$i',
+            createdAt: DateTime.now(),
+            baseId: baseId,
+            renterId: entry.renter.renterId,
+            accountNumber: entry.renter.accountNumber,
+            date: month,
+            sum: amount,
+          ),
+        );
+      }
+
+      await ref.read(renterAssignmentsStorageProvider).saveAll(
+        baseId: baseId,
+        month: _selectedDate,
+        assignments: assignments,
+      );
+
+      if (!mounted) return;
+      ref.invalidate(documentsListProvider);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Начисления сохранены')),
+      );
+    } on EmptyRenterAssignmentsError {
+      if (!mounted) return;
+      await _showErrorDialog('Добавьте хотя бы одно начисление');
+    } on InvalidRenterAssignmentAmountError {
+      if (!mounted) return;
+      await _showErrorDialog('Сумма должна быть больше нуля');
+    } on Object catch (error) {
+      if (!mounted) return;
+      await _showErrorDialog('Не удалось сохранить начисления\n$error');
+    }
+  }
 
   List<_RenterRow> _toRenterRows(List<Renter> renters) {
     return renters.expand((renter) {
       if (renter.accountNumbers.isEmpty) {
-        return [_RenterRow(name: renter.name, accountNumber: '')];
+        return [
+          _RenterRow(
+            renterId: renter.id,
+            name: renter.name,
+            accountNumber: '',
+          ),
+        ];
       }
 
       return renter.accountNumbers.map(
         (accountNumber) => _RenterRow(
+          renterId: renter.id,
           name: renter.name,
           accountNumber: accountNumber,
         ),
@@ -153,21 +363,21 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
       ref.invalidate(rentersListProvider);
     } on DuplicateRenterAccountNumbersError {
       if (!mounted) return;
-      await _showRenterSaveError('Счета не должны повторяться');
+      await _showErrorDialog('Счета не должны повторяться');
     } on InvalidRenterAccountNumberError {
       if (!mounted) return;
-      await _showRenterSaveError(
+      await _showErrorDialog(
         'Номер р/с должен содержать $accountNumberLength символов',
       );
     } on AccountBelongsToAnotherRenterError catch (error) {
       if (!mounted) return;
-      await _showRenterSaveError(
+      await _showErrorDialog(
         'Счёт ${error.accountNumber} уже привязан к другому арендатору',
       );
     }
   }
 
-  Future<void> _showRenterSaveError(String message) async {
+  Future<void> _showErrorDialog(String message) async {
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
@@ -226,6 +436,7 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
                         setState(() {
                           _selectedDate = date;
                         });
+                        unawaited(_loadAccruals());
                       }
                     },
                   ),
