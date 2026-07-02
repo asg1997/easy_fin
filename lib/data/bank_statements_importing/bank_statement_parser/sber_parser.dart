@@ -106,10 +106,9 @@ class SberParser {
   BankStatementOperation _parseOperation(OperationRow row) {
     final debit = _parseDouble(row[9] as String);
     final credit = _parseDouble(row[13] as String);
-    final (debitInn, debitBankAccount) = _parseInnAndBankAccount(
-      row[4] as String,
-    );
-    final (creditInn, creditBankAccount) = _parseInnAndBankAccount(
+    final (debitInn, debitBankAccount, debitCounterpartyName) =
+        _parseCounterpartyCell(row[4] as String);
+    final (creditInn, creditBankAccount, _) = _parseCounterpartyCell(
       row[8] as String,
     );
     return BankStatementOperation(
@@ -121,6 +120,7 @@ class SberParser {
       debit: debit,
       credit: credit,
       note: row[20] as String,
+      debitCounterpartyName: debitCounterpartyName,
     );
   }
 
@@ -205,8 +205,14 @@ class SberParser {
   }
 
   /// Сбер: многострочная ячейка «Счёт» — номер счёта (20 цифр), ИНН (10/12), наименование.
-  (String inn, String bankAccount) _parseInnAndBankAccount(String value) {
-    if (value.isEmpty) return ('', '');
+  (String inn, String bankAccount, String name) parseCounterpartyCell(
+    String value,
+  ) => _parseCounterpartyCell(value);
+
+  (String inn, String bankAccount, String name) _parseCounterpartyCell(
+    String value,
+  ) {
+    if (value.isEmpty) return ('', '', '');
 
     final lines = value
         .split(RegExp(r'\r?\n'))
@@ -216,6 +222,7 @@ class SberParser {
 
     var inn = '';
     var bankAccount = '';
+    final nameParts = <String>[];
 
     for (final line in lines) {
       final digits = line.replaceAll(RegExp(r'\D'), '');
@@ -223,10 +230,11 @@ class SberParser {
         bankAccount = digits;
       } else if ((digits.length == 10 || digits.length == 12) && inn.isEmpty) {
         inn = digits;
+      } else {
+        nameParts.add(line);
       }
-      if (inn.isNotEmpty && bankAccount.isNotEmpty) break;
     }
 
-    return (inn, bankAccount);
+    return (inn, bankAccount, nameParts.join(' ').trim());
   }
 }

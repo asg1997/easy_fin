@@ -12,6 +12,7 @@ class DropdownWidget<T> extends StatelessWidget {
     this.hint,
     this.width = 220,
     this.expand = false,
+    this.height = filterFieldHeight,
     super.key,
   });
   final List<T> items;
@@ -19,12 +20,13 @@ class DropdownWidget<T> extends StatelessWidget {
   final String? hint;
   final double width;
   final bool expand;
+  final double height;
   final void Function(T item) onChanged;
   final String Function(T item) labelBuilder;
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: filterFieldHeight,
+      height: height,
       width: expand ? double.infinity : width,
       child: DropdownButtonHideUnderline(
         child: DropdownButton2(
@@ -46,7 +48,7 @@ class DropdownWidget<T> extends StatelessWidget {
               .toList(),
 
           buttonStyleData: ButtonStyleData(
-            height: filterFieldHeight,
+            height: height,
             width: expand ? double.infinity : width,
             padding: const EdgeInsets.symmetric(
               horizontal: filterFieldHorizontalPadding,

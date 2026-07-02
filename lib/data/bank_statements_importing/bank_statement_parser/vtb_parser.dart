@@ -67,6 +67,7 @@ class VtbParser {
     final credit = _parseDouble(_cellAsString(row[8]));
     final counterpartyInn = _cellAsString(row[4]).trim();
     final counterpartyAccount = _cellAsString(row[6]).trim();
+    final counterpartyName = _cellAsString(row[2]).trim();
     final isOutgoing = (debit ?? 0) > 0;
 
     return BankStatementOperation(
@@ -78,6 +79,7 @@ class VtbParser {
       debit: isOutgoing ? debit : null,
       credit: isOutgoing ? null : credit,
       note: _cellAsString(row[9]),
+      debitCounterpartyName: isOutgoing ? null : counterpartyName,
     );
   }
 

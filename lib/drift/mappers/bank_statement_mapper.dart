@@ -31,6 +31,8 @@ extension BankStatementOperationMapper on domain.BankStatementOperation {
       debitMinor: Value(moneyToMinorNullable(debit)),
       creditMinor: Value(moneyToMinorNullable(credit)),
       note: Value(note),
+      renterId: Value(renterId),
+      incomeCategoryId: Value(incomeCategoryId),
     );
   }
 }
@@ -64,6 +66,8 @@ extension BankStatementOperationRowMapper on BankStatementOperationRow {
       debit: moneyFromMinorNullable(debitMinor),
       credit: moneyFromMinorNullable(creditMinor),
       note: note,
+      renterId: renterId,
+      incomeCategoryId: incomeCategoryId,
     );
   }
 }

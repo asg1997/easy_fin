@@ -1,11 +1,14 @@
 import 'dart:async';
 
+import 'package:easy_fin/data/income_categories_storage/income_categories_storage.dart';
+import 'package:easy_fin/data/renters_storage/renters_storage.dart';
 import 'package:easy_fin/view/controllers/import_controller.dart';
 import 'package:easy_fin/view/controllers/import_state.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/widgets/import_balance_gap_dialog.dart';
 import 'package:easy_fin/view/widgets/import_base_creation_dialog.dart';
 import 'package:easy_fin/view/widgets/import_error_dialog.dart';
+import 'package:easy_fin/view/widgets/import_income_review_dialog.dart';
 import 'package:easy_fin/view/widgets/import_out_of_order_dialog.dart';
 import 'package:easy_fin/view/widgets/import_period_overlap_dialog.dart';
 import 'package:flutter/material.dart';
@@ -26,6 +29,7 @@ class _ImportStateListenerState extends ConsumerState<ImportStateListener> {
   var _isHandlingBalance = false;
   var _isHandlingPeriodOverlap = false;
   var _isHandlingOutOfOrder = false;
+  var _isHandlingIncomeReview = false;
   var _isHandlingError = false;
 
   @override
@@ -75,6 +79,19 @@ class _ImportStateListenerState extends ConsumerState<ImportStateListener> {
           unawaited(
             _handlePeriodOverlapBlocked().whenComplete(
               () => _isHandlingPeriodOverlap = false,
+            ),
+          );
+        });
+      }
+
+      if (next is ImportAwaitingIncomeReview &&
+          previous is! ImportAwaitingIncomeReview) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted || _isHandlingIncomeReview) return;
+          _isHandlingIncomeReview = true;
+          unawaited(
+            _handleIncomeReview().whenComplete(
+              () => _isHandlingIncomeReview = false,
             ),
           );
         });
@@ -251,6 +268,54 @@ class _ImportStateListenerState extends ConsumerState<ImportStateListener> {
       case ImportBalanceGapDialogResult.cancel:
       case null:
         await notifier.cancelBalanceImport();
+    }
+  }
+
+  Future<void> _handleIncomeReview() async {
+    if (!context.mounted) return;
+
+    final currentState = ref.read(importControllerProvider);
+    if (currentState is! ImportAwaitingIncomeReview) return;
+
+    final renters = await ref
+        .read(rentersStorageProvider)
+        .getByBase(currentState.baseId);
+    final allRenters = await ref.read(rentersStorageProvider).getAll();
+    final accountOwnerNames = <String, String>{
+      for (final renter in allRenters)
+        for (final account in renter.accountNumbers) account: renter.name,
+    };
+    final categories = await ref.read(incomeCategoriesStorageProvider).getActive();
+
+    if (!context.mounted) return;
+
+    final result = await showDialog<ImportIncomeReviewDialogResult>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return ImportIncomeReviewDialog(
+          statement: currentState.statement,
+          reviewItems: currentState.reviewItems,
+          renters: renters,
+          categories: categories,
+          accountOwnerNames: accountOwnerNames,
+        );
+      },
+    );
+
+    if (!context.mounted) return;
+
+    final notifier = ref.read(importControllerProvider.notifier);
+    if (ref.read(importControllerProvider) is! ImportAwaitingIncomeReview) {
+      return;
+    }
+
+    switch (result) {
+      case ImportIncomeReviewConfirmed(:final resolutions):
+        await notifier.confirmIncomeReview(resolutions);
+      case ImportIncomeReviewCancelled():
+      case null:
+        await notifier.cancelIncomeReview();
     }
   }
 }

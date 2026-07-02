@@ -7,6 +7,9 @@ import 'package:easy_fin/drift/models/bank_statements_table.dart';
 import 'package:easy_fin/drift/models/base_account_numbers_table.dart';
 import 'package:easy_fin/drift/models/bases_table.dart';
 import 'package:easy_fin/drift/models/renter_account_numbers_table.dart';
+import 'package:easy_fin/drift/models/income_categories_table.dart';
+import 'package:easy_fin/drift/models/income_documents_table.dart';
+import 'package:easy_fin/drift/models/income_lines_table.dart';
 import 'package:easy_fin/drift/models/renter_assignments_table.dart';
 import 'package:easy_fin/drift/models/renters_table.dart';
 import 'package:path/path.dart' as p;
@@ -23,18 +26,22 @@ part 'app_database.g.dart';
     Renters,
     RenterAccountNumbers,
     RenterAssignments,
+    IncomeCategories,
+    IncomeDocuments,
+    IncomeLines,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (migrator) async {
       await migrator.createAll();
+      await _seedIncomeCategories(migrator.database);
     },
     onUpgrade: (migrator, from, to) async {
       if (from < 2) {
@@ -91,8 +98,46 @@ class AppDatabase extends _$AppDatabase {
           'WHERE bank_name IS NULL',
         );
       }
+      if (from < 10) {
+        await migrator.createTable(incomeCategories);
+        await migrator.createTable(incomeDocuments);
+        await migrator.createTable(incomeLines);
+        await _seedIncomeCategories(migrator.database);
+      }
+      if (from < 11) {
+        await migrator.database.customStatement(
+          'ALTER TABLE bank_statement_operations '
+          'ADD COLUMN renter_id TEXT REFERENCES renters (id) ON DELETE SET NULL',
+        );
+        await migrator.database.customStatement(
+          'ALTER TABLE bank_statement_operations '
+          'ADD COLUMN income_category_id INTEGER REFERENCES income_categories (id) '
+          'ON DELETE SET NULL',
+        );
+      }
     },
   );
+}
+
+Future<void> _seedIncomeCategories(GeneratedDatabase db) async {
+  final existing = await db
+      .customSelect('SELECT COUNT(*) AS count FROM income_categories')
+      .getSingle();
+  if ((existing.data['count']! as int) > 0) return;
+
+  final now = DateTime.now();
+  const names = ['Кредит', 'Возврат', 'Перевод', 'Прочее'];
+  for (var i = 0; i < names.length; i++) {
+    await db.customInsert(
+      'INSERT INTO income_categories (name, is_archived, sort_order, created_at) '
+      'VALUES (?, 0, ?, ?)',
+      variables: [
+        Variable.withString(names[i]),
+        Variable.withInt(i),
+        Variable.withDateTime(now),
+      ],
+    );
+  }
 }
 
 LazyDatabase _openConnection() {

@@ -1,10 +1,12 @@
 import 'dart:math' as math;
 
 import 'package:easy_fin/data/bank_statements_storage/bank_statement_storage.dart';
+import 'package:easy_fin/data/incomes_storage/incomes_storage.dart';
 import 'package:easy_fin/models/document_type.dart';
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:easy_fin/view/models/documents_table_item.dart';
+import 'package:easy_fin/view/pages/add_income_page.dart';
 import 'package:easy_fin/view/pages/add_rent_accrual_page.dart';
 import 'package:easy_fin/view/providers/documents_list_provider.dart';
 import 'package:easy_fin/view/widgets/confirm_dialog.dart';
@@ -103,9 +105,13 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) {
-        return const ConfirmDialog(
-          title: 'Удалить операцию?',
-          message: 'Операция будет удалена безвозвратно.',
+        return ConfirmDialog(
+          title: item.isManualIncomeDocument
+              ? 'Удалить приход?'
+              : 'Удалить операцию?',
+          message: item.isManualIncomeDocument
+              ? 'Документ прихода будет удалён безвозвратно.'
+              : 'Операция будет удалена безвозвратно.',
           confirmLabel: 'Удалить',
         );
       },
@@ -114,10 +120,19 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
     if (confirmed != true || !mounted) return;
 
     final operationId = item.operationId;
-    if (operationId == null) return;
+    if (operationId != null) {
+      await ref.read(bankStatementStorageProvider).deleteOperation(operationId);
+      ref.invalidate(documentsListProvider);
+      return;
+    }
 
-    await ref.read(bankStatementStorageProvider).deleteOperation(operationId);
-    ref.invalidate(documentsListProvider);
+    final incomeDocumentId = item.incomeDocumentId;
+    if (incomeDocumentId != null) {
+      await ref
+          .read(incomesStorageProvider)
+          .deleteDocument(incomeDocumentId);
+      ref.invalidate(documentsListProvider);
+    }
   }
 
   void _toggleColumn(DocumentsTableColumn column, bool isVisible) {
@@ -306,6 +321,12 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
                                                 context,
                                                 baseId: item.baseId,
                                                 month: item.date,
+                                              )
+                                            : item.isManualIncomeDocument
+                                            ? () => AddIncomePage.navigate(
+                                                context,
+                                                documentId:
+                                                    item.incomeDocumentId,
                                               )
                                             : null,
                                       );

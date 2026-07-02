@@ -1,24 +1,25 @@
+import 'package:easy_fin/models/income_category.dart';
 import 'package:easy_fin/models/renter.dart';
-import 'package:easy_fin/models/transaction.dart';
 import 'package:equatable/equatable.dart';
 
-/// Доход
-class Income extends Transaction {
+typedef IncomeLineId = String;
+
+/// Строка документа прихода.
+class Income extends Equatable {
   const Income({
-    required super.id,
-    required super.createdAt,
-    required super.baseId,
-    required super.sum,
-    required super.account,
+    required this.id,
+    required this.sum,
     required this.incomeSource,
     this.note,
   });
 
+  final IncomeLineId id;
+  final double sum;
   final IncomeSource incomeSource;
   final String? note;
 
   @override
-  List<Object?> get props => [super.id];
+  List<Object?> get props => [id, sum, incomeSource, note];
 }
 
 /// Источник дохода
@@ -26,21 +27,26 @@ sealed class IncomeSource extends Equatable {
   const IncomeSource();
 }
 
-/// Источник дохода - арендатор
+/// Источник дохода — арендатор
 class IncomeSourceFromRenter extends IncomeSource {
-  const IncomeSourceFromRenter({required this.renterId});
+  const IncomeSourceFromRenter({
+    required this.renterId,
+    required this.accountNumber,
+  });
 
   final RenterId renterId;
+  final String accountNumber;
 
   @override
-  List<Object?> get props => [renterId];
+  List<Object?> get props => [renterId, accountNumber];
 }
 
-/// Источник дохода - другой
+/// Источник дохода — прочий (категория из справочника)
 class IncomeSourceFromOther extends IncomeSource {
-  const IncomeSourceFromOther({required this.name, required this.id});
-  final String name;
-  final int id;
+  const IncomeSourceFromOther({required this.categoryId});
+
+  final IncomeCategoryId categoryId;
+
   @override
-  List<Object?> get props => [name, id];
+  List<Object?> get props => [categoryId];
 }

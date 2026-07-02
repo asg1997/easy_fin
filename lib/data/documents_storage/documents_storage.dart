@@ -1,9 +1,15 @@
 import 'package:easy_fin/data/bank_statements_storage/bank_statement_storage.dart';
 import 'package:easy_fin/data/bases_storage/bases_storage.dart';
+import 'package:easy_fin/data/income_categories_storage/income_categories_storage.dart';
+import 'package:easy_fin/data/incomes_storage/incomes_storage.dart';
+import 'package:easy_fin/data/models/bank_statement_operation.dart';
 import 'package:easy_fin/data/models/get_statements_filters.dart';
 import 'package:easy_fin/data/renter_assignments_storage/renter_assignments_storage.dart';
+import 'package:easy_fin/data/renters_storage/renters_storage.dart';
 import 'package:easy_fin/models/account_filter_type.dart';
 import 'package:easy_fin/models/document_type.dart';
+import 'package:easy_fin/models/income.dart';
+import 'package:easy_fin/models/income_document.dart';
 import 'package:easy_fin/models/renter_assignment.dart';
 import 'package:easy_fin/view/models/documents_table_item.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -37,6 +43,15 @@ class DocumentsStorageImpl implements DocumentsStorage {
 
     final items = <DocumentsTableItem>[];
 
+    final renters = await ref.read(rentersStorageProvider).getAll();
+    final renterNameById = {
+      for (final renter in renters) renter.id: renter.name,
+    };
+    final categories = await ref.read(incomeCategoriesStorageProvider).getAll();
+    final categoryNameById = {
+      for (final category in categories) category.id: category.name,
+    };
+
     final statements = await ref
         .read(bankStatementStorageProvider)
         .getStatements(filters);
@@ -56,7 +71,11 @@ class DocumentsStorageImpl implements DocumentsStorage {
             accountType: AccountFilterType.bank.label,
             baseName: baseName,
             amount: operation.credit ?? operation.debit ?? 0,
-            note: operation.note,
+            note: _bankOperationNote(
+              operation,
+              renterNameById: renterNameById,
+              categoryNameById: categoryNameById,
+            ),
           ),
         );
       }
@@ -94,11 +113,85 @@ class DocumentsStorageImpl implements DocumentsStorage {
       }
     }
 
+    final incomeDocuments = await ref
+        .read(incomesStorageProvider)
+        .getByFilters(filters);
+    if (incomeDocuments.isNotEmpty) {
+      final incomeRenterNameById = {
+        for (final renter in renters) renter.id: renter.name,
+      };
+      final incomeCategoryNameById = {
+        for (final category in categories) category.id: category.name,
+      };
+
+      for (final document in incomeDocuments) {
+        items.add(
+          DocumentsTableItem(
+            incomeDocumentId: document.id,
+            date: document.date,
+            documentType: DocumentType.income,
+            accountType: _incomeAccountLabel(document.account),
+            baseName: baseNameById[document.baseId] ?? '',
+            amount: document.totalSum,
+            note: _incomeNote(
+              document.lines,
+              categoryNameById: incomeCategoryNameById,
+              renterNameById: incomeRenterNameById,
+            ),
+          ),
+        );
+      }
+    }
+
     items.sort((a, b) => b.date.compareTo(a.date));
     return items;
   }
 
   DocumentType _documentType(bool isCredit) {
     return isCredit ? DocumentType.income : DocumentType.outcome;
+  }
+
+  String _bankOperationNote(
+    BankStatementOperation operation, {
+    required Map<String, String> renterNameById,
+    required Map<int, String> categoryNameById,
+  }) {
+    if (operation.renterId != null) {
+      final renterName =
+          renterNameById[operation.renterId!] ?? 'Арендатор';
+      return '$renterName: ${operation.note}';
+    }
+    if (operation.incomeCategoryId != null) {
+      final categoryName =
+          categoryNameById[operation.incomeCategoryId!] ?? 'Прочее';
+      return '$categoryName: ${operation.note}';
+    }
+    return operation.note;
+  }
+
+  String _incomeAccountLabel(IncomeDocumentAccount account) {
+    return switch (account) {
+      IncomeDocumentCashAccount() => AccountFilterType.cash.label,
+      IncomeDocumentBankAccount(:final accountNumber) => accountNumber,
+    };
+  }
+
+  String _incomeNote(
+    List<Income> lines, {
+    required Map<int, String> categoryNameById,
+    required Map<String, String> renterNameById,
+  }) {
+    final parts = <String>[];
+    for (final line in lines) {
+      final source = line.incomeSource;
+      final label = switch (source) {
+        IncomeSourceFromRenter(:final renterId) =>
+          'Взаиморасчёты: ${renterNameById[renterId] ?? 'Арендатор'}',
+        IncomeSourceFromOther(:final categoryId) =>
+          categoryNameById[categoryId] ?? 'Прочее',
+      };
+      parts.add(label);
+    }
+    return parts.join(', ');
   }
 }

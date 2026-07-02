@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:easy_fin/data/bank_statements_importing/statement_income_review_analyzer.dart';
 import 'package:easy_fin/data/bank_statements_importing/bank_statemenets_importer.dart';
 import 'package:easy_fin/data/bank_statements_importing/bank_statement_import_validator.dart';
 import 'package:easy_fin/data/bank_statements_importing/bank_statement_parser/xls2_cvs_converter.dart';
@@ -8,9 +9,13 @@ import 'package:easy_fin/data/bank_statements_storage/bank_statement_saver/bank_
 import 'package:easy_fin/data/bank_statements_storage/bank_statement_storage.dart';
 import 'package:easy_fin/data/bases_storage/bases_storage.dart';
 import 'package:easy_fin/data/models/back_statement.dart';
+import 'package:easy_fin/data/models/bank_statement_operation.dart';
+import 'package:easy_fin/data/renters_storage/renters_storage.dart';
 import 'package:easy_fin/models/bank_statement_import_request.dart';
 import 'package:easy_fin/models/base.dart';
 import 'package:easy_fin/models/base_account.dart';
+import 'package:easy_fin/models/import_income_review.dart';
+import 'package:easy_fin/models/renter.dart';
 import 'package:easy_fin/utils/money.dart';
 import 'package:easy_fin/view/controllers/import_state.dart';
 import 'package:easy_fin/view/providers/account_balances_provider.dart';
@@ -159,6 +164,122 @@ class ImportController extends Notifier<ImportState> {
     await _processQueue();
   }
 
+  Future<void> confirmIncomeReview(
+    List<ImportIncomeResolution> resolutions,
+  ) async {
+    final currentState = state;
+    if (currentState is! ImportAwaitingIncomeReview) return;
+    if (_pendingStatements.isEmpty) return;
+
+    final rentersStorage = ref.read(rentersStorageProvider);
+    var operations = List<BankStatementOperation>.from(
+      currentState.statement.operations,
+    );
+
+    for (final entry in currentState.autoMatchedRenterIds.entries) {
+      operations[entry.key] = operations[entry.key].copyWith(
+        renterId: entry.value,
+        clearIncomeCategoryId: true,
+      );
+    }
+
+    for (final resolution in resolutions) {
+      switch (resolution.classification) {
+        case ImportIncomeClassification.renter:
+          final renterId = await _resolveRenterForIncomeReview(
+            rentersStorage: rentersStorage,
+            baseId: currentState.baseId,
+            resolution: resolution,
+          );
+          for (final index in resolution.operationIndices) {
+            operations[index] = operations[index].copyWith(
+              renterId: renterId,
+              clearIncomeCategoryId: true,
+            );
+          }
+        case ImportIncomeClassification.other:
+          for (final index in resolution.operationIndices) {
+            operations[index] = operations[index].copyWith(
+              incomeCategoryId: resolution.incomeCategoryId,
+              clearRenterId: true,
+            );
+          }
+        case ImportIncomeClassification.unclassified:
+          for (final index in resolution.operationIndices) {
+            operations[index] = operations[index].copyWith(
+              clearRenterId: true,
+              clearIncomeCategoryId: true,
+            );
+          }
+      }
+    }
+
+    final statement = currentState.statement.copyWith(operations: operations);
+
+    try {
+      await ref.read(bankStatementStorageProvider).save(statement);
+    } on BankAccountNotFoundError {
+      state = ImportAwaitingBase(
+        accountNumber: statement.accountNumber,
+        bankName: statement.bankName,
+      );
+      return;
+    }
+
+    _pendingStatements.removeAt(0);
+    _savedCount++;
+
+    state = const ImportLoading();
+    await _processQueue();
+  }
+
+  Future<void> cancelIncomeReview() async {
+    if (state is! ImportAwaitingIncomeReview) return;
+
+    _pendingStatements.removeAt(0);
+    state = const ImportLoading();
+    await _processQueue();
+  }
+
+  Future<RenterId> _resolveRenterForIncomeReview({
+    required RentersStorage rentersStorage,
+    required BaseId baseId,
+    required ImportIncomeResolution resolution,
+  }) async {
+    final accountNumber = resolution.accountNumber!.trim();
+
+    if (resolution.renterAction == ImportRenterAction.create) {
+      final renter = Renter.create(
+        baseId: baseId,
+        name: resolution.name!.trim(),
+        accountNumbers: [accountNumber],
+      );
+      await rentersStorage.save(renter);
+      return renter.id;
+    }
+
+    final linkedRenterId = resolution.linkedRenterId!;
+    final existingRenter = await rentersStorage.findById(linkedRenterId);
+    if (existingRenter == null) return linkedRenterId;
+
+    if (!existingRenter.accountNumbers.contains(accountNumber)) {
+      await rentersStorage.save(
+        Renter(
+          id: existingRenter.id,
+          baseId: existingRenter.baseId,
+          name: existingRenter.name,
+          accountNumbers: [
+            ...existingRenter.accountNumbers,
+            accountNumber,
+          ],
+          isArchived: existingRenter.isArchived,
+        ),
+      );
+    }
+
+    return linkedRenterId;
+  }
+
   Future<void> _saveCurrentStatementAndContinue() async {
     if (_pendingStatements.isEmpty) return;
 
@@ -257,8 +378,27 @@ class ImportController extends Notifier<ImportState> {
     _skipBalanceCheckForCurrent = false;
     _skipOutOfOrderCheckForCurrent = false;
 
+    final reviewResult = await ref
+        .read(statementIncomeReviewAnalyzerProvider)
+        .analyze(statement, baseId: base.id);
+
+    if (reviewResult.reviewItems.isNotEmpty) {
+      state = ImportAwaitingIncomeReview(
+        statement: statement,
+        baseId: base.id,
+        autoMatchedRenterIds: reviewResult.autoMatchedRenterIds,
+        reviewItems: reviewResult.reviewItems,
+      );
+      return false;
+    }
+
+    final statementToSave = applyIncomeClassification(
+      statement,
+      autoMatchedRenterIds: reviewResult.autoMatchedRenterIds,
+    );
+
     try {
-      await ref.read(bankStatementStorageProvider).save(statement);
+      await ref.read(bankStatementStorageProvider).save(statementToSave);
       return true;
     } on BankAccountNotFoundError {
       state = ImportAwaitingBase(
