@@ -80,6 +80,7 @@ class VtbParser {
       credit: isOutgoing ? null : credit,
       note: _cellAsString(row[9]),
       debitCounterpartyName: isOutgoing ? null : counterpartyName,
+      creditCounterpartyName: isOutgoing ? counterpartyName : null,
     );
   }
 

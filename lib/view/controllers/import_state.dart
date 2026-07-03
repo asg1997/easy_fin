@@ -1,5 +1,6 @@
 import 'package:easy_fin/data/models/back_statement.dart';
 import 'package:easy_fin/models/base.dart';
+import 'package:easy_fin/models/import_expense_review.dart';
 import 'package:easy_fin/models/import_income_review.dart';
 import 'package:equatable/equatable.dart';
 
@@ -17,6 +18,7 @@ sealed class ImportState extends Equatable {
     ImportAwaitingBalanceConfirmation() ||
     ImportAwaitingOutOfOrderConfirmation() ||
     ImportAwaitingIncomeReview() ||
+    ImportAwaitingExpenseReview() ||
     ImportPeriodOverlapBlocked() =>
       true,
     _ => false,
@@ -143,6 +145,28 @@ final class ImportAwaitingIncomeReview extends ImportState {
     statement,
     baseId,
     autoMatchedRenterIds,
+    reviewItems,
+  ];
+}
+
+final class ImportAwaitingExpenseReview extends ImportState {
+  const ImportAwaitingExpenseReview({
+    required this.statement,
+    required this.baseId,
+    required this.autoMatchedCategoryIds,
+    required this.reviewItems,
+  });
+
+  final BankStatement statement;
+  final BaseId baseId;
+  final Map<int, int> autoMatchedCategoryIds;
+  final List<ImportExpenseReviewItem> reviewItems;
+
+  @override
+  List<Object?> get props => [
+    statement,
+    baseId,
+    autoMatchedCategoryIds,
     reviewItems,
   ];
 }

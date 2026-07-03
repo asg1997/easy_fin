@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:easy_fin/data/expense_categories_storage/expense_categories_storage.dart';
 import 'package:easy_fin/data/income_categories_storage/income_categories_storage.dart';
 import 'package:easy_fin/data/renters_storage/renters_storage.dart';
 import 'package:easy_fin/view/controllers/import_controller.dart';
@@ -8,6 +9,7 @@ import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/widgets/import_balance_gap_dialog.dart';
 import 'package:easy_fin/view/widgets/import_base_creation_dialog.dart';
 import 'package:easy_fin/view/widgets/import_error_dialog.dart';
+import 'package:easy_fin/view/widgets/import_expense_review_dialog.dart';
 import 'package:easy_fin/view/widgets/import_income_review_dialog.dart';
 import 'package:easy_fin/view/widgets/import_out_of_order_dialog.dart';
 import 'package:easy_fin/view/widgets/import_period_overlap_dialog.dart';
@@ -30,6 +32,7 @@ class _ImportStateListenerState extends ConsumerState<ImportStateListener> {
   var _isHandlingPeriodOverlap = false;
   var _isHandlingOutOfOrder = false;
   var _isHandlingIncomeReview = false;
+  var _isHandlingExpenseReview = false;
   var _isHandlingError = false;
 
   @override
@@ -92,6 +95,19 @@ class _ImportStateListenerState extends ConsumerState<ImportStateListener> {
           unawaited(
             _handleIncomeReview().whenComplete(
               () => _isHandlingIncomeReview = false,
+            ),
+          );
+        });
+      }
+
+      if (next is ImportAwaitingExpenseReview &&
+          previous is! ImportAwaitingExpenseReview) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted || _isHandlingExpenseReview) return;
+          _isHandlingExpenseReview = true;
+          unawaited(
+            _handleExpenseReview().whenComplete(
+              () => _isHandlingExpenseReview = false,
             ),
           );
         });
@@ -316,6 +332,44 @@ class _ImportStateListenerState extends ConsumerState<ImportStateListener> {
       case ImportIncomeReviewCancelled():
       case null:
         await notifier.cancelIncomeReview();
+    }
+  }
+
+  Future<void> _handleExpenseReview() async {
+    if (!context.mounted) return;
+
+    final currentState = ref.read(importControllerProvider);
+    if (currentState is! ImportAwaitingExpenseReview) return;
+
+    final categories = await ref.read(expenseCategoriesStorageProvider).getActive();
+
+    if (!context.mounted) return;
+
+    final result = await showDialog<ImportExpenseReviewDialogResult>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return ImportExpenseReviewDialog(
+          statement: currentState.statement,
+          reviewItems: currentState.reviewItems,
+          categories: categories,
+        );
+      },
+    );
+
+    if (!context.mounted) return;
+
+    final notifier = ref.read(importControllerProvider.notifier);
+    if (ref.read(importControllerProvider) is! ImportAwaitingExpenseReview) {
+      return;
+    }
+
+    switch (result) {
+      case ImportExpenseReviewConfirmed(:final resolutions):
+        await notifier.confirmExpenseReview(resolutions);
+      case ImportExpenseReviewCancelled():
+      case null:
+        await notifier.cancelExpenseReview();
     }
   }
 }

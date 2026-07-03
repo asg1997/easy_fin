@@ -33,6 +33,7 @@ extension BankStatementOperationMapper on domain.BankStatementOperation {
       note: Value(note),
       renterId: Value(renterId),
       incomeCategoryId: Value(incomeCategoryId),
+      expenseCategoryId: Value(expenseCategoryId),
     );
   }
 }
@@ -68,6 +69,7 @@ extension BankStatementOperationRowMapper on BankStatementOperationRow {
       note: note,
       renterId: renterId,
       incomeCategoryId: incomeCategoryId,
+      expenseCategoryId: expenseCategoryId,
     );
   }
 }

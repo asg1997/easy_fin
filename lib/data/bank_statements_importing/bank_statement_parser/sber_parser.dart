@@ -108,9 +108,8 @@ class SberParser {
     final credit = _parseDouble(row[13] as String);
     final (debitInn, debitBankAccount, debitCounterpartyName) =
         _parseCounterpartyCell(row[4] as String);
-    final (creditInn, creditBankAccount, _) = _parseCounterpartyCell(
-      row[8] as String,
-    );
+    final (creditInn, creditBankAccount, creditCounterpartyName) =
+        _parseCounterpartyCell(row[8] as String);
     return BankStatementOperation(
       date: DateFormat('dd.MM.yyyy').parse(row[1] as String),
       debitInn: debitInn,
@@ -121,6 +120,7 @@ class SberParser {
       credit: credit,
       note: row[20] as String,
       debitCounterpartyName: debitCounterpartyName,
+      creditCounterpartyName: creditCounterpartyName,
     );
   }
 

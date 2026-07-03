@@ -7,6 +7,8 @@ import 'package:easy_fin/drift/models/bank_statements_table.dart';
 import 'package:easy_fin/drift/models/base_account_numbers_table.dart';
 import 'package:easy_fin/drift/models/bases_table.dart';
 import 'package:easy_fin/drift/models/renter_account_numbers_table.dart';
+import 'package:easy_fin/drift/models/expense_category_account_numbers_table.dart';
+import 'package:easy_fin/drift/models/expense_categories_table.dart';
 import 'package:easy_fin/drift/models/income_categories_table.dart';
 import 'package:easy_fin/drift/models/income_documents_table.dart';
 import 'package:easy_fin/drift/models/income_lines_table.dart';
@@ -27,6 +29,8 @@ part 'app_database.g.dart';
     RenterAccountNumbers,
     RenterAssignments,
     IncomeCategories,
+    ExpenseCategories,
+    ExpenseCategoryAccountNumbers,
     IncomeDocuments,
     IncomeLines,
   ],
@@ -35,13 +39,14 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (migrator) async {
       await migrator.createAll();
       await _seedIncomeCategories(migrator.database);
+      await _seedExpenseCategories(migrator.database);
     },
     onUpgrade: (migrator, from, to) async {
       if (from < 2) {
@@ -115,6 +120,18 @@ class AppDatabase extends _$AppDatabase {
           'ON DELETE SET NULL',
         );
       }
+      if (from < 12) {
+        await migrator.createTable(expenseCategories);
+        await _seedExpenseCategories(migrator.database);
+        await migrator.database.customStatement(
+          'ALTER TABLE bank_statement_operations '
+          'ADD COLUMN expense_category_id INTEGER REFERENCES expense_categories (id) '
+          'ON DELETE SET NULL',
+        );
+      }
+      if (from < 13) {
+        await migrator.createTable(expenseCategoryAccountNumbers);
+      }
     },
   );
 }
@@ -130,6 +147,27 @@ Future<void> _seedIncomeCategories(GeneratedDatabase db) async {
   for (var i = 0; i < names.length; i++) {
     await db.customInsert(
       'INSERT INTO income_categories (name, is_archived, sort_order, created_at) '
+      'VALUES (?, 0, ?, ?)',
+      variables: [
+        Variable.withString(names[i]),
+        Variable.withInt(i),
+        Variable.withDateTime(now),
+      ],
+    );
+  }
+}
+
+Future<void> _seedExpenseCategories(GeneratedDatabase db) async {
+  final existing = await db
+      .customSelect('SELECT COUNT(*) AS count FROM expense_categories')
+      .getSingle();
+  if ((existing.data['count']! as int) > 0) return;
+
+  final now = DateTime.now();
+  const names = ['Коммунальные', 'Налоги', 'Банк', 'Перевод', 'Прочее'];
+  for (var i = 0; i < names.length; i++) {
+    await db.customInsert(
+      'INSERT INTO expense_categories (name, is_archived, sort_order, created_at) '
       'VALUES (?, 0, ?, ?)',
       variables: [
         Variable.withString(names[i]),

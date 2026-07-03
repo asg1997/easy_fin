@@ -1,5 +1,6 @@
 import 'package:easy_fin/data/bank_statements_storage/bank_statement_storage.dart';
 import 'package:easy_fin/data/bases_storage/bases_storage.dart';
+import 'package:easy_fin/data/expense_categories_storage/expense_categories_storage.dart';
 import 'package:easy_fin/data/income_categories_storage/income_categories_storage.dart';
 import 'package:easy_fin/data/incomes_storage/incomes_storage.dart';
 import 'package:easy_fin/data/models/bank_statement_operation.dart';
@@ -51,6 +52,12 @@ class DocumentsStorageImpl implements DocumentsStorage {
     final categoryNameById = {
       for (final category in categories) category.id: category.name,
     };
+    final expenseCategories = await ref
+        .read(expenseCategoriesStorageProvider)
+        .getAll();
+    final expenseCategoryNameById = {
+      for (final category in expenseCategories) category.id: category.name,
+    };
 
     final statements = await ref
         .read(bankStatementStorageProvider)
@@ -75,6 +82,7 @@ class DocumentsStorageImpl implements DocumentsStorage {
               operation,
               renterNameById: renterNameById,
               categoryNameById: categoryNameById,
+              expenseCategoryNameById: expenseCategoryNameById,
             ),
           ),
         );
@@ -155,6 +163,7 @@ class DocumentsStorageImpl implements DocumentsStorage {
     BankStatementOperation operation, {
     required Map<String, String> renterNameById,
     required Map<int, String> categoryNameById,
+    required Map<int, String> expenseCategoryNameById,
   }) {
     if (operation.renterId != null) {
       final renterName =
@@ -164,6 +173,11 @@ class DocumentsStorageImpl implements DocumentsStorage {
     if (operation.incomeCategoryId != null) {
       final categoryName =
           categoryNameById[operation.incomeCategoryId!] ?? 'Прочее';
+      return '$categoryName: ${operation.note}';
+    }
+    if (operation.expenseCategoryId != null) {
+      final categoryName =
+          expenseCategoryNameById[operation.expenseCategoryId!] ?? 'Прочее';
       return '$categoryName: ${operation.note}';
     }
     return operation.note;

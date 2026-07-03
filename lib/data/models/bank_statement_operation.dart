@@ -14,8 +14,10 @@ class BankStatementOperation extends Equatable {
     required this.note,
     this.id,
     this.debitCounterpartyName,
+    this.creditCounterpartyName,
     this.renterId,
     this.incomeCategoryId,
+    this.expenseCategoryId,
   });
 
   final DateTime date;
@@ -30,8 +32,10 @@ class BankStatementOperation extends Equatable {
   final String note;
   final int? id;
   final String? debitCounterpartyName;
+  final String? creditCounterpartyName;
   final RenterId? renterId;
   final int? incomeCategoryId;
+  final int? expenseCategoryId;
 
   bool get isDebit => debit != null;
   bool get isCredit => credit != null;
@@ -47,10 +51,13 @@ class BankStatementOperation extends Equatable {
     String? note,
     int? id,
     String? debitCounterpartyName,
+    String? creditCounterpartyName,
     RenterId? renterId,
     int? incomeCategoryId,
+    int? expenseCategoryId,
     bool clearRenterId = false,
     bool clearIncomeCategoryId = false,
+    bool clearExpenseCategoryId = false,
   }) {
     return BankStatementOperation(
       date: date ?? this.date,
@@ -64,10 +71,15 @@ class BankStatementOperation extends Equatable {
       id: id ?? this.id,
       debitCounterpartyName:
           debitCounterpartyName ?? this.debitCounterpartyName,
+      creditCounterpartyName:
+          creditCounterpartyName ?? this.creditCounterpartyName,
       renterId: clearRenterId ? null : (renterId ?? this.renterId),
       incomeCategoryId: clearIncomeCategoryId
           ? null
           : (incomeCategoryId ?? this.incomeCategoryId),
+      expenseCategoryId: clearExpenseCategoryId
+          ? null
+          : (expenseCategoryId ?? this.expenseCategoryId),
     );
   }
 
@@ -83,7 +95,9 @@ class BankStatementOperation extends Equatable {
     credit,
     note,
     debitCounterpartyName,
+    creditCounterpartyName,
     renterId,
     incomeCategoryId,
+    expenseCategoryId,
   ];
 }

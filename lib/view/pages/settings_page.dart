@@ -1,5 +1,6 @@
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/view/pages/expense_categories_page.dart';
 import 'package:easy_fin/view/pages/income_categories_page.dart';
 import 'package:easy_fin/view/widgets/template_page.dart';
 import 'package:flutter/material.dart';
@@ -21,6 +22,13 @@ class SettingsPage extends ConsumerWidget {
             subtitle: 'Справочник для приходов типа «Другое»',
             icon: LucideIcons.tags,
             onTap: () => IncomeCategoriesPage.navigate(context),
+          ),
+          const Gap(12),
+          _SettingsTile(
+            title: 'Справочник расходов',
+            subtitle: 'Категории расходов',
+            icon: LucideIcons.tags,
+            onTap: () => ExpenseCategoriesPage.navigate(context),
           ),
         ],
       ),

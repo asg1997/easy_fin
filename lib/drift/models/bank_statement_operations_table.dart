@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:easy_fin/drift/models/bank_statements_table.dart';
+import 'package:easy_fin/drift/models/expense_categories_table.dart';
 import 'package:easy_fin/drift/models/income_categories_table.dart';
 import 'package:easy_fin/drift/models/renters_table.dart';
 
@@ -32,6 +33,12 @@ class BankStatementOperations extends Table {
 
   IntColumn get incomeCategoryId => integer().nullable().references(
     IncomeCategories,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
+
+  IntColumn get expenseCategoryId => integer().nullable().references(
+    ExpenseCategories,
     #id,
     onDelete: KeyAction.setNull,
   )();
