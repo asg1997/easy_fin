@@ -39,6 +39,8 @@ abstract class RenterAssignmentsStorage {
     required DateTime month,
     required List<RenterAssignment> assignments,
   });
+
+  Future<void> deleteByBaseAndMonth(BaseId baseId, DateTime month);
 }
 
 class RenterAssignmentsStorageImpl implements RenterAssignmentsStorage {
@@ -163,6 +165,17 @@ class RenterAssignmentsStorageImpl implements RenterAssignmentsStorage {
         );
       });
     });
+  }
+
+  @override
+  Future<void> deleteByBaseAndMonth(BaseId baseId, DateTime month) async {
+    final db = ref.read(appDatabaseProvider);
+    final normalizedMonth = normalizeRenterAssignmentMonth(month);
+
+    await (db.delete(db.renterAssignments)..where(
+      (table) =>
+          table.baseId.equals(baseId) & table.date.equals(normalizedMonth),
+    )).go();
   }
 }
 

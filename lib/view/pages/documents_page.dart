@@ -1,6 +1,7 @@
 import 'package:easy_fin/models/account_filter_type.dart';
 import 'package:easy_fin/models/base.dart';
 import 'package:easy_fin/models/document_type.dart';
+import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/providers/documents_filters_provider.dart';
@@ -30,17 +31,6 @@ class DocumentsPage extends ConsumerWidget {
         children: [
           _FilterRow(
             children: [
-              _FilterField(
-                child: MultiDropdownWidget<DocumentType>(
-                  expand: true,
-                  items: DocumentType.values,
-                  hint: 'Тип',
-                  selectedItems: filters.documentTypes,
-                  labelBuilder: (item) => item.label,
-                  onChanged: filtersNotifier.setDocumentTypes,
-                ),
-              ),
-              const Gap(12),
               _FilterField(
                 child: basesAsync.when(
                   data: (bases) => MultiDropdownWidget<Base>(
@@ -92,6 +82,11 @@ class DocumentsPage extends ConsumerWidget {
             ],
           ),
           const Gap(12),
+          _DocumentTypeTabBar(
+            selectedType: filters.documentType,
+            onChanged: filtersNotifier.setDocumentType,
+          ),
+          const Gap(12),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.only(bottom: 20),
@@ -111,6 +106,74 @@ class DocumentsPage extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _DocumentTypeTabBar extends StatelessWidget {
+  const _DocumentTypeTabBar({
+    required this.selectedType,
+    required this.onChanged,
+  });
+
+  final DocumentType selectedType;
+  final ValueChanged<DocumentType> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: AppColors.border),
+        ),
+      ),
+      child: Row(
+        children: [
+          for (final type in DocumentType.tabOrder)
+            _DocumentTypeTab(
+              label: type.tabLabel,
+              isSelected: selectedType == type,
+              onTap: () => onChanged(type),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DocumentTypeTab extends StatelessWidget {
+  const _DocumentTypeTab({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: isSelected ? AppColors.primary : Colors.transparent,
+              width: 2,
+            ),
+          ),
+        ),
+        child: Text(
+          label,
+          style: filterFieldTextStyle.copyWith(
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+            color: isSelected ? AppColors.primary : Colors.grey,
+          ),
+        ),
       ),
     );
   }

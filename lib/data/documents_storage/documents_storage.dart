@@ -2,6 +2,7 @@ import 'package:easy_fin/data/bank_statements_storage/bank_statement_storage.dar
 import 'package:easy_fin/data/bases_storage/bases_storage.dart';
 import 'package:easy_fin/data/expense_categories_storage/expense_categories_storage.dart';
 import 'package:easy_fin/data/income_categories_storage/income_categories_storage.dart';
+import 'package:easy_fin/data/expenses_storage/expenses_storage.dart';
 import 'package:easy_fin/data/incomes_storage/incomes_storage.dart';
 import 'package:easy_fin/data/models/bank_statement_operation.dart';
 import 'package:easy_fin/data/models/get_statements_filters.dart';
@@ -9,6 +10,8 @@ import 'package:easy_fin/data/renter_assignments_storage/renter_assignments_stor
 import 'package:easy_fin/data/renters_storage/renters_storage.dart';
 import 'package:easy_fin/models/account_filter_type.dart';
 import 'package:easy_fin/models/document_type.dart';
+import 'package:easy_fin/models/expense.dart';
+import 'package:easy_fin/models/expense_document.dart';
 import 'package:easy_fin/models/income.dart';
 import 'package:easy_fin/models/income_document.dart';
 import 'package:easy_fin/models/renter_assignment.dart';
@@ -151,6 +154,28 @@ class DocumentsStorageImpl implements DocumentsStorage {
       }
     }
 
+    final expenseDocuments = await ref
+        .read(expensesStorageProvider)
+        .getByFilters(filters);
+    if (expenseDocuments.isNotEmpty) {
+      for (final document in expenseDocuments) {
+        items.add(
+          DocumentsTableItem(
+            expenseDocumentId: document.id,
+            date: document.date,
+            documentType: DocumentType.outcome,
+            accountType: _expenseAccountLabel(document.account),
+            baseName: baseNameById[document.baseId] ?? '',
+            amount: document.totalSum,
+            note: _expenseNote(
+              document.lines,
+              categoryNameById: expenseCategoryNameById,
+            ),
+          ),
+        );
+      }
+    }
+
     items.sort((a, b) => b.date.compareTo(a.date));
     return items;
   }
@@ -205,6 +230,24 @@ class DocumentsStorageImpl implements DocumentsStorage {
           categoryNameById[categoryId] ?? 'Прочее',
       };
       parts.add(label);
+    }
+    return parts.join(', ');
+  }
+
+  String _expenseAccountLabel(ExpenseDocumentAccount account) {
+    return switch (account) {
+      ExpenseDocumentCashAccount() => AccountFilterType.cash.label,
+      ExpenseDocumentBankAccount(:final accountNumber) => accountNumber,
+    };
+  }
+
+  String _expenseNote(
+    List<Expense> lines, {
+    required Map<int, String> categoryNameById,
+  }) {
+    final parts = <String>[];
+    for (final line in lines) {
+      parts.add(categoryNameById[line.categoryId] ?? 'Прочее');
     }
     return parts.join(', ');
   }

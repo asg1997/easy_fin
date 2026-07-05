@@ -10,6 +10,8 @@ import 'package:easy_fin/drift/models/renter_account_numbers_table.dart';
 import 'package:easy_fin/drift/models/expense_category_account_numbers_table.dart';
 import 'package:easy_fin/drift/models/expense_categories_table.dart';
 import 'package:easy_fin/drift/models/income_categories_table.dart';
+import 'package:easy_fin/drift/models/expense_documents_table.dart';
+import 'package:easy_fin/drift/models/expense_lines_table.dart';
 import 'package:easy_fin/drift/models/income_documents_table.dart';
 import 'package:easy_fin/drift/models/income_lines_table.dart';
 import 'package:easy_fin/drift/models/renter_assignments_table.dart';
@@ -33,13 +35,15 @@ part 'app_database.g.dart';
     ExpenseCategoryAccountNumbers,
     IncomeDocuments,
     IncomeLines,
+    ExpenseDocuments,
+    ExpenseLines,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -131,6 +135,10 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 13) {
         await migrator.createTable(expenseCategoryAccountNumbers);
+      }
+      if (from < 14) {
+        await migrator.createTable(expenseDocuments);
+        await migrator.createTable(expenseLines);
       }
     },
   );

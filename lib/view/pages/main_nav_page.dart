@@ -3,7 +3,6 @@ import 'package:easy_fin/view/controllers/import_controller.dart';
 import 'package:easy_fin/view/pages/add_expense_page.dart';
 import 'package:easy_fin/view/pages/add_income_page.dart';
 import 'package:easy_fin/view/pages/add_rent_accrual_page.dart';
-import 'package:easy_fin/view/pages/database_page.dart';
 import 'package:easy_fin/view/pages/documents_page.dart';
 import 'package:easy_fin/view/pages/reports_page.dart';
 import 'package:easy_fin/view/pages/settings_page.dart';
@@ -95,18 +94,11 @@ class _MainNavPageState extends ConsumerState<MainNavPage> {
                           isActive: currentIndex == 1,
                         ),
                         NavItem(
-                          title: 'Данные',
-                          icon: LucideIcons.database,
+                          title: 'Настройки',
+                          icon: LucideIcons.settings,
                           onPressed: () => onItemTapped(2),
                           isExpanded: isExpanded,
                           isActive: currentIndex == 2,
-                        ),
-                        NavItem(
-                          title: 'Настройки',
-                          icon: LucideIcons.settings,
-                          onPressed: () => onItemTapped(3),
-                          isExpanded: isExpanded,
-                          isActive: currentIndex == 3,
                         ),
                       ],
                     ),
@@ -296,8 +288,7 @@ class _MainNavPageState extends ConsumerState<MainNavPage> {
             child: switch (currentIndex) {
               0 => const ReportsPage(),
               1 => const DocumentsPage(),
-              2 => const DatabasePage(),
-              3 => const SettingsPage(),
+              2 => const SettingsPage(),
               _ => Container(),
             },
           ),

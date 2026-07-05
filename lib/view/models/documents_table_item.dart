@@ -11,14 +11,18 @@ class DocumentsTableItem {
     this.operationId,
     this.baseId,
     this.incomeDocumentId,
+    this.expenseDocumentId,
   }) : assert(
          operationId != null ||
              (baseId != null &&
                  documentType == DocumentType.renterAssignment) ||
              (incomeDocumentId != null &&
-                 documentType == DocumentType.income),
+                 documentType == DocumentType.income) ||
+             (expenseDocumentId != null &&
+                 documentType == DocumentType.outcome),
          'Bank operations need operationId, rent accruals need baseId, '
-         'manual incomes need incomeDocumentId',
+         'manual incomes need incomeDocumentId, '
+         'manual outcomes need expenseDocumentId',
        );
 
   final DateTime date;
@@ -30,13 +34,20 @@ class DocumentsTableItem {
   final int? operationId;
   final String? baseId;
   final String? incomeDocumentId;
+  final String? expenseDocumentId;
 
   bool get canDelete =>
-      operationId != null || incomeDocumentId != null;
+      operationId != null ||
+      incomeDocumentId != null ||
+      expenseDocumentId != null ||
+      isRenterAssignmentDocument;
 
   bool get isRenterAssignmentDocument =>
       documentType == DocumentType.renterAssignment && baseId != null;
 
   bool get isManualIncomeDocument =>
       documentType == DocumentType.income && incomeDocumentId != null;
+
+  bool get isManualExpenseDocument =>
+      documentType == DocumentType.outcome && expenseDocumentId != null;
 }

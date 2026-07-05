@@ -1,7 +1,9 @@
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/view/pages/bases_page.dart';
 import 'package:easy_fin/view/pages/expense_categories_page.dart';
 import 'package:easy_fin/view/pages/income_categories_page.dart';
+import 'package:easy_fin/view/pages/renters_page.dart';
 import 'package:easy_fin/view/widgets/template_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,6 +19,20 @@ class SettingsPage extends ConsumerWidget {
       title: 'Настройки',
       child: ListView(
         children: [
+          _SettingsTile(
+            title: 'Базы',
+            subtitle: 'Справочник баз',
+            icon: LucideIcons.building2,
+            onTap: () => BasesPage.navigate(context),
+          ),
+          const Gap(12),
+          _SettingsTile(
+            title: 'Арендаторы',
+            subtitle: 'Справочник арендаторов',
+            icon: LucideIcons.users,
+            onTap: () => RentersPage.navigate(context),
+          ),
+          const Gap(12),
           _SettingsTile(
             title: 'Категории прочих приходов',
             subtitle: 'Справочник для приходов типа «Другое»',

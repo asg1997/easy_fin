@@ -4880,6 +4880,844 @@ class IncomeLinesCompanion extends UpdateCompanion<IncomeLineRow> {
   }
 }
 
+class $ExpenseDocumentsTable extends ExpenseDocuments
+    with TableInfo<$ExpenseDocumentsTable, ExpenseDocumentRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ExpenseDocumentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _baseIdMeta = const VerificationMeta('baseId');
+  @override
+  late final GeneratedColumn<String> baseId = GeneratedColumn<String>(
+    'base_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES bases (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<DateTime> date = GeneratedColumn<DateTime>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _accountTypeMeta = const VerificationMeta(
+    'accountType',
+  );
+  @override
+  late final GeneratedColumn<String> accountType = GeneratedColumn<String>(
+    'account_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _accountRefMeta = const VerificationMeta(
+    'accountRef',
+  );
+  @override
+  late final GeneratedColumn<String> accountRef = GeneratedColumn<String>(
+    'account_ref',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    baseId,
+    date,
+    accountType,
+    accountRef,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'expense_documents';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ExpenseDocumentRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('base_id')) {
+      context.handle(
+        _baseIdMeta,
+        baseId.isAcceptableOrUnknown(data['base_id']!, _baseIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_baseIdMeta);
+    }
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('account_type')) {
+      context.handle(
+        _accountTypeMeta,
+        accountType.isAcceptableOrUnknown(
+          data['account_type']!,
+          _accountTypeMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_accountTypeMeta);
+    }
+    if (data.containsKey('account_ref')) {
+      context.handle(
+        _accountRefMeta,
+        accountRef.isAcceptableOrUnknown(data['account_ref']!, _accountRefMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_accountRefMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ExpenseDocumentRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ExpenseDocumentRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      baseId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}base_id'],
+      )!,
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}date'],
+      )!,
+      accountType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}account_type'],
+      )!,
+      accountRef: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}account_ref'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ExpenseDocumentsTable createAlias(String alias) {
+    return $ExpenseDocumentsTable(attachedDatabase, alias);
+  }
+}
+
+class ExpenseDocumentRow extends DataClass
+    implements Insertable<ExpenseDocumentRow> {
+  final String id;
+  final String baseId;
+  final DateTime date;
+  final String accountType;
+  final String accountRef;
+  final DateTime createdAt;
+  const ExpenseDocumentRow({
+    required this.id,
+    required this.baseId,
+    required this.date,
+    required this.accountType,
+    required this.accountRef,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['base_id'] = Variable<String>(baseId);
+    map['date'] = Variable<DateTime>(date);
+    map['account_type'] = Variable<String>(accountType);
+    map['account_ref'] = Variable<String>(accountRef);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  ExpenseDocumentsCompanion toCompanion(bool nullToAbsent) {
+    return ExpenseDocumentsCompanion(
+      id: Value(id),
+      baseId: Value(baseId),
+      date: Value(date),
+      accountType: Value(accountType),
+      accountRef: Value(accountRef),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory ExpenseDocumentRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ExpenseDocumentRow(
+      id: serializer.fromJson<String>(json['id']),
+      baseId: serializer.fromJson<String>(json['baseId']),
+      date: serializer.fromJson<DateTime>(json['date']),
+      accountType: serializer.fromJson<String>(json['accountType']),
+      accountRef: serializer.fromJson<String>(json['accountRef']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'baseId': serializer.toJson<String>(baseId),
+      'date': serializer.toJson<DateTime>(date),
+      'accountType': serializer.toJson<String>(accountType),
+      'accountRef': serializer.toJson<String>(accountRef),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  ExpenseDocumentRow copyWith({
+    String? id,
+    String? baseId,
+    DateTime? date,
+    String? accountType,
+    String? accountRef,
+    DateTime? createdAt,
+  }) => ExpenseDocumentRow(
+    id: id ?? this.id,
+    baseId: baseId ?? this.baseId,
+    date: date ?? this.date,
+    accountType: accountType ?? this.accountType,
+    accountRef: accountRef ?? this.accountRef,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  ExpenseDocumentRow copyWithCompanion(ExpenseDocumentsCompanion data) {
+    return ExpenseDocumentRow(
+      id: data.id.present ? data.id.value : this.id,
+      baseId: data.baseId.present ? data.baseId.value : this.baseId,
+      date: data.date.present ? data.date.value : this.date,
+      accountType: data.accountType.present
+          ? data.accountType.value
+          : this.accountType,
+      accountRef: data.accountRef.present
+          ? data.accountRef.value
+          : this.accountRef,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExpenseDocumentRow(')
+          ..write('id: $id, ')
+          ..write('baseId: $baseId, ')
+          ..write('date: $date, ')
+          ..write('accountType: $accountType, ')
+          ..write('accountRef: $accountRef, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, baseId, date, accountType, accountRef, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ExpenseDocumentRow &&
+          other.id == this.id &&
+          other.baseId == this.baseId &&
+          other.date == this.date &&
+          other.accountType == this.accountType &&
+          other.accountRef == this.accountRef &&
+          other.createdAt == this.createdAt);
+}
+
+class ExpenseDocumentsCompanion extends UpdateCompanion<ExpenseDocumentRow> {
+  final Value<String> id;
+  final Value<String> baseId;
+  final Value<DateTime> date;
+  final Value<String> accountType;
+  final Value<String> accountRef;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const ExpenseDocumentsCompanion({
+    this.id = const Value.absent(),
+    this.baseId = const Value.absent(),
+    this.date = const Value.absent(),
+    this.accountType = const Value.absent(),
+    this.accountRef = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ExpenseDocumentsCompanion.insert({
+    required String id,
+    required String baseId,
+    required DateTime date,
+    required String accountType,
+    required String accountRef,
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       baseId = Value(baseId),
+       date = Value(date),
+       accountType = Value(accountType),
+       accountRef = Value(accountRef),
+       createdAt = Value(createdAt);
+  static Insertable<ExpenseDocumentRow> custom({
+    Expression<String>? id,
+    Expression<String>? baseId,
+    Expression<DateTime>? date,
+    Expression<String>? accountType,
+    Expression<String>? accountRef,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (baseId != null) 'base_id': baseId,
+      if (date != null) 'date': date,
+      if (accountType != null) 'account_type': accountType,
+      if (accountRef != null) 'account_ref': accountRef,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ExpenseDocumentsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? baseId,
+    Value<DateTime>? date,
+    Value<String>? accountType,
+    Value<String>? accountRef,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return ExpenseDocumentsCompanion(
+      id: id ?? this.id,
+      baseId: baseId ?? this.baseId,
+      date: date ?? this.date,
+      accountType: accountType ?? this.accountType,
+      accountRef: accountRef ?? this.accountRef,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (baseId.present) {
+      map['base_id'] = Variable<String>(baseId.value);
+    }
+    if (date.present) {
+      map['date'] = Variable<DateTime>(date.value);
+    }
+    if (accountType.present) {
+      map['account_type'] = Variable<String>(accountType.value);
+    }
+    if (accountRef.present) {
+      map['account_ref'] = Variable<String>(accountRef.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExpenseDocumentsCompanion(')
+          ..write('id: $id, ')
+          ..write('baseId: $baseId, ')
+          ..write('date: $date, ')
+          ..write('accountType: $accountType, ')
+          ..write('accountRef: $accountRef, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ExpenseLinesTable extends ExpenseLines
+    with TableInfo<$ExpenseLinesTable, ExpenseLineRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ExpenseLinesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _documentIdMeta = const VerificationMeta(
+    'documentId',
+  );
+  @override
+  late final GeneratedColumn<String> documentId = GeneratedColumn<String>(
+    'document_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES expense_documents (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _amountMinorMeta = const VerificationMeta(
+    'amountMinor',
+  );
+  @override
+  late final GeneratedColumn<int> amountMinor = GeneratedColumn<int>(
+    'amount_minor',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _categoryIdMeta = const VerificationMeta(
+    'categoryId',
+  );
+  @override
+  late final GeneratedColumn<int> categoryId = GeneratedColumn<int>(
+    'category_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES expense_categories (id) ON DELETE RESTRICT',
+    ),
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    documentId,
+    amountMinor,
+    categoryId,
+    note,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'expense_lines';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ExpenseLineRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('document_id')) {
+      context.handle(
+        _documentIdMeta,
+        documentId.isAcceptableOrUnknown(data['document_id']!, _documentIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_documentIdMeta);
+    }
+    if (data.containsKey('amount_minor')) {
+      context.handle(
+        _amountMinorMeta,
+        amountMinor.isAcceptableOrUnknown(
+          data['amount_minor']!,
+          _amountMinorMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_amountMinorMeta);
+    }
+    if (data.containsKey('category_id')) {
+      context.handle(
+        _categoryIdMeta,
+        categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryIdMeta);
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ExpenseLineRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ExpenseLineRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      documentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}document_id'],
+      )!,
+      amountMinor: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}amount_minor'],
+      )!,
+      categoryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}category_id'],
+      )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ExpenseLinesTable createAlias(String alias) {
+    return $ExpenseLinesTable(attachedDatabase, alias);
+  }
+}
+
+class ExpenseLineRow extends DataClass implements Insertable<ExpenseLineRow> {
+  final String id;
+  final String documentId;
+  final int amountMinor;
+  final int categoryId;
+  final String note;
+  final DateTime createdAt;
+  const ExpenseLineRow({
+    required this.id,
+    required this.documentId,
+    required this.amountMinor,
+    required this.categoryId,
+    required this.note,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['document_id'] = Variable<String>(documentId);
+    map['amount_minor'] = Variable<int>(amountMinor);
+    map['category_id'] = Variable<int>(categoryId);
+    map['note'] = Variable<String>(note);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  ExpenseLinesCompanion toCompanion(bool nullToAbsent) {
+    return ExpenseLinesCompanion(
+      id: Value(id),
+      documentId: Value(documentId),
+      amountMinor: Value(amountMinor),
+      categoryId: Value(categoryId),
+      note: Value(note),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory ExpenseLineRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ExpenseLineRow(
+      id: serializer.fromJson<String>(json['id']),
+      documentId: serializer.fromJson<String>(json['documentId']),
+      amountMinor: serializer.fromJson<int>(json['amountMinor']),
+      categoryId: serializer.fromJson<int>(json['categoryId']),
+      note: serializer.fromJson<String>(json['note']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'documentId': serializer.toJson<String>(documentId),
+      'amountMinor': serializer.toJson<int>(amountMinor),
+      'categoryId': serializer.toJson<int>(categoryId),
+      'note': serializer.toJson<String>(note),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  ExpenseLineRow copyWith({
+    String? id,
+    String? documentId,
+    int? amountMinor,
+    int? categoryId,
+    String? note,
+    DateTime? createdAt,
+  }) => ExpenseLineRow(
+    id: id ?? this.id,
+    documentId: documentId ?? this.documentId,
+    amountMinor: amountMinor ?? this.amountMinor,
+    categoryId: categoryId ?? this.categoryId,
+    note: note ?? this.note,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  ExpenseLineRow copyWithCompanion(ExpenseLinesCompanion data) {
+    return ExpenseLineRow(
+      id: data.id.present ? data.id.value : this.id,
+      documentId: data.documentId.present
+          ? data.documentId.value
+          : this.documentId,
+      amountMinor: data.amountMinor.present
+          ? data.amountMinor.value
+          : this.amountMinor,
+      categoryId: data.categoryId.present
+          ? data.categoryId.value
+          : this.categoryId,
+      note: data.note.present ? data.note.value : this.note,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExpenseLineRow(')
+          ..write('id: $id, ')
+          ..write('documentId: $documentId, ')
+          ..write('amountMinor: $amountMinor, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, documentId, amountMinor, categoryId, note, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ExpenseLineRow &&
+          other.id == this.id &&
+          other.documentId == this.documentId &&
+          other.amountMinor == this.amountMinor &&
+          other.categoryId == this.categoryId &&
+          other.note == this.note &&
+          other.createdAt == this.createdAt);
+}
+
+class ExpenseLinesCompanion extends UpdateCompanion<ExpenseLineRow> {
+  final Value<String> id;
+  final Value<String> documentId;
+  final Value<int> amountMinor;
+  final Value<int> categoryId;
+  final Value<String> note;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const ExpenseLinesCompanion({
+    this.id = const Value.absent(),
+    this.documentId = const Value.absent(),
+    this.amountMinor = const Value.absent(),
+    this.categoryId = const Value.absent(),
+    this.note = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ExpenseLinesCompanion.insert({
+    required String id,
+    required String documentId,
+    required int amountMinor,
+    required int categoryId,
+    this.note = const Value.absent(),
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       documentId = Value(documentId),
+       amountMinor = Value(amountMinor),
+       categoryId = Value(categoryId),
+       createdAt = Value(createdAt);
+  static Insertable<ExpenseLineRow> custom({
+    Expression<String>? id,
+    Expression<String>? documentId,
+    Expression<int>? amountMinor,
+    Expression<int>? categoryId,
+    Expression<String>? note,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (documentId != null) 'document_id': documentId,
+      if (amountMinor != null) 'amount_minor': amountMinor,
+      if (categoryId != null) 'category_id': categoryId,
+      if (note != null) 'note': note,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ExpenseLinesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? documentId,
+    Value<int>? amountMinor,
+    Value<int>? categoryId,
+    Value<String>? note,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return ExpenseLinesCompanion(
+      id: id ?? this.id,
+      documentId: documentId ?? this.documentId,
+      amountMinor: amountMinor ?? this.amountMinor,
+      categoryId: categoryId ?? this.categoryId,
+      note: note ?? this.note,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (documentId.present) {
+      map['document_id'] = Variable<String>(documentId.value);
+    }
+    if (amountMinor.present) {
+      map['amount_minor'] = Variable<int>(amountMinor.value);
+    }
+    if (categoryId.present) {
+      map['category_id'] = Variable<int>(categoryId.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExpenseLinesCompanion(')
+          ..write('id: $id, ')
+          ..write('documentId: $documentId, ')
+          ..write('amountMinor: $amountMinor, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4905,6 +5743,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $IncomeLinesTable incomeLines = $IncomeLinesTable(this);
+  late final $ExpenseDocumentsTable expenseDocuments = $ExpenseDocumentsTable(
+    this,
+  );
+  late final $ExpenseLinesTable expenseLines = $ExpenseLinesTable(this);
   late final Index bankStatementsAccountPeriod = Index(
     'bank_statements_account_period',
     'CREATE UNIQUE INDEX bank_statements_account_period ON bank_statements (account_number, start_date, end_date)',
@@ -4930,6 +5772,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     expenseCategoryAccountNumbers,
     incomeDocuments,
     incomeLines,
+    expenseDocuments,
+    expenseLines,
     bankStatementsAccountPeriod,
     bankStatementsBaseStartDate,
   ];
@@ -5050,6 +5894,20 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('income_lines', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'bases',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('expense_documents', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'expense_documents',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('expense_lines', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -5198,6 +6056,26 @@ final class $$BasesTableReferences
 
     final cache = $_typedResult.readTableOrNull(
       _incomeDocumentsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$ExpenseDocumentsTable, List<ExpenseDocumentRow>>
+  _expenseDocumentsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.expenseDocuments,
+    aliasName: $_aliasNameGenerator(db.bases.id, db.expenseDocuments.baseId),
+  );
+
+  $$ExpenseDocumentsTableProcessedTableManager get expenseDocumentsRefs {
+    final manager = $$ExpenseDocumentsTableTableManager(
+      $_db,
+      $_db.expenseDocuments,
+    ).filter((f) => f.baseId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _expenseDocumentsRefsTable($_db),
     );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
@@ -5368,6 +6246,31 @@ class $$BasesTableFilterComposer extends Composer<_$AppDatabase, $BasesTable> {
           }) => $$IncomeDocumentsTableFilterComposer(
             $db: $db,
             $table: $db.incomeDocuments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> expenseDocumentsRefs(
+    Expression<bool> Function($$ExpenseDocumentsTableFilterComposer f) f,
+  ) {
+    final $$ExpenseDocumentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.expenseDocuments,
+      getReferencedColumn: (t) => t.baseId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExpenseDocumentsTableFilterComposer(
+            $db: $db,
+            $table: $db.expenseDocuments,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5568,6 +6471,31 @@ class $$BasesTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> expenseDocumentsRefs<T extends Object>(
+    Expression<T> Function($$ExpenseDocumentsTableAnnotationComposer a) f,
+  ) {
+    final $$ExpenseDocumentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.expenseDocuments,
+      getReferencedColumn: (t) => t.baseId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExpenseDocumentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.expenseDocuments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$BasesTableTableManager
@@ -5590,6 +6518,7 @@ class $$BasesTableTableManager
             bool renterAssignmentsRefs,
             bool expenseCategoryAccountNumbersRefs,
             bool incomeDocumentsRefs,
+            bool expenseDocumentsRefs,
           })
         > {
   $$BasesTableTableManager(_$AppDatabase db, $BasesTable table)
@@ -5629,6 +6558,7 @@ class $$BasesTableTableManager
                 renterAssignmentsRefs = false,
                 expenseCategoryAccountNumbersRefs = false,
                 incomeDocumentsRefs = false,
+                expenseDocumentsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -5640,6 +6570,7 @@ class $$BasesTableTableManager
                     if (expenseCategoryAccountNumbersRefs)
                       db.expenseCategoryAccountNumbers,
                     if (incomeDocumentsRefs) db.incomeDocuments,
+                    if (expenseDocumentsRefs) db.expenseDocuments,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -5766,6 +6697,27 @@ class $$BasesTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (expenseDocumentsRefs)
+                        await $_getPrefetchedData<
+                          BaseRow,
+                          $BasesTable,
+                          ExpenseDocumentRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$BasesTableReferences
+                              ._expenseDocumentsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$BasesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).expenseDocumentsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.baseId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -5793,6 +6745,7 @@ typedef $$BasesTableProcessedTableManager =
         bool renterAssignmentsRefs,
         bool expenseCategoryAccountNumbersRefs,
         bool incomeDocumentsRefs,
+        bool expenseDocumentsRefs,
       })
     >;
 typedef $$BaseAccountNumbersTableCreateCompanionBuilder =
@@ -8002,6 +8955,27 @@ final class $$ExpenseCategoriesTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<$ExpenseLinesTable, List<ExpenseLineRow>>
+  _expenseLinesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.expenseLines,
+    aliasName: $_aliasNameGenerator(
+      db.expenseCategories.id,
+      db.expenseLines.categoryId,
+    ),
+  );
+
+  $$ExpenseLinesTableProcessedTableManager get expenseLinesRefs {
+    final manager = $$ExpenseLinesTableTableManager(
+      $_db,
+      $_db.expenseLines,
+    ).filter((f) => f.categoryId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_expenseLinesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$ExpenseCategoriesTableFilterComposer
@@ -8090,6 +9064,31 @@ class $$ExpenseCategoriesTableFilterComposer
                     $removeJoinBuilderFromRootComposer,
               ),
         );
+    return f(composer);
+  }
+
+  Expression<bool> expenseLinesRefs(
+    Expression<bool> Function($$ExpenseLinesTableFilterComposer f) f,
+  ) {
+    final $$ExpenseLinesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.expenseLines,
+      getReferencedColumn: (t) => t.categoryId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExpenseLinesTableFilterComposer(
+            $db: $db,
+            $table: $db.expenseLines,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
     return f(composer);
   }
 }
@@ -8210,6 +9209,31 @@ class $$ExpenseCategoriesTableAnnotationComposer
         );
     return f(composer);
   }
+
+  Expression<T> expenseLinesRefs<T extends Object>(
+    Expression<T> Function($$ExpenseLinesTableAnnotationComposer a) f,
+  ) {
+    final $$ExpenseLinesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.expenseLines,
+      getReferencedColumn: (t) => t.categoryId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExpenseLinesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.expenseLines,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$ExpenseCategoriesTableTableManager
@@ -8228,6 +9252,7 @@ class $$ExpenseCategoriesTableTableManager
           PrefetchHooks Function({
             bool bankStatementOperationsRefs,
             bool expenseCategoryAccountNumbersRefs,
+            bool expenseLinesRefs,
           })
         > {
   $$ExpenseCategoriesTableTableManager(
@@ -8286,6 +9311,7 @@ class $$ExpenseCategoriesTableTableManager
               ({
                 bankStatementOperationsRefs = false,
                 expenseCategoryAccountNumbersRefs = false,
+                expenseLinesRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -8293,6 +9319,7 @@ class $$ExpenseCategoriesTableTableManager
                     if (bankStatementOperationsRefs) db.bankStatementOperations,
                     if (expenseCategoryAccountNumbersRefs)
                       db.expenseCategoryAccountNumbers,
+                    if (expenseLinesRefs) db.expenseLines,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -8339,6 +9366,27 @@ class $$ExpenseCategoriesTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (expenseLinesRefs)
+                        await $_getPrefetchedData<
+                          ExpenseCategoryRow,
+                          $ExpenseCategoriesTable,
+                          ExpenseLineRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ExpenseCategoriesTableReferences
+                              ._expenseLinesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ExpenseCategoriesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).expenseLinesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.categoryId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -8362,6 +9410,7 @@ typedef $$ExpenseCategoriesTableProcessedTableManager =
       PrefetchHooks Function({
         bool bankStatementOperationsRefs,
         bool expenseCategoryAccountNumbersRefs,
+        bool expenseLinesRefs,
       })
     >;
 typedef $$BankStatementOperationsTableCreateCompanionBuilder =
@@ -11370,6 +12419,886 @@ typedef $$IncomeLinesTableProcessedTableManager =
       IncomeLineRow,
       PrefetchHooks Function({bool documentId, bool renterId, bool categoryId})
     >;
+typedef $$ExpenseDocumentsTableCreateCompanionBuilder =
+    ExpenseDocumentsCompanion Function({
+      required String id,
+      required String baseId,
+      required DateTime date,
+      required String accountType,
+      required String accountRef,
+      required DateTime createdAt,
+      Value<int> rowid,
+    });
+typedef $$ExpenseDocumentsTableUpdateCompanionBuilder =
+    ExpenseDocumentsCompanion Function({
+      Value<String> id,
+      Value<String> baseId,
+      Value<DateTime> date,
+      Value<String> accountType,
+      Value<String> accountRef,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+final class $$ExpenseDocumentsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $ExpenseDocumentsTable,
+          ExpenseDocumentRow
+        > {
+  $$ExpenseDocumentsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $BasesTable _baseIdTable(_$AppDatabase db) => db.bases.createAlias(
+    $_aliasNameGenerator(db.expenseDocuments.baseId, db.bases.id),
+  );
+
+  $$BasesTableProcessedTableManager get baseId {
+    final $_column = $_itemColumn<String>('base_id')!;
+
+    final manager = $$BasesTableTableManager(
+      $_db,
+      $_db.bases,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_baseIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<$ExpenseLinesTable, List<ExpenseLineRow>>
+  _expenseLinesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.expenseLines,
+    aliasName: $_aliasNameGenerator(
+      db.expenseDocuments.id,
+      db.expenseLines.documentId,
+    ),
+  );
+
+  $$ExpenseLinesTableProcessedTableManager get expenseLinesRefs {
+    final manager = $$ExpenseLinesTableTableManager(
+      $_db,
+      $_db.expenseLines,
+    ).filter((f) => f.documentId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_expenseLinesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$ExpenseDocumentsTableFilterComposer
+    extends Composer<_$AppDatabase, $ExpenseDocumentsTable> {
+  $$ExpenseDocumentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get accountType => $composableBuilder(
+    column: $table.accountType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get accountRef => $composableBuilder(
+    column: $table.accountRef,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$BasesTableFilterComposer get baseId {
+    final $$BasesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.baseId,
+      referencedTable: $db.bases,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BasesTableFilterComposer(
+            $db: $db,
+            $table: $db.bases,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<bool> expenseLinesRefs(
+    Expression<bool> Function($$ExpenseLinesTableFilterComposer f) f,
+  ) {
+    final $$ExpenseLinesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.expenseLines,
+      getReferencedColumn: (t) => t.documentId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExpenseLinesTableFilterComposer(
+            $db: $db,
+            $table: $db.expenseLines,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$ExpenseDocumentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ExpenseDocumentsTable> {
+  $$ExpenseDocumentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get accountType => $composableBuilder(
+    column: $table.accountType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get accountRef => $composableBuilder(
+    column: $table.accountRef,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$BasesTableOrderingComposer get baseId {
+    final $$BasesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.baseId,
+      referencedTable: $db.bases,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BasesTableOrderingComposer(
+            $db: $db,
+            $table: $db.bases,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ExpenseDocumentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ExpenseDocumentsTable> {
+  $$ExpenseDocumentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<String> get accountType => $composableBuilder(
+    column: $table.accountType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get accountRef => $composableBuilder(
+    column: $table.accountRef,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$BasesTableAnnotationComposer get baseId {
+    final $$BasesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.baseId,
+      referencedTable: $db.bases,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BasesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.bases,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<T> expenseLinesRefs<T extends Object>(
+    Expression<T> Function($$ExpenseLinesTableAnnotationComposer a) f,
+  ) {
+    final $$ExpenseLinesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.expenseLines,
+      getReferencedColumn: (t) => t.documentId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExpenseLinesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.expenseLines,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$ExpenseDocumentsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ExpenseDocumentsTable,
+          ExpenseDocumentRow,
+          $$ExpenseDocumentsTableFilterComposer,
+          $$ExpenseDocumentsTableOrderingComposer,
+          $$ExpenseDocumentsTableAnnotationComposer,
+          $$ExpenseDocumentsTableCreateCompanionBuilder,
+          $$ExpenseDocumentsTableUpdateCompanionBuilder,
+          (ExpenseDocumentRow, $$ExpenseDocumentsTableReferences),
+          ExpenseDocumentRow,
+          PrefetchHooks Function({bool baseId, bool expenseLinesRefs})
+        > {
+  $$ExpenseDocumentsTableTableManager(
+    _$AppDatabase db,
+    $ExpenseDocumentsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ExpenseDocumentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ExpenseDocumentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ExpenseDocumentsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> baseId = const Value.absent(),
+                Value<DateTime> date = const Value.absent(),
+                Value<String> accountType = const Value.absent(),
+                Value<String> accountRef = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ExpenseDocumentsCompanion(
+                id: id,
+                baseId: baseId,
+                date: date,
+                accountType: accountType,
+                accountRef: accountRef,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String baseId,
+                required DateTime date,
+                required String accountType,
+                required String accountRef,
+                required DateTime createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => ExpenseDocumentsCompanion.insert(
+                id: id,
+                baseId: baseId,
+                date: date,
+                accountType: accountType,
+                accountRef: accountRef,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$ExpenseDocumentsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({baseId = false, expenseLinesRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (expenseLinesRefs) db.expenseLines],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (baseId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.baseId,
+                                referencedTable:
+                                    $$ExpenseDocumentsTableReferences
+                                        ._baseIdTable(db),
+                                referencedColumn:
+                                    $$ExpenseDocumentsTableReferences
+                                        ._baseIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (expenseLinesRefs)
+                    await $_getPrefetchedData<
+                      ExpenseDocumentRow,
+                      $ExpenseDocumentsTable,
+                      ExpenseLineRow
+                    >(
+                      currentTable: table,
+                      referencedTable: $$ExpenseDocumentsTableReferences
+                          ._expenseLinesRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$ExpenseDocumentsTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).expenseLinesRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.documentId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$ExpenseDocumentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ExpenseDocumentsTable,
+      ExpenseDocumentRow,
+      $$ExpenseDocumentsTableFilterComposer,
+      $$ExpenseDocumentsTableOrderingComposer,
+      $$ExpenseDocumentsTableAnnotationComposer,
+      $$ExpenseDocumentsTableCreateCompanionBuilder,
+      $$ExpenseDocumentsTableUpdateCompanionBuilder,
+      (ExpenseDocumentRow, $$ExpenseDocumentsTableReferences),
+      ExpenseDocumentRow,
+      PrefetchHooks Function({bool baseId, bool expenseLinesRefs})
+    >;
+typedef $$ExpenseLinesTableCreateCompanionBuilder =
+    ExpenseLinesCompanion Function({
+      required String id,
+      required String documentId,
+      required int amountMinor,
+      required int categoryId,
+      Value<String> note,
+      required DateTime createdAt,
+      Value<int> rowid,
+    });
+typedef $$ExpenseLinesTableUpdateCompanionBuilder =
+    ExpenseLinesCompanion Function({
+      Value<String> id,
+      Value<String> documentId,
+      Value<int> amountMinor,
+      Value<int> categoryId,
+      Value<String> note,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+final class $$ExpenseLinesTableReferences
+    extends BaseReferences<_$AppDatabase, $ExpenseLinesTable, ExpenseLineRow> {
+  $$ExpenseLinesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $ExpenseDocumentsTable _documentIdTable(_$AppDatabase db) =>
+      db.expenseDocuments.createAlias(
+        $_aliasNameGenerator(
+          db.expenseLines.documentId,
+          db.expenseDocuments.id,
+        ),
+      );
+
+  $$ExpenseDocumentsTableProcessedTableManager get documentId {
+    final $_column = $_itemColumn<String>('document_id')!;
+
+    final manager = $$ExpenseDocumentsTableTableManager(
+      $_db,
+      $_db.expenseDocuments,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_documentIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $ExpenseCategoriesTable _categoryIdTable(_$AppDatabase db) =>
+      db.expenseCategories.createAlias(
+        $_aliasNameGenerator(
+          db.expenseLines.categoryId,
+          db.expenseCategories.id,
+        ),
+      );
+
+  $$ExpenseCategoriesTableProcessedTableManager get categoryId {
+    final $_column = $_itemColumn<int>('category_id')!;
+
+    final manager = $$ExpenseCategoriesTableTableManager(
+      $_db,
+      $_db.expenseCategories,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_categoryIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$ExpenseLinesTableFilterComposer
+    extends Composer<_$AppDatabase, $ExpenseLinesTable> {
+  $$ExpenseLinesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get amountMinor => $composableBuilder(
+    column: $table.amountMinor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ExpenseDocumentsTableFilterComposer get documentId {
+    final $$ExpenseDocumentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.documentId,
+      referencedTable: $db.expenseDocuments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExpenseDocumentsTableFilterComposer(
+            $db: $db,
+            $table: $db.expenseDocuments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ExpenseCategoriesTableFilterComposer get categoryId {
+    final $$ExpenseCategoriesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.categoryId,
+      referencedTable: $db.expenseCategories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExpenseCategoriesTableFilterComposer(
+            $db: $db,
+            $table: $db.expenseCategories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ExpenseLinesTableOrderingComposer
+    extends Composer<_$AppDatabase, $ExpenseLinesTable> {
+  $$ExpenseLinesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get amountMinor => $composableBuilder(
+    column: $table.amountMinor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ExpenseDocumentsTableOrderingComposer get documentId {
+    final $$ExpenseDocumentsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.documentId,
+      referencedTable: $db.expenseDocuments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExpenseDocumentsTableOrderingComposer(
+            $db: $db,
+            $table: $db.expenseDocuments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ExpenseCategoriesTableOrderingComposer get categoryId {
+    final $$ExpenseCategoriesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.categoryId,
+      referencedTable: $db.expenseCategories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExpenseCategoriesTableOrderingComposer(
+            $db: $db,
+            $table: $db.expenseCategories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ExpenseLinesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ExpenseLinesTable> {
+  $$ExpenseLinesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get amountMinor => $composableBuilder(
+    column: $table.amountMinor,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$ExpenseDocumentsTableAnnotationComposer get documentId {
+    final $$ExpenseDocumentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.documentId,
+      referencedTable: $db.expenseDocuments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExpenseDocumentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.expenseDocuments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ExpenseCategoriesTableAnnotationComposer get categoryId {
+    final $$ExpenseCategoriesTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.categoryId,
+          referencedTable: $db.expenseCategories,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ExpenseCategoriesTableAnnotationComposer(
+                $db: $db,
+                $table: $db.expenseCategories,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$ExpenseLinesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ExpenseLinesTable,
+          ExpenseLineRow,
+          $$ExpenseLinesTableFilterComposer,
+          $$ExpenseLinesTableOrderingComposer,
+          $$ExpenseLinesTableAnnotationComposer,
+          $$ExpenseLinesTableCreateCompanionBuilder,
+          $$ExpenseLinesTableUpdateCompanionBuilder,
+          (ExpenseLineRow, $$ExpenseLinesTableReferences),
+          ExpenseLineRow,
+          PrefetchHooks Function({bool documentId, bool categoryId})
+        > {
+  $$ExpenseLinesTableTableManager(_$AppDatabase db, $ExpenseLinesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ExpenseLinesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ExpenseLinesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ExpenseLinesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> documentId = const Value.absent(),
+                Value<int> amountMinor = const Value.absent(),
+                Value<int> categoryId = const Value.absent(),
+                Value<String> note = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ExpenseLinesCompanion(
+                id: id,
+                documentId: documentId,
+                amountMinor: amountMinor,
+                categoryId: categoryId,
+                note: note,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String documentId,
+                required int amountMinor,
+                required int categoryId,
+                Value<String> note = const Value.absent(),
+                required DateTime createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => ExpenseLinesCompanion.insert(
+                id: id,
+                documentId: documentId,
+                amountMinor: amountMinor,
+                categoryId: categoryId,
+                note: note,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$ExpenseLinesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({documentId = false, categoryId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (documentId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.documentId,
+                                referencedTable: $$ExpenseLinesTableReferences
+                                    ._documentIdTable(db),
+                                referencedColumn: $$ExpenseLinesTableReferences
+                                    ._documentIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+                    if (categoryId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.categoryId,
+                                referencedTable: $$ExpenseLinesTableReferences
+                                    ._categoryIdTable(db),
+                                referencedColumn: $$ExpenseLinesTableReferences
+                                    ._categoryIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$ExpenseLinesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ExpenseLinesTable,
+      ExpenseLineRow,
+      $$ExpenseLinesTableFilterComposer,
+      $$ExpenseLinesTableOrderingComposer,
+      $$ExpenseLinesTableAnnotationComposer,
+      $$ExpenseLinesTableCreateCompanionBuilder,
+      $$ExpenseLinesTableUpdateCompanionBuilder,
+      (ExpenseLineRow, $$ExpenseLinesTableReferences),
+      ExpenseLineRow,
+      PrefetchHooks Function({bool documentId, bool categoryId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -11405,4 +13334,8 @@ class $AppDatabaseManager {
       $$IncomeDocumentsTableTableManager(_db, _db.incomeDocuments);
   $$IncomeLinesTableTableManager get incomeLines =>
       $$IncomeLinesTableTableManager(_db, _db.incomeLines);
+  $$ExpenseDocumentsTableTableManager get expenseDocuments =>
+      $$ExpenseDocumentsTableTableManager(_db, _db.expenseDocuments);
+  $$ExpenseLinesTableTableManager get expenseLines =>
+      $$ExpenseLinesTableTableManager(_db, _db.expenseLines);
 }

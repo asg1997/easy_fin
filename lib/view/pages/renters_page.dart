@@ -5,8 +5,10 @@ import 'package:easy_fin/utils/account_number_validator.dart';
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
+import 'package:easy_fin/view/providers/renter_debts_provider.dart';
 import 'package:easy_fin/view/providers/renters_list_provider.dart';
 import 'package:easy_fin/view/widgets/add_renter_dialog.dart';
+import 'package:easy_fin/view/widgets/confirm_dialog.dart';
 import 'package:easy_fin/view/widgets/dropdown_widget.dart';
 import 'package:easy_fin/view/widgets/edit_renter_dialog.dart';
 import 'package:easy_fin/view/widgets/simple_table.dart';
@@ -98,9 +100,11 @@ class _RentersPageState extends ConsumerState<RentersPage> {
       case EditRenterDialogArchived():
         await ref.read(rentersStorageProvider).archive(renter.id);
         ref.invalidate(rentersListProvider);
+        ref.invalidate(renterDebtsProvider);
       case EditRenterDialogRestored():
         await ref.read(rentersStorageProvider).unarchive(renter.id);
         ref.invalidate(rentersListProvider);
+        ref.invalidate(renterDebtsProvider);
       case EditRenterDialogSaved(:final name, :final accountNumbers):
         try {
           await ref.read(rentersStorageProvider).save(
@@ -127,6 +131,32 @@ class _RentersPageState extends ConsumerState<RentersPage> {
             'Счёт ${error.accountNumber} уже привязан к другому арендатору',
           );
         }
+    }
+  }
+
+  Future<void> _onDeleteRenter(Renter renter) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => const ConfirmDialog(
+        title: 'Удалить арендатора?',
+        message: 'Арендатор будет удалён безвозвратно.',
+        confirmLabel: 'Удалить',
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await ref.read(rentersStorageProvider).delete(renter.id);
+      ref.invalidate(rentersListProvider);
+      ref.invalidate(renterDebtsProvider);
+    } on RenterInUseError {
+      if (!mounted) return;
+      await _showError(
+        'Арендатор используется в документах. Архивируйте его вместо удаления.',
+      );
+    } on RenterNotFoundError {
+      if (!mounted) return;
+      await _showError('Арендатор не найден');
     }
   }
 
@@ -210,11 +240,12 @@ class _RentersPageState extends ConsumerState<RentersPage> {
                     final showArchiveIcon = filteredRenters.any(
                       (renter) => renter.isArchived,
                     );
+                    final leadingWidth = showArchiveIcon ? 76.0 : 60.0;
 
                     return SimpleTable(
                       columns: const ['Название', 'Расчётные счета'],
                       columnFlex: const [2, 3],
-                      leadingWidth: showArchiveIcon ? 52 : 32,
+                      leadingWidth: leadingWidth,
                       rows: filteredRenters
                           .map(
                             (renter) => [
@@ -227,7 +258,7 @@ class _RentersPageState extends ConsumerState<RentersPage> {
                         final renter = filteredRenters[index];
 
                         return SizedBox(
-                          width: showArchiveIcon ? 52 : 32,
+                          width: leadingWidth,
                           child: Row(
                             children: [
                               IconButton(
@@ -240,6 +271,20 @@ class _RentersPageState extends ConsumerState<RentersPage> {
                                 ),
                                 icon: const Icon(
                                   LucideIcons.pencil,
+                                  size: 16,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              IconButton(
+                                tooltip: 'Удалить',
+                                onPressed: () => _onDeleteRenter(renter),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(
+                                  minWidth: 28,
+                                  minHeight: 28,
+                                ),
+                                icon: const Icon(
+                                  LucideIcons.trash2,
                                   size: 16,
                                   color: Colors.grey,
                                 ),

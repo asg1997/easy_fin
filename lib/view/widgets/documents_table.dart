@@ -1,14 +1,19 @@
 import 'dart:math' as math;
 
 import 'package:easy_fin/data/bank_statements_storage/bank_statement_storage.dart';
+import 'package:easy_fin/data/expenses_storage/expenses_storage.dart';
 import 'package:easy_fin/data/incomes_storage/incomes_storage.dart';
+import 'package:easy_fin/data/renter_assignments_storage/renter_assignments_storage.dart';
 import 'package:easy_fin/models/document_type.dart';
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:easy_fin/view/models/documents_table_item.dart';
+import 'package:easy_fin/view/pages/add_expense_page.dart';
 import 'package:easy_fin/view/pages/add_income_page.dart';
 import 'package:easy_fin/view/pages/add_rent_accrual_page.dart';
+import 'package:easy_fin/view/providers/account_balances_provider.dart';
 import 'package:easy_fin/view/providers/documents_list_provider.dart';
+import 'package:easy_fin/view/providers/renter_debts_provider.dart';
 import 'package:easy_fin/view/widgets/confirm_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -106,12 +111,8 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
       context: context,
       builder: (context) {
         return ConfirmDialog(
-          title: item.isManualIncomeDocument
-              ? 'Удалить приход?'
-              : 'Удалить операцию?',
-          message: item.isManualIncomeDocument
-              ? 'Документ прихода будет удалён безвозвратно.'
-              : 'Операция будет удалена безвозвратно.',
+          title: _deleteConfirmTitle(item),
+          message: _deleteConfirmMessage(item),
           confirmLabel: 'Удалить',
         );
       },
@@ -123,6 +124,8 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
     if (operationId != null) {
       await ref.read(bankStatementStorageProvider).deleteOperation(operationId);
       ref.invalidate(documentsListProvider);
+      ref.invalidate(accountBalancesProvider);
+      ref.invalidate(renterDebtsProvider);
       return;
     }
 
@@ -132,7 +135,50 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
           .read(incomesStorageProvider)
           .deleteDocument(incomeDocumentId);
       ref.invalidate(documentsListProvider);
+      ref.invalidate(accountBalancesProvider);
+      ref.invalidate(renterDebtsProvider);
+      return;
     }
+
+    final expenseDocumentId = item.expenseDocumentId;
+    if (expenseDocumentId != null) {
+      await ref
+          .read(expensesStorageProvider)
+          .deleteDocument(expenseDocumentId);
+      ref.invalidate(documentsListProvider);
+      ref.invalidate(accountBalancesProvider);
+      return;
+    }
+
+    if (item.isRenterAssignmentDocument) {
+      await ref.read(renterAssignmentsStorageProvider).deleteByBaseAndMonth(
+        item.baseId!,
+        item.date,
+      );
+      ref.invalidate(documentsListProvider);
+      ref.invalidate(renterDebtsProvider);
+    }
+  }
+
+  String _deleteConfirmTitle(DocumentsTableItem item) {
+    if (item.isManualIncomeDocument) return 'Удалить приход?';
+    if (item.isManualExpenseDocument) return 'Удалить расход?';
+    if (item.isRenterAssignmentDocument) return 'Удалить начисление?';
+    return 'Удалить операцию?';
+  }
+
+  String _deleteConfirmMessage(DocumentsTableItem item) {
+    if (item.isManualIncomeDocument) {
+      return 'Документ прихода будет удалён безвозвратно.';
+    }
+    if (item.isManualExpenseDocument) {
+      return 'Документ расхода будет удалён безвозвратно.';
+    }
+    if (item.isRenterAssignmentDocument) {
+      final monthLabel = DateFormat('MMMM yyyy', 'ru').format(item.date);
+      return 'Начисление аренды за $monthLabel будет удалено безвозвратно.';
+    }
+    return 'Операция будет удалена безвозвратно.';
   }
 
   void _toggleColumn(DocumentsTableColumn column, bool isVisible) {
@@ -327,6 +373,12 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
                                                 context,
                                                 documentId:
                                                     item.incomeDocumentId,
+                                              )
+                                            : item.isManualExpenseDocument
+                                            ? () => AddExpensePage.navigate(
+                                                context,
+                                                documentId:
+                                                    item.expenseDocumentId,
                                               )
                                             : null,
                                       );
@@ -565,6 +617,21 @@ class _DocumentsTableRow extends StatelessWidget {
                               : 1,
                           overflow: TextOverflow.ellipsis,
                         ),
+                ),
+              if (item.canDelete)
+                IconButton(
+                  tooltip: 'Удалить',
+                  onPressed: onDelete,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
+                  icon: const Icon(
+                    LucideIcons.trash2,
+                    size: 16,
+                    color: Colors.grey,
+                  ),
                 ),
             ],
           ),

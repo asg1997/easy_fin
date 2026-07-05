@@ -1,10 +1,13 @@
 import 'package:easy_fin/data/bases_storage/bases_storage.dart';
 import 'package:easy_fin/drift/db/app_database.dart';
 import 'package:easy_fin/drift/db/app_database_provider.dart';
+import 'package:easy_fin/models/account_filter_type.dart';
 import 'package:easy_fin/models/base.dart';
 import 'package:easy_fin/utils/money.dart';
 import 'package:easy_fin/view/models/account_balance_report_item.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+const _accountTypeCash = 'cash';
 
 final accountBalancesStorageProvider = Provider<AccountBalancesStorage>(
   AccountBalancesStorageImpl.new,
@@ -25,10 +28,72 @@ class AccountBalancesStorageImpl implements AccountBalancesStorage {
     if (bases.isEmpty) return [];
 
     final balancesByAccountNumber = await _getBalancesByAccountNumber();
+    final cashBalancesByBaseId = await _getCashBalancesByBaseId();
 
     return bases
-        .map((base) => _toReportItem(base, balancesByAccountNumber))
+        .map(
+          (base) => _toReportItem(
+            base,
+            balancesByAccountNumber,
+            cashBalancesByBaseId,
+          ),
+        )
         .toList();
+  }
+
+  Future<Map<BaseId, double>> _getCashBalancesByBaseId() async {
+    final db = ref.read(appDatabaseProvider);
+    final cashIncomeDocuments = await (db.select(db.incomeDocuments)
+          ..where((table) => table.accountType.equals(_accountTypeCash)))
+        .get();
+    final cashExpenseDocuments = await (db.select(db.expenseDocuments)
+          ..where((table) => table.accountType.equals(_accountTypeCash)))
+        .get();
+
+    if (cashIncomeDocuments.isEmpty && cashExpenseDocuments.isEmpty) {
+      return {};
+    }
+
+    final incomeDocumentIds =
+        cashIncomeDocuments.map((document) => document.id).toList();
+    final expenseDocumentIds =
+        cashExpenseDocuments.map((document) => document.id).toList();
+
+    final incomeLines = incomeDocumentIds.isEmpty
+        ? <IncomeLineRow>[]
+        : await (db.select(db.incomeLines)
+              ..where((table) => table.documentId.isIn(incomeDocumentIds)))
+            .get();
+    final expenseLines = expenseDocumentIds.isEmpty
+        ? <ExpenseLineRow>[]
+        : await (db.select(db.expenseLines)
+              ..where((table) => table.documentId.isIn(expenseDocumentIds)))
+            .get();
+
+    final baseIdByIncomeDocumentId = {
+      for (final document in cashIncomeDocuments) document.id: document.baseId,
+    };
+    final baseIdByExpenseDocumentId = {
+      for (final document in cashExpenseDocuments) document.id: document.baseId,
+    };
+
+    final balancesByBaseId = <BaseId, double>{};
+    for (final line in incomeLines) {
+      final baseId = baseIdByIncomeDocumentId[line.documentId];
+      if (baseId == null) continue;
+
+      balancesByBaseId[baseId] =
+          (balancesByBaseId[baseId] ?? 0) + moneyFromMinor(line.amountMinor);
+    }
+    for (final line in expenseLines) {
+      final baseId = baseIdByExpenseDocumentId[line.documentId];
+      if (baseId == null) continue;
+
+      balancesByBaseId[baseId] =
+          (balancesByBaseId[baseId] ?? 0) - moneyFromMinor(line.amountMinor);
+    }
+
+    return balancesByBaseId;
   }
 
   Future<Map<AccountNumber, double>> _getBalancesByAccountNumber() async {
@@ -104,15 +169,20 @@ class AccountBalancesStorageImpl implements AccountBalancesStorage {
   AccountBalanceReportItem _toReportItem(
     Base base,
     Map<AccountNumber, double> balancesByAccountNumber,
+    Map<BaseId, double> cashBalancesByBaseId,
   ) {
-    final accounts = base.accounts
-        .map(
-          (account) => AccountBalanceItem(
-            name: account.displayName,
-            balance: balancesByAccountNumber[account.accountNumber] ?? 0,
-          ),
-        )
-        .toList();
+    final accounts = [
+      AccountBalanceItem(
+        name: AccountFilterType.cash.label,
+        balance: cashBalancesByBaseId[base.id] ?? 0,
+      ),
+      ...base.accounts.map(
+        (account) => AccountBalanceItem(
+          name: account.displayName,
+          balance: balancesByAccountNumber[account.accountNumber] ?? 0,
+        ),
+      ),
+    ];
 
     final totalBalance = accounts.fold<double>(
       0,

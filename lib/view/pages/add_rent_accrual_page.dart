@@ -11,6 +11,7 @@ import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/providers/documents_list_provider.dart';
+import 'package:easy_fin/view/providers/renter_debts_provider.dart';
 import 'package:easy_fin/view/providers/renters_list_provider.dart';
 import 'package:easy_fin/view/widgets/add_renter_dialog.dart';
 import 'package:easy_fin/view/widgets/date_picker_field.dart';
@@ -305,6 +306,7 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
 
       if (!mounted) return;
       ref.invalidate(documentsListProvider);
+      ref.invalidate(renterDebtsProvider);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Начисления сохранены')),
       );

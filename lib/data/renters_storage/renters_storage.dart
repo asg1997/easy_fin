@@ -31,10 +31,20 @@ class InvalidRenterAccountNumberError extends RentersStorageError {
   final AccountNumber accountNumber;
 }
 
+class RenterInUseError extends RentersStorageError {
+  const RenterInUseError();
+}
+
+class RenterNotFoundError extends RentersStorageError {
+  const RenterNotFoundError();
+}
+
 abstract class RentersStorage {
   Future<void> save(Renter renter);
   Future<void> archive(RenterId id);
   Future<void> unarchive(RenterId id);
+  Future<void> delete(RenterId id);
+  Future<bool> isUsed(RenterId id);
   Future<Renter?> findById(RenterId id);
   Future<Renter?> findByAccount(AccountNumber accountNumber);
   Future<List<Renter>> getAll();
@@ -173,6 +183,46 @@ class RentersStorageImpl implements RentersStorage {
     await (db.update(db.renters)..where((table) => table.id.equals(id))).write(
       const RentersCompanion(isArchived: Value(false)),
     );
+  }
+
+  @override
+  Future<void> delete(RenterId id) async {
+    if (await isUsed(id)) {
+      throw const RenterInUseError();
+    }
+
+    final db = ref.read(appDatabaseProvider);
+    final deleted = await (db.delete(db.renters)
+          ..where((table) => table.id.equals(id)))
+        .go();
+
+    if (deleted == 0) {
+      throw const RenterNotFoundError();
+    }
+  }
+
+  @override
+  Future<bool> isUsed(RenterId id) async {
+    final db = ref.read(appDatabaseProvider);
+
+    final incomeLine = await (db.select(db.incomeLines)
+          ..where((table) => table.renterId.equals(id))
+          ..limit(1))
+        .getSingleOrNull();
+    if (incomeLine != null) return true;
+
+    final operation = await (db.select(db.bankStatementOperations)
+          ..where((table) => table.renterId.equals(id))
+          ..limit(1))
+        .getSingleOrNull();
+    if (operation != null) return true;
+
+    final assignment = await (db.select(db.renterAssignments)
+          ..where((table) => table.renterId.equals(id))
+          ..limit(1))
+        .getSingleOrNull();
+
+    return assignment != null;
   }
 
   @override

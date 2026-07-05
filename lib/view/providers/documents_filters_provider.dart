@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class DocumentsFilters extends Equatable {
   const DocumentsFilters({
-    this.documentTypes = const {},
+    this.documentTypes = const {DocumentType.outcome},
     this.selectedBases = const {},
     this.accountFilters = const {},
     this.startDate,
@@ -19,6 +19,9 @@ class DocumentsFilters extends Equatable {
   final Set<AccountFilterType> accountFilters;
   final DateTime? startDate;
   final DateTime? endDate;
+
+  DocumentType get documentType =>
+      documentTypes.isEmpty ? DocumentType.outcome : documentTypes.first;
 
   DocumentsFilters copyWith({
     Set<DocumentType>? documentTypes,
@@ -73,6 +76,10 @@ class DocumentsFiltersNotifier extends Notifier<DocumentsFilters> {
 
   void setDocumentTypes(Set<DocumentType> documentTypes) {
     state = state.copyWith(documentTypes: documentTypes);
+  }
+
+  void setDocumentType(DocumentType documentType) {
+    state = state.copyWith(documentTypes: {documentType});
   }
 
   void setSelectedBases(Set<Base> selectedBases) {

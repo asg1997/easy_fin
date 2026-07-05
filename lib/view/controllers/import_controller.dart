@@ -24,6 +24,7 @@ import 'package:easy_fin/view/controllers/import_state.dart';
 import 'package:easy_fin/view/providers/account_balances_provider.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/providers/documents_list_provider.dart';
+import 'package:easy_fin/view/providers/renter_debts_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -572,6 +573,7 @@ class ImportController extends Notifier<ImportState> {
     if (_savedCount > 0) {
       ref.invalidate(documentsListProvider);
       ref.invalidate(accountBalancesProvider);
+      ref.invalidate(renterDebtsProvider);
     }
     _reset();
   }

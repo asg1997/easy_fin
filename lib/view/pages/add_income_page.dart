@@ -13,8 +13,10 @@ import 'package:easy_fin/utils/account_number_validator.dart';
 import 'package:easy_fin/utils/amount_input_formatter.dart';
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/view/providers/account_balances_provider.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/providers/documents_list_provider.dart';
+import 'package:easy_fin/view/providers/renter_debts_provider.dart';
 import 'package:easy_fin/view/providers/renters_list_provider.dart';
 import 'package:easy_fin/view/widgets/add_renter_dialog.dart';
 import 'package:easy_fin/view/widgets/date_picker_field.dart';
@@ -444,6 +446,8 @@ class _AddIncomePageState extends ConsumerState<AddIncomePage> {
 
       if (!mounted) return;
       ref.invalidate(documentsListProvider);
+      ref.invalidate(accountBalancesProvider);
+      ref.invalidate(renterDebtsProvider);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(_isEditing ? 'Приход обновлён' : 'Приход сохранён'),
@@ -807,6 +811,7 @@ class _IncomeLinesTable extends StatelessWidget {
                       ),
                     ),
                   ),
+                  Gap(12),
                   Expanded(
                     flex: 2,
                     child: Text(
@@ -910,10 +915,11 @@ class _IncomeLinesTable extends StatelessWidget {
                                     hintText: '0,00',
                                     hintStyle: filterFieldHintTextStyle,
                                     border: InputBorder.none,
-                                    contentPadding: EdgeInsets.zero,
+                                    contentPadding: EdgeInsets.only(right: 8),
                                   ),
                                 ),
                               ),
+                              const Gap(12),
                               Expanded(
                                 flex: 2,
                                 child: TextField(
@@ -924,7 +930,7 @@ class _IncomeLinesTable extends StatelessWidget {
                                     hintText: 'Комментарий',
                                     hintStyle: filterFieldHintTextStyle,
                                     border: InputBorder.none,
-                                    contentPadding: EdgeInsets.zero,
+                                    contentPadding: EdgeInsets.only(left: 4),
                                   ),
                                 ),
                               ),

@@ -161,7 +161,13 @@ class ExpenseCategoriesStorageImpl implements ExpenseCategoriesStorage {
           ..where((table) => table.expenseCategoryId.equals(id))
           ..limit(1))
         .getSingleOrNull();
+    if (accountBinding != null) return true;
 
-    return accountBinding != null;
+    final expenseLine = await (db.select(db.expenseLines)
+          ..where((table) => table.categoryId.equals(id))
+          ..limit(1))
+        .getSingleOrNull();
+
+    return expenseLine != null;
   }
 }
