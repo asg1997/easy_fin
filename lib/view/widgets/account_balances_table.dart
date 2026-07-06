@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:easy_fin/view/models/account_balance_report_item.dart';
+import 'package:easy_fin/view/widgets/report_table_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -15,12 +16,11 @@ class AccountBalancesTable extends StatelessWidget {
   final List<AccountBalanceReportItem> items;
 
   static const maxHeight = 280.0;
-  static const maxWidth = 440.0;
+  static const maxWidth = ReportTableTheme.standardWidth;
 
-  static const _headerHeight = 30.0;
-  static const _baseRowHeight = 28.0;
-  static const _accountRowHeight = 24.0;
-  static const _emptyHeight = 72.0;
+  static const _baseRowHeight = 40.0;
+  static const _accountRowHeight = 36.0;
+  static const _emptyHeight = 120.0;
 
   static final _amountFormat = NumberFormat('#,##0.00', 'ru');
 
@@ -33,16 +33,11 @@ class AccountBalancesTable extends StatelessWidget {
       child: SizedBox(
         width: maxWidth,
         height: tableHeight,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.border),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Column(
-              children: [
+        child: ReportTableFrame(
+          child: Column(
+            children: [
                 const _AccountBalancesTableHeader(),
+                ReportTableTheme.sectionDivider,
                 Expanded(
                   child: items.isEmpty
                       ? const Center(
@@ -58,7 +53,7 @@ class AccountBalancesTable extends StatelessWidget {
                             thickness: 1,
                             color: _isLastAccountInBase(index)
                                 ? AppColors.border
-                                : const Color(0xFFF3F3F3),
+                                : ReportTableTheme.rowDividerColor,
                           ),
                           itemBuilder: (context, index) {
                             final row = _rowAt(index);
@@ -71,8 +66,7 @@ class AccountBalancesTable extends StatelessWidget {
                           },
                         ),
                 ),
-              ],
-            ),
+            ],
           ),
         ),
       ),
@@ -92,7 +86,10 @@ class AccountBalancesTable extends StatelessWidget {
       bodyHeight += _rowCount - 1;
     }
 
-    return math.min(_headerHeight + bodyHeight, maxHeight);
+    return math.min(
+      ReportTableTheme.headerHeight + bodyHeight + 1,
+      maxHeight,
+    );
   }
 
   int get _rowCount {
@@ -149,31 +146,25 @@ class _AccountBalancesTableHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: AccountBalancesTable._headerHeight,
-      color: const Color(0xFFF9F9F9),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      height: ReportTableTheme.headerHeight,
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(
+        horizontal: ReportTableTheme.horizontalPadding,
+      ),
       alignment: Alignment.center,
       child: const Row(
         children: [
           Expanded(
             flex: 3,
-            child: Text(
-              'База',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
+            child: ReportTableHeaderLabel(
+              label: 'База',
             ),
           ),
           Expanded(
             flex: 2,
-            child: Text(
-              'Остаток',
+            child: ReportTableHeaderLabel(
+              label: 'Остаток',
               textAlign: TextAlign.right,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
             ),
           ),
         ],
@@ -197,17 +188,16 @@ class _AccountBalancesTableRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rowHeight = isBase
-        ? AccountBalancesTable._baseRowHeight
-        : AccountBalancesTable._accountRowHeight;
+    final rowHeight =
+        isBase ? AccountBalancesTable._baseRowHeight : AccountBalancesTable._accountRowHeight;
 
     return Container(
       height: rowHeight,
-      color: isBase ? const Color(0xFFFCFCFC) : Colors.white,
+      color: Colors.white,
       padding: EdgeInsets.fromLTRB(
-        isBase ? 12 : 24,
+        ReportTableTheme.horizontalPadding,
         0,
-        12,
+        ReportTableTheme.horizontalPadding,
         0,
       ),
       alignment: Alignment.center,
@@ -215,15 +205,20 @@ class _AccountBalancesTableRow extends StatelessWidget {
         children: [
           Expanded(
             flex: 3,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: isBase ? 13 : 12,
-                fontWeight: isBase ? FontWeight.w600 : FontWeight.w400,
-                color: isBase ? AppColors.primary : Colors.grey.shade700,
+            child: Padding(
+              padding: EdgeInsets.only(left: isBase ? 0 : 16),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: isBase ? 13 : 13,
+                  fontWeight: isBase ? FontWeight.w600 : FontWeight.w400,
+                  color: isBase
+                      ? ReportTableTheme.primaryText
+                      : ReportTableTheme.secondaryText,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
           ),
           Expanded(
@@ -232,8 +227,9 @@ class _AccountBalancesTableRow extends StatelessWidget {
               amountFormat.format(balance),
               textAlign: TextAlign.right,
               style: TextStyle(
-                fontSize: isBase ? 13 : 12,
+                fontSize: 13,
                 fontWeight: isBase ? FontWeight.w600 : FontWeight.w400,
+                color: ReportTableTheme.primaryText,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

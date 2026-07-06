@@ -1,26 +1,25 @@
 import 'dart:math' as math;
 
-import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:easy_fin/view/models/expense_category_report_item.dart';
+import 'package:easy_fin/view/widgets/report_table_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class ExpenseCategoriesTable extends StatelessWidget {
   const ExpenseCategoriesTable({
     required this.items,
+    this.width = defaultWidth,
     super.key,
   });
 
   final List<ExpenseCategoryReportItem> items;
+  final double width;
 
   static const maxHeight = 360.0;
-  static const maxWidth = 440.0;
+  static const defaultWidth = ReportTableTheme.standardWidth;
 
-  static const _headerHeight = 30.0;
-  static const _rowHeight = 28.0;
-  static const _footerHeight = 30.0;
-  static const _emptyHeight = 72.0;
+  static const _emptyHeight = 120.0;
 
   static final _amountFormat = NumberFormat('#,##0.00', 'ru');
   static final _percentFormat = NumberFormat('#,##0.0', 'ru');
@@ -33,18 +32,13 @@ class ExpenseCategoriesTable extends StatelessWidget {
     return Align(
       alignment: Alignment.topLeft,
       child: SizedBox(
-        width: maxWidth,
+        width: width,
         height: tableHeight,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.border),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Column(
-              children: [
+        child: ReportTableFrame(
+          child: Column(
+            children: [
                 const _ExpenseCategoriesTableHeader(),
+                ReportTableTheme.sectionDivider,
                 Expanded(
                   child: items.isEmpty
                       ? const Center(
@@ -55,11 +49,7 @@ class ExpenseCategoriesTable extends StatelessWidget {
                         )
                       : ListView.separated(
                           itemCount: items.length,
-                          separatorBuilder: (_, _) => const Divider(
-                            height: 1,
-                            thickness: 1,
-                            color: Color(0xFFF3F3F3),
-                          ),
+                          separatorBuilder: (_, _) => ReportTableTheme.rowDivider,
                           itemBuilder: (context, index) {
                             final item = items[index];
                             return _ExpenseCategoriesTableRow(
@@ -77,8 +67,7 @@ class ExpenseCategoriesTable extends StatelessWidget {
                     totalAmount: totalAmount,
                     amountFormat: _amountFormat,
                   ),
-              ],
-            ),
+            ],
           ),
         ),
       ),
@@ -90,12 +79,15 @@ class ExpenseCategoriesTable extends StatelessWidget {
       return _emptyHeight;
     }
 
-    var bodyHeight = items.length * _rowHeight;
+    var bodyHeight = items.length * ReportTableTheme.rowHeight;
     if (items.length > 1) {
       bodyHeight += items.length - 1;
     }
 
-    final contentHeight = _headerHeight + bodyHeight + _footerHeight + 1;
+    final contentHeight = ReportTableTheme.headerHeight +
+        bodyHeight +
+        ReportTableTheme.footerHeight +
+        2;
 
     return math.min(contentHeight, maxHeight);
   }
@@ -107,42 +99,32 @@ class _ExpenseCategoriesTableHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: ExpenseCategoriesTable._headerHeight,
-      color: const Color(0xFFF9F9F9),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      height: ReportTableTheme.headerHeight,
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(
+        horizontal: ReportTableTheme.horizontalPadding,
+      ),
       alignment: Alignment.center,
       child: const Row(
         children: [
           Expanded(
             flex: 3,
-            child: Text(
-              'Категория',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
+            child: ReportTableHeaderLabel(
+              label: 'Категория',
             ),
           ),
           Expanded(
             flex: 2,
-            child: Text(
-              'Сумма',
+            child: ReportTableHeaderLabel(
+              label: 'Сумма',
               textAlign: TextAlign.right,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
             ),
           ),
           Expanded(
             flex: 2,
-            child: Text(
-              'Доля, %',
+            child: ReportTableHeaderLabel(
+              label: 'Доля, %',
               textAlign: TextAlign.right,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
             ),
           ),
         ],
@@ -169,9 +151,11 @@ class _ExpenseCategoriesTableRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: ExpenseCategoriesTable._rowHeight,
+      height: ReportTableTheme.rowHeight,
       color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: ReportTableTheme.horizontalPadding,
+      ),
       alignment: Alignment.center,
       child: Row(
         children: [
@@ -179,10 +163,7 @@ class _ExpenseCategoriesTableRow extends StatelessWidget {
             flex: 3,
             child: Text(
               categoryName,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
-              ),
+              style: ReportTableTheme.cellTextStyle,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -192,10 +173,7 @@ class _ExpenseCategoriesTableRow extends StatelessWidget {
             child: Text(
               amountFormat.format(amount),
               textAlign: TextAlign.right,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
-              ),
+              style: ReportTableTheme.cellTextStyle,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -205,11 +183,7 @@ class _ExpenseCategoriesTableRow extends StatelessWidget {
             child: Text(
               percentFormat.format(percentage),
               textAlign: TextAlign.right,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
-                color: Colors.grey.shade700,
-              ),
+              style: ReportTableTheme.secondaryCellTextStyle,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -233,15 +207,13 @@ class _ExpenseCategoriesTableFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const Divider(
-          height: 1,
-          thickness: 1,
-          color: AppColors.border,
-        ),
+        ReportTableTheme.sectionDivider,
         Container(
-          height: ExpenseCategoriesTable._footerHeight,
-          color: const Color(0xFFFCFCFC),
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          height: ReportTableTheme.footerHeight,
+          color: Colors.white,
+          padding: const EdgeInsets.symmetric(
+            horizontal: ReportTableTheme.horizontalPadding,
+          ),
           alignment: Alignment.center,
           child: Row(
             children: [
@@ -250,8 +222,9 @@ class _ExpenseCategoriesTableFooter extends StatelessWidget {
                 child: Text(
                   'Итого',
                   style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: ReportTableTheme.primaryText,
                   ),
                 ),
               ),
@@ -261,8 +234,9 @@ class _ExpenseCategoriesTableFooter extends StatelessWidget {
                   amountFormat.format(totalAmount),
                   textAlign: TextAlign.right,
                   style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: ReportTableTheme.primaryText,
                   ),
                 ),
               ),
@@ -272,8 +246,9 @@ class _ExpenseCategoriesTableFooter extends StatelessWidget {
                   '100,0',
                   textAlign: TextAlign.right,
                   style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: ReportTableTheme.secondaryText,
                   ),
                 ),
               ),

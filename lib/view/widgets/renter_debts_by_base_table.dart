@@ -1,30 +1,29 @@
-import 'dart:math' as math;
-
 import 'package:easy_fin/utils/app_sizes.dart';
-import 'package:easy_fin/view/models/renter_debt_report_item.dart';
+import 'package:easy_fin/view/models/renter_debt_by_base_report_item.dart';
 import 'package:easy_fin/view/widgets/report_table_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-class RenterDebtsTable extends StatelessWidget {
-  const RenterDebtsTable({
+class RenterDebtsByBaseTable extends StatelessWidget {
+  const RenterDebtsByBaseTable({
     required this.items,
+    this.expanded = false,
     super.key,
   });
 
-  final List<RenterDebtReportItem> items;
+  final List<RenterDebtByBaseReportItem> items;
+  final bool expanded;
 
   static const maxHeight = 360.0;
   static const maxWidth = ReportTableTheme.standardWidth;
 
   static const _emptyHeight = 120.0;
-  static const _amountBaseGap = 16.0;
 
   static final _amountFormat = NumberFormat('#,##0', 'ru');
 
   @override
   Widget build(BuildContext context) {
-    final tableHeight = _resolveTableHeight();
+    final tableHeight = expanded ? null : _resolveTableHeight();
     final totalDebt = items.fold<double>(0, (sum, item) => sum + item.debt);
 
     return Align(
@@ -34,31 +33,14 @@ class RenterDebtsTable extends StatelessWidget {
         height: tableHeight,
         child: ReportTableFrame(
           child: Column(
+            mainAxisSize: expanded ? MainAxisSize.min : MainAxisSize.max,
             children: [
-                const _RenterDebtsTableHeader(),
+                const _RenterDebtsByBaseTableHeader(),
                 ReportTableTheme.sectionDivider,
-                Expanded(
-                  child: items.isEmpty
-                      ? const Center(
-                          child: Text(
-                            'Нет задолженностей',
-                            style: filterFieldHintTextStyle,
-                          ),
-                        )
-                      : ListView.separated(
-                          itemCount: items.length,
-                          separatorBuilder: (_, _) => ReportTableTheme.rowDivider,
-                          itemBuilder: (context, index) {
-                            final item = items[index];
-                            return _RenterDebtsTableRow(
-                              renterName: item.renterName,
-                              debt: item.debt,
-                              baseName: item.baseName,
-                              amountFormat: _amountFormat,
-                            );
-                          },
-                        ),
-                ),
+                if (expanded)
+                  _buildBody()
+                else
+                  Expanded(child: _buildBody()),
                 if (items.isNotEmpty)
                   ReportTableSumFooter(
                     amount: _amountFormat.format(totalDebt),
@@ -69,6 +51,37 @@ class RenterDebtsTable extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildBody() {
+    if (items.isEmpty) {
+      return SizedBox(
+        height: expanded ? _emptyHeight : null,
+        child: const Center(
+          child: Text(
+            'Нет задолженностей',
+            style: filterFieldHintTextStyle,
+          ),
+        ),
+      );
+    }
+
+    final listView = ListView.separated(
+      shrinkWrap: expanded,
+      physics: expanded ? const NeverScrollableScrollPhysics() : null,
+      itemCount: items.length,
+      separatorBuilder: (_, _) => ReportTableTheme.rowDivider,
+      itemBuilder: (context, index) {
+        final item = items[index];
+        return _RenterDebtsByBaseTableRow(
+          baseName: item.baseName,
+          debt: item.debt,
+          amountFormat: _amountFormat,
+        );
+      },
+    );
+
+    return expanded ? listView : listView;
   }
 
   double _resolveTableHeight() {
@@ -86,12 +99,12 @@ class RenterDebtsTable extends StatelessWidget {
         ReportTableTheme.footerHeight +
         2;
 
-    return math.min(contentHeight, maxHeight);
+    return contentHeight.clamp(_emptyHeight, maxHeight);
   }
 }
 
-class _RenterDebtsTableHeader extends StatelessWidget {
-  const _RenterDebtsTableHeader();
+class _RenterDebtsByBaseTableHeader extends StatelessWidget {
+  const _RenterDebtsByBaseTableHeader();
 
   @override
   Widget build(BuildContext context) {
@@ -107,21 +120,14 @@ class _RenterDebtsTableHeader extends StatelessWidget {
           Expanded(
             flex: 3,
             child: ReportTableHeaderLabel(
-              label: 'Арендатор',
+              label: 'База',
             ),
           ),
-          Expanded(
-            flex: 3,
-            child: ReportTableHeaderLabel(
-              label: 'Сумма задолженности',
-              textAlign: TextAlign.right,
-            ),
-          ),
-          const SizedBox(width: RenterDebtsTable._amountBaseGap),
           Expanded(
             flex: 2,
             child: ReportTableHeaderLabel(
-              label: 'База',
+              label: 'Сумма задолженности',
+              textAlign: TextAlign.right,
             ),
           ),
         ],
@@ -130,17 +136,15 @@ class _RenterDebtsTableHeader extends StatelessWidget {
   }
 }
 
-class _RenterDebtsTableRow extends StatelessWidget {
-  const _RenterDebtsTableRow({
-    required this.renterName,
-    required this.debt,
+class _RenterDebtsByBaseTableRow extends StatelessWidget {
+  const _RenterDebtsByBaseTableRow({
     required this.baseName,
+    required this.debt,
     required this.amountFormat,
   });
 
-  final String renterName;
-  final double debt;
   final String baseName;
+  final double debt;
   final NumberFormat amountFormat;
 
   @override
@@ -157,28 +161,18 @@ class _RenterDebtsTableRow extends StatelessWidget {
           Expanded(
             flex: 3,
             child: Text(
-              renterName,
+              baseName,
               style: ReportTableTheme.cellTextStyle,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ),
           Expanded(
-            flex: 3,
+            flex: 2,
             child: Text(
               '${amountFormat.format(debt)} ₽',
               textAlign: TextAlign.right,
               style: ReportTableTheme.cellTextStyle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: RenterDebtsTable._amountBaseGap),
-          Expanded(
-            flex: 2,
-            child: Text(
-              baseName,
-              style: ReportTableTheme.secondaryCellTextStyle,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
