@@ -9,10 +9,10 @@ import 'package:easy_fin/view/providers/renter_debts_provider.dart';
 import 'package:easy_fin/view/providers/renter_debts_summary_filters_provider.dart';
 import 'package:easy_fin/view/widgets/account_balances_table.dart';
 import 'package:easy_fin/view/widgets/dropdown_widget.dart';
-import 'package:easy_fin/view/widgets/expense_categories_pie_chart.dart';
+import 'package:easy_fin/view/pages/expense_categories_report_page.dart';
+import 'package:easy_fin/view/pages/renter_debts_report_page.dart';
 import 'package:easy_fin/view/widgets/expense_categories_table.dart';
 import 'package:easy_fin/view/widgets/month_navigator_field.dart';
-import 'package:easy_fin/view/pages/renter_debts_report_page.dart';
 import 'package:easy_fin/view/widgets/renter_debts_base_filter_dropdown.dart';
 import 'package:easy_fin/view/widgets/renter_debts_table.dart';
 import 'package:easy_fin/view/widgets/report_table_theme.dart';
@@ -22,7 +22,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
 const _expenseFiltersGap = 12.0;
-const _expenseTableChartGap = 48.0;
 
 class ReportsPage extends ConsumerWidget {
   const ReportsPage({super.key});
@@ -154,7 +153,31 @@ class ReportsPage extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const ReportTableTitle('Расходы по категориям'),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Expanded(
+                        child: ReportTableTitle('Расходы по категориям'),
+                      ),
+                      TextButton(
+                        onPressed: () =>
+                            ExpenseCategoriesReportPage.navigate(context),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          foregroundColor: AppColors.purple,
+                        ),
+                        child: const Text(
+                          'Показать все',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                   const Gap(12),
                   Row(
                     children: [
@@ -196,17 +219,7 @@ class ReportsPage extends ConsumerWidget {
                   ),
                   const Gap(12),
                   expenseReportAsync.when(
-                    data: (items) => SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ExpenseCategoriesTable(items: items),
-                          const Gap(_expenseTableChartGap),
-                          ExpenseCategoriesPieChart(items: items),
-                        ],
-                      ),
-                    ),
+                    data: (items) => ExpenseCategoriesTable(items: items),
                     loading: () => const Padding(
                       padding: EdgeInsets.only(top: 24),
                       child: Center(child: CircularProgressIndicator()),
