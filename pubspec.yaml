@@ -28,6 +28,7 @@ dependencies:
   drift: ^2.33.0
   sqlite3_flutter_libs: ^0.6.0+eol
   riverpod: ^3.2.1
+  flutter_speed_dial: ^7.0.0
 
 dev_dependencies:
   flutter_test:

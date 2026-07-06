@@ -1,0 +1,107 @@
+import 'package:easy_fin/utils/app_colors.dart';
+import 'package:easy_fin/view/controllers/import_controller.dart';
+import 'package:easy_fin/view/pages/add_expense_page.dart';
+import 'package:easy_fin/view/pages/add_income_page.dart';
+import 'package:easy_fin/view/pages/add_rent_accrual_page.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+
+const _labelDecoration = BoxDecoration(
+  color: Colors.white,
+  borderRadius: BorderRadius.all(Radius.circular(12)),
+  boxShadow: [
+    BoxShadow(
+      color: Color(0x14000000),
+      offset: Offset(0, 2),
+      blurRadius: 8,
+    ),
+  ],
+);
+
+const _labelPadding = EdgeInsets.symmetric(horizontal: 16, vertical: 12);
+
+const _labelTextStyle = TextStyle(
+  fontSize: 14,
+  fontWeight: FontWeight.w500,
+  color: AppColors.primary,
+);
+
+Widget _speedDialLabel(String text) {
+  return DecoratedBox(
+    decoration: _labelDecoration,
+    child: Padding(
+      padding: _labelPadding,
+      child: Text(text, style: _labelTextStyle),
+    ),
+  );
+}
+
+class AddActionSpeedDial extends ConsumerWidget {
+  const AddActionSpeedDial({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isImportLoading =
+        ref.watch(importControllerProvider).isImportInProgress;
+
+    return SpeedDial(
+      icon: LucideIcons.plus,
+      activeIcon: LucideIcons.x,
+      backgroundColor: AppColors.purple,
+      foregroundColor: Colors.white,
+      activeBackgroundColor: AppColors.purple,
+      activeForegroundColor: Colors.white,
+      overlayOpacity: 0.4,
+      spacing: 12,
+      spaceBetweenChildren: 12,
+      children: [
+        SpeedDialChild(
+          child: const Icon(LucideIcons.handCoins, size: 20),
+          backgroundColor: AppColors.green,
+          foregroundColor: Colors.white,
+          shape: const CircleBorder(),
+          labelWidget: _speedDialLabel('Добавить приход'),
+          onTap: () => AddIncomePage.navigate(context),
+        ),
+        SpeedDialChild(
+          child: const Icon(LucideIcons.circleMinus, size: 20),
+          backgroundColor: AppColors.red,
+          foregroundColor: Colors.white,
+          shape: const CircleBorder(),
+          labelWidget: _speedDialLabel('Добавить расход'),
+          onTap: () => AddExpensePage.navigate(context),
+        ),
+        SpeedDialChild(
+          child: const Icon(LucideIcons.building2, size: 20),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          shape: const CircleBorder(),
+          labelWidget: _speedDialLabel('Начисление по аренде'),
+          onTap: () => AddRentAccrualPage.navigate(context),
+        ),
+        SpeedDialChild(
+          child: isImportLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Icon(LucideIcons.import, size: 20),
+          backgroundColor: AppColors.blue,
+          foregroundColor: Colors.white,
+          shape: const CircleBorder(),
+          labelWidget: _speedDialLabel('Импорт'),
+          onTap: () async {
+            if (isImportLoading) return;
+            await ref.read(importControllerProvider.notifier).pickAndImport();
+          },
+        ),
+      ],
+    );
+  }
+}
