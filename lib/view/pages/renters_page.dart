@@ -6,6 +6,7 @@ import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
+import 'package:easy_fin/view/providers/github_sync_provider.dart';
 import 'package:easy_fin/view/providers/renter_debts_provider.dart';
 import 'package:easy_fin/view/providers/renters_list_provider.dart';
 import 'package:easy_fin/view/widgets/add_renter_dialog.dart';
@@ -74,6 +75,7 @@ class _RentersPageState extends ConsumerState<RentersPage> {
         ),
       );
       ref.invalidate(rentersListProvider);
+      ref.invalidate(githubSyncDirtyProvider);
     } on DuplicateRenterAccountNumbersError {
       if (!mounted) return;
       await _showError('Счета не должны повторяться');
@@ -102,10 +104,12 @@ class _RentersPageState extends ConsumerState<RentersPage> {
         await ref.read(rentersStorageProvider).archive(renter.id);
         ref.invalidate(rentersListProvider);
         ref.invalidate(renterDebtsProvider);
+        ref.invalidate(githubSyncDirtyProvider);
       case EditRenterDialogRestored():
         await ref.read(rentersStorageProvider).unarchive(renter.id);
         ref.invalidate(rentersListProvider);
         ref.invalidate(renterDebtsProvider);
+        ref.invalidate(githubSyncDirtyProvider);
       case EditRenterDialogSaved(:final name, :final accountNumbers):
         try {
           await ref.read(rentersStorageProvider).save(
@@ -118,6 +122,7 @@ class _RentersPageState extends ConsumerState<RentersPage> {
             ),
           );
           ref.invalidate(rentersListProvider);
+          ref.invalidate(githubSyncDirtyProvider);
         } on DuplicateRenterAccountNumbersError {
           if (!mounted) return;
           await _showError('Счета не должны повторяться');
@@ -150,6 +155,7 @@ class _RentersPageState extends ConsumerState<RentersPage> {
       await ref.read(rentersStorageProvider).delete(renter.id);
       ref.invalidate(rentersListProvider);
       ref.invalidate(renterDebtsProvider);
+      ref.invalidate(githubSyncDirtyProvider);
     } on RenterInUseError {
       if (!mounted) return;
       await _showError(

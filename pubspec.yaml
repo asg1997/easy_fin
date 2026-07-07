@@ -26,10 +26,15 @@ dependencies:
   path: ^1.9.1
   path_provider: ^2.1.5
   drift: ^2.33.0
+  sqlite3: ^3.3.2
   sqlite3_flutter_libs: ^0.6.0+eol
   riverpod: ^3.2.1
   shared_preferences: ^2.5.3
   flutter_speed_dial: ^7.0.0
+  http: ^1.4.0
+  flutter_secure_storage: ^9.2.4
+  crypto: ^3.0.6
+  uuid: ^4.5.1
 
 dev_dependencies:
   flutter_test:

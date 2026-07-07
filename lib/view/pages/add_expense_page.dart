@@ -10,10 +10,12 @@ import 'package:easy_fin/models/expense_document.dart';
 import 'package:easy_fin/utils/amount_input_formatter.dart';
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/utils/app_snack_bar.dart';
 import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/providers/account_balances_provider.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/providers/documents_list_provider.dart';
+import 'package:easy_fin/view/providers/github_sync_provider.dart';
 import 'package:easy_fin/view/widgets/date_picker_field.dart';
 import 'package:easy_fin/view/widgets/dropdown_widget.dart';
 import 'package:easy_fin/view/widgets/template_page.dart';
@@ -331,6 +333,7 @@ class _AddExpensePageState extends ConsumerState<AddExpensePage> {
       if (!mounted) return;
       ref.invalidate(documentsListProvider);
       ref.invalidate(accountBalancesProvider);
+      ref.invalidate(githubSyncDirtyProvider);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(_isEditing ? 'Расход обновлён' : 'Расход сохранён'),
@@ -395,20 +398,8 @@ class _AddExpensePageState extends ConsumerState<AddExpensePage> {
     }
   }
 
-  Future<void> _showErrorDialog(String message) async {
-    await showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Ошибка'),
-        content: Text(message),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('ОК'),
-          ),
-        ],
-      ),
-    );
+  Future<void> _showErrorDialog(String message) {
+    return AppSnackBar.showErrorDialog(context, message);
   }
 
   @override
@@ -643,39 +634,39 @@ class _ExpenseLinesTable extends StatelessWidget {
                               ),
                               Expanded(
                                 flex: 2,
-                                child: TextField(
-                                  controller: entry.amountController,
-                                  focusNode: entry.amountFocusNode,
-                                  textAlign: TextAlign.right,
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                        decimal: true,
-                                      ),
-                                  inputFormatters: const [
-                                    AmountInputFormatter(),
-                                  ],
-                                  style: filterFieldTextStyle,
-                                  decoration: InputDecoration(
-                                    isDense: true,
-                                    hintText: '0,00',
-                                    hintStyle: filterFieldHintTextStyleOf(context),
-                                    border: InputBorder.none,
-                                    contentPadding: EdgeInsets.only(right: 8),
+                                child: SizedBox(
+                                  height: documentLineFieldHeight,
+                                  child: TextField(
+                                    controller: entry.amountController,
+                                    focusNode: entry.amountFocusNode,
+                                    textAlign: TextAlign.right,
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                          decimal: true,
+                                        ),
+                                    inputFormatters: const [
+                                      AmountInputFormatter(),
+                                    ],
+                                    style: filterFieldTextStyle,
+                                    decoration: documentLineFieldDecorationOf(
+                                      context,
+                                      hintText: '0,00',
+                                    ),
                                   ),
                                 ),
                               ),
                               const Gap(12),
                               Expanded(
                                 flex: 2,
-                                child: TextField(
-                                  controller: entry.noteController,
-                                  style: filterFieldTextStyle,
-                                  decoration: InputDecoration(
-                                    isDense: true,
-                                    hintText: 'Комментарий',
-                                    hintStyle: filterFieldHintTextStyleOf(context),
-                                    border: InputBorder.none,
-                                    contentPadding: EdgeInsets.only(left: 4),
+                                child: SizedBox(
+                                  height: documentLineFieldHeight,
+                                  child: TextField(
+                                    controller: entry.noteController,
+                                    style: filterFieldTextStyle,
+                                    decoration: documentLineFieldDecorationOf(
+                                      context,
+                                      hintText: 'Комментарий',
+                                    ),
                                   ),
                                 ),
                               ),

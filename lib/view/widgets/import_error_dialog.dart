@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class ImportErrorDialog extends StatelessWidget {
   const ImportErrorDialog({
@@ -12,8 +13,16 @@ class ImportErrorDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Ошибка импорта'),
-      content: Text(message),
+      content: SingleChildScrollView(
+        child: SelectableText(message),
+      ),
       actions: [
+        TextButton(
+          onPressed: () {
+            Clipboard.setData(ClipboardData(text: message));
+          },
+          child: const Text('Копировать'),
+        ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('ОК'),

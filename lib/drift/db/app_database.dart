@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:easy_fin/drift/models/bank_statement_operations_table.dart';
@@ -16,8 +14,7 @@ import 'package:easy_fin/drift/models/income_documents_table.dart';
 import 'package:easy_fin/drift/models/income_lines_table.dart';
 import 'package:easy_fin/drift/models/renter_assignments_table.dart';
 import 'package:easy_fin/drift/models/renters_table.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
+import 'package:easy_fin/utils/database_path.dart';
 
 part 'app_database.g.dart';
 
@@ -40,10 +37,12 @@ part 'app_database.g.dart';
   ],
 )
 class AppDatabase extends _$AppDatabase {
+  static const int currentSchemaVersion = 14;
+
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => currentSchemaVersion;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -188,9 +187,7 @@ Future<void> _seedExpenseCategories(GeneratedDatabase db) async {
 
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
-    final dbFolder = await getApplicationDocumentsDirectory();
-    final file = File(p.join(dbFolder.path, 'easy_fin.sqlite'));
-
+    final file = await getDatabaseFile();
     return NativeDatabase(file);
   });
 }

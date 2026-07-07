@@ -3,6 +3,7 @@ import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/pages/bases_page.dart';
 import 'package:easy_fin/view/pages/expense_categories_page.dart';
+import 'package:easy_fin/view/pages/github_sync_settings_page.dart';
 import 'package:easy_fin/view/pages/income_categories_page.dart';
 import 'package:easy_fin/view/pages/renters_page.dart';
 import 'package:easy_fin/view/widgets/template_page.dart';
@@ -20,6 +21,13 @@ class SettingsPage extends ConsumerWidget {
       title: 'Настройки',
       child: ListView(
         children: [
+          _SettingsTile(
+            title: 'Синхронизация',
+            subtitle: 'GitHub — резервная копия данных',
+            icon: LucideIcons.cloud,
+            onTap: () => GithubSyncSettingsPage.navigate(context),
+          ),
+          const Gap(12),
           _SettingsTile(
             title: 'Базы',
             subtitle: 'Справочник баз',

@@ -9,9 +9,11 @@ import 'package:easy_fin/utils/account_number_validator.dart';
 import 'package:easy_fin/utils/amount_input_formatter.dart';
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/utils/app_snack_bar.dart';
 import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/providers/documents_list_provider.dart';
+import 'package:easy_fin/view/providers/github_sync_provider.dart';
 import 'package:easy_fin/view/providers/renter_debts_provider.dart';
 import 'package:easy_fin/view/providers/renters_list_provider.dart';
 import 'package:easy_fin/view/widgets/add_renter_dialog.dart';
@@ -308,6 +310,7 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
       if (!mounted) return;
       ref.invalidate(documentsListProvider);
       ref.invalidate(renterDebtsProvider);
+      ref.invalidate(githubSyncDirtyProvider);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Начисления сохранены')),
       );
@@ -380,20 +383,8 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
     }
   }
 
-  Future<void> _showErrorDialog(String message) async {
-    await showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Ошибка'),
-        content: Text(message),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('ОК'),
-          ),
-        ],
-      ),
-    );
+  Future<void> _showErrorDialog(String message) {
+    return AppSnackBar.showErrorDialog(context, message);
   }
 
   @override
@@ -794,24 +785,24 @@ class _RentAccrualsTable extends StatelessWidget {
                               ),
                               Expanded(
                                 flex: 2,
-                                child: TextField(
-                                  controller: entry.amountController,
-                                  focusNode: entry.amountFocusNode,
-                                  textAlign: TextAlign.right,
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                        decimal: true,
-                                      ),
-                                  inputFormatters: const [
-                                    AmountInputFormatter(),
-                                  ],
-                                  style: filterFieldTextStyle,
-                                  decoration: InputDecoration(
-                                    isDense: true,
-                                    hintText: '0,00',
-                                    hintStyle: filterFieldHintTextStyleOf(context),
-                                    border: InputBorder.none,
-                                    contentPadding: EdgeInsets.zero,
+                                child: SizedBox(
+                                  height: documentLineFieldHeight,
+                                  child: TextField(
+                                    controller: entry.amountController,
+                                    focusNode: entry.amountFocusNode,
+                                    textAlign: TextAlign.right,
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                          decimal: true,
+                                        ),
+                                    inputFormatters: const [
+                                      AmountInputFormatter(),
+                                    ],
+                                    style: filterFieldTextStyle,
+                                    decoration: documentLineFieldDecorationOf(
+                                      context,
+                                      hintText: '0,00',
+                                    ),
                                   ),
                                 ),
                               ),

@@ -14,6 +14,7 @@ import 'package:easy_fin/view/pages/add_income_page.dart';
 import 'package:easy_fin/view/pages/add_rent_accrual_page.dart';
 import 'package:easy_fin/view/providers/account_balances_provider.dart';
 import 'package:easy_fin/view/providers/documents_list_provider.dart';
+import 'package:easy_fin/view/providers/github_sync_provider.dart';
 import 'package:easy_fin/view/providers/renter_debts_provider.dart';
 import 'package:easy_fin/view/widgets/confirm_dialog.dart';
 import 'package:flutter/material.dart';
@@ -127,6 +128,7 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
       ref.invalidate(documentsListProvider);
       ref.invalidate(accountBalancesProvider);
       ref.invalidate(renterDebtsProvider);
+      ref.invalidate(githubSyncDirtyProvider);
       return;
     }
 
@@ -138,6 +140,7 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
       ref.invalidate(documentsListProvider);
       ref.invalidate(accountBalancesProvider);
       ref.invalidate(renterDebtsProvider);
+      ref.invalidate(githubSyncDirtyProvider);
       return;
     }
 
@@ -148,6 +151,7 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
           .deleteDocument(expenseDocumentId);
       ref.invalidate(documentsListProvider);
       ref.invalidate(accountBalancesProvider);
+      ref.invalidate(githubSyncDirtyProvider);
       return;
     }
 
@@ -158,6 +162,7 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
       );
       ref.invalidate(documentsListProvider);
       ref.invalidate(renterDebtsProvider);
+      ref.invalidate(githubSyncDirtyProvider);
     }
   }
 

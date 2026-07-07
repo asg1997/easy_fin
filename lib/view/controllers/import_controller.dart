@@ -24,6 +24,7 @@ import 'package:easy_fin/view/controllers/import_state.dart';
 import 'package:easy_fin/view/providers/account_balances_provider.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/providers/documents_list_provider.dart';
+import 'package:easy_fin/view/providers/github_sync_provider.dart';
 import 'package:easy_fin/view/providers/renter_debts_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -92,6 +93,7 @@ class ImportController extends Notifier<ImportState> {
 
     await ref.read(basesStorageProvider).save(base);
     ref.invalidate(basesListProvider);
+    ref.invalidate(githubSyncDirtyProvider);
 
     await _saveCurrentStatementAndContinue();
   }
@@ -119,6 +121,7 @@ class ImportController extends Notifier<ImportState> {
       );
       await storage.save(updatedBase);
       ref.invalidate(basesListProvider);
+      ref.invalidate(githubSyncDirtyProvider);
     }
 
     await _saveCurrentStatementAndContinue();
@@ -574,6 +577,7 @@ class ImportController extends Notifier<ImportState> {
       ref.invalidate(documentsListProvider);
       ref.invalidate(accountBalancesProvider);
       ref.invalidate(renterDebtsProvider);
+      ref.invalidate(githubSyncDirtyProvider);
     }
     _reset();
   }

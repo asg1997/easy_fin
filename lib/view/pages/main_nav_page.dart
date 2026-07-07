@@ -1,9 +1,15 @@
+import 'package:easy_fin/data/github_sync/github_sync_service.dart';
+import 'package:easy_fin/utils/app_colors.dart';
+import 'package:easy_fin/utils/app_snack_bar.dart';
 import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/pages/documents_page.dart';
+import 'package:easy_fin/view/pages/github_sync_settings_page.dart';
 import 'package:easy_fin/view/pages/reports_page.dart';
 import 'package:easy_fin/view/pages/settings_page.dart';
+import 'package:easy_fin/view/providers/github_sync_provider.dart';
 import 'package:easy_fin/view/providers/theme_mode_provider.dart';
 import 'package:easy_fin/view/widgets/add_action_speed_dial.dart';
+import 'package:easy_fin/view/widgets/github_sync_conflict_dialog.dart';
 import 'package:easy_fin/view/widgets/import_state_listener.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,6 +27,46 @@ class MainNavPage extends ConsumerStatefulWidget {
 class _MainNavPageState extends ConsumerState<MainNavPage> {
   bool isExpanded = true;
   int currentIndex = 0;
+  bool _isStartupSyncing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _runStartupSync());
+  }
+
+  Future<void> _runStartupSync() async {
+    setState(() => _isStartupSyncing = true);
+    try {
+      final result =
+          await ref.read(githubSyncProvider.notifier).downloadOnStartup();
+
+      if (!mounted) return;
+
+      switch (result) {
+        case SyncStartupNeedsUserChoice(
+            :final localManifest,
+            :final remoteManifest,
+          ):
+          await showGithubSyncConflictDialog(
+            context,
+            ref,
+            localManifest: localManifest,
+            remoteManifest: remoteManifest,
+          );
+        case SyncStartupError(:final message):
+          AppSnackBar.showError(context, message);
+        case SyncStartupDownloaded():
+          AppSnackBar.showMessage(context, 'Данные скачаны с GitHub');
+        case SyncStartupShouldDownload():
+          break;
+        case SyncStartupSkipped() || SyncStartupUpToDate():
+          break;
+      }
+    } finally {
+      if (mounted) setState(() => _isStartupSyncing = false);
+    }
+  }
 
   void onItemTapped(int index) {
     currentIndex = index;
@@ -40,9 +86,11 @@ class _MainNavPageState extends ConsumerState<MainNavPage> {
     final isDarkMode = themeModeAsync.value == AppThemeMode.dark;
 
     return ImportStateListener(
-      child: Scaffold(
-        floatingActionButton: const AddActionSpeedDial(),
-        body: Row(
+      child: Stack(
+        children: [
+          Scaffold(
+            floatingActionButton: const AddActionSpeedDial(),
+            body: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
@@ -117,6 +165,8 @@ class _MainNavPageState extends ConsumerState<MainNavPage> {
                       onToggle: () =>
                           ref.read(themeModeProvider.notifier).toggle(),
                     ),
+                    const Gap(12),
+                    _SyncButton(isExpanded: isExpanded),
                     const Gap(20),
                   ],
                 ),
@@ -132,6 +182,236 @@ class _MainNavPageState extends ConsumerState<MainNavPage> {
             ),
           ],
         ),
+          ),
+          if (_isStartupSyncing)
+            ColoredBox(
+              color: Colors.black.withValues(alpha: 0.35),
+              child: Center(
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircularProgressIndicator(),
+                        const Gap(16),
+                        Text(
+                          'Загрузка данных…',
+                          style: TextStyle(color: colors.primaryText),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SyncButton extends ConsumerWidget {
+  const _SyncButton({required this.isExpanded});
+
+  final bool isExpanded;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final syncState = ref.watch(githubSyncProvider);
+    final isBusy = syncState is GithubSyncInProgress;
+    final config = ref.watch(githubSyncConfigProvider).value;
+    final dirtyAsync = ref.watch(githubSyncDirtyProvider);
+    final isDirty = dirtyAsync.value ?? false;
+    final isDirtyLoaded = dirtyAsync.hasValue;
+    final isSyncConfigured = config?.isConfigured == true;
+    final showDirtyMessage =
+        isSyncConfigured && isDirtyLoaded && isDirty && !isBusy;
+    final showSyncedMessage =
+        isSyncConfigured && isDirtyLoaded && !isDirty && !isBusy;
+
+    Future<void> onSync() async {
+      final config = ref.read(githubSyncConfigProvider).value;
+      if (config == null || !config.isConfigured) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Сначала настройте GitHub: Настройки → Синхронизация',
+            ),
+            action: SnackBarAction(
+              label: 'Настроить',
+              onPressed: () => GithubSyncSettingsPage.navigate(context),
+            ),
+          ),
+        );
+        return;
+      }
+
+      final token =
+          await ref.read(githubSyncConfigStorageProvider).loadToken();
+      if (token == null || token.isEmpty) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Укажите GitHub-токен в настройках синхронизации',
+            ),
+            action: SnackBarAction(
+              label: 'Настроить',
+              onPressed: () => GithubSyncSettingsPage.navigate(context),
+            ),
+          ),
+        );
+        return;
+      }
+
+      try {
+        await ref.read(githubSyncProvider.notifier).upload();
+        if (!context.mounted) return;
+        AppSnackBar.showMessage(context, 'Данные отправлены на GitHub');
+      } on RemoteNewerOnUploadException {
+        if (!context.mounted) return;
+        AppSnackBar.showError(
+          context,
+          'На сервере новее. Откройте настройки синхронизации.',
+        );
+      } on Object catch (_) {
+        if (!context.mounted) return;
+        final syncState = ref.read(githubSyncProvider);
+        if (syncState is GithubSyncError) {
+          AppSnackBar.showError(context, syncState.message);
+        }
+      }
+    }
+
+    final icon = isBusy
+        ? const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: Colors.white,
+            ),
+          )
+        : const Icon(
+            LucideIcons.cloudUpload,
+            size: 20,
+            color: Colors.white,
+          );
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: isExpanded ? 20 : 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Tooltip(
+            message: !isExpanded
+                ? showDirtyMessage
+                    ? 'Синхронизировать — необходима синхронизация'
+                    : showSyncedMessage
+                        ? 'Синхронизировать — всё синхронизировано'
+                        : 'Синхронизировать'
+                : '',
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Material(
+                  color: AppColors.purple,
+                  borderRadius: BorderRadius.circular(25),
+                  child: InkWell(
+                    onTap: isBusy ? null : onSync,
+                    borderRadius: BorderRadius.circular(25),
+                    child: SizedBox(
+                      height: 50,
+                      width: double.infinity,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          icon,
+                          if (isExpanded) ...[
+                            const Gap(10),
+                            const Text(
+                              'Синхронизировать',
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                if (!isExpanded && showDirtyMessage)
+                  Positioned(
+                    right: 10,
+                    top: 10,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: Colors.orange,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppColors.purple,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (isExpanded && showDirtyMessage) ...[
+            const Gap(6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  LucideIcons.circleAlert,
+                  size: 14,
+                  color: Colors.orange,
+                ),
+                const Gap(6),
+                Text(
+                  'Необходима синхронизация',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.orange,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (isExpanded && showSyncedMessage) ...[
+            const Gap(6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  LucideIcons.circleCheck,
+                  size: 14,
+                  color: AppColors.green,
+                ),
+                const Gap(6),
+                Text(
+                  'Все синхронизировано',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.green,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }

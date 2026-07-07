@@ -4,6 +4,7 @@ import 'package:easy_fin/view/providers/account_balances_provider.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/providers/documents_filters_provider.dart';
 import 'package:easy_fin/view/providers/documents_list_provider.dart';
+import 'package:easy_fin/view/providers/github_sync_provider.dart';
 import 'package:easy_fin/view/providers/renters_list_provider.dart';
 import 'package:easy_fin/view/widgets/edit_base_dialog.dart';
 import 'package:easy_fin/view/widgets/simple_table.dart';
@@ -48,6 +49,7 @@ class BasesPage extends ConsumerWidget {
           );
           ref.invalidate(basesListProvider);
           ref.invalidate(accountBalancesProvider);
+          ref.invalidate(githubSyncDirtyProvider);
         } on DuplicateAccountNumbersError {
           if (!context.mounted) return;
           await _showSaveError(context, 'Счета не должны повторяться');
@@ -81,6 +83,7 @@ class BasesPage extends ConsumerWidget {
     ref.invalidate(accountBalancesProvider);
     ref.invalidate(documentsListProvider);
     ref.invalidate(rentersListProvider);
+    ref.invalidate(githubSyncDirtyProvider);
   }
 
   Future<void> _showSaveError(BuildContext context, String message) async {
