@@ -2,6 +2,7 @@ import 'package:easy_fin/data/income_categories_storage/income_categories_storag
 import 'package:easy_fin/models/income_category.dart';
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/widgets/confirm_dialog.dart';
 import 'package:easy_fin/view/widgets/simple_table.dart';
 import 'package:easy_fin/view/widgets/template_page.dart';
@@ -241,7 +242,7 @@ class _IncomeCategoriesPageState extends ConsumerState<IncomeCategoriesPage> {
                                     ? LucideIcons.archiveRestore
                                     : LucideIcons.archive,
                                 size: 16,
-                                color: Colors.grey,
+                                color: context.appColors.secondaryText,
                               ),
                             ),
                             IconButton(
@@ -252,10 +253,10 @@ class _IncomeCategoriesPageState extends ConsumerState<IncomeCategoriesPage> {
                                 minWidth: 28,
                                 minHeight: 28,
                               ),
-                              icon: const Icon(
+                              icon: Icon(
                                 LucideIcons.trash2,
                                 size: 16,
-                                color: Colors.grey,
+                                color: context.appColors.secondaryText,
                               ),
                             ),
                           ],

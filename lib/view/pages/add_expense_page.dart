@@ -10,6 +10,7 @@ import 'package:easy_fin/models/expense_document.dart';
 import 'package:easy_fin/utils/amount_input_formatter.dart';
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/providers/account_balances_provider.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/providers/documents_list_provider.dart';
@@ -555,7 +556,7 @@ class _ExpenseLinesTable extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.appColors.border),
         borderRadius: BorderRadius.circular(10),
       ),
       child: ClipRRect(
@@ -563,7 +564,7 @@ class _ExpenseLinesTable extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              color: const Color(0xFFF9F9F9),
+              color: context.appColors.navActiveBackground,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: const Row(
                 children: [
@@ -605,19 +606,19 @@ class _ExpenseLinesTable extends StatelessWidget {
             ),
             Expanded(
               child: entries.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Text(
                         'Дважды нажмите на категорию справа',
-                        style: filterFieldHintTextStyle,
+                        style: filterFieldHintTextStyleOf(context),
                         textAlign: TextAlign.center,
                       ),
                     )
                   : ListView.separated(
                       itemCount: entries.length,
-                      separatorBuilder: (_, _) => const Divider(
+                      separatorBuilder: (_, _) => Divider(
                         height: 1,
                         thickness: 1,
-                        color: AppColors.border,
+                        color: context.appColors.border,
                       ),
                       itemBuilder: (context, index) {
                         final entry = entries[index];
@@ -654,10 +655,10 @@ class _ExpenseLinesTable extends StatelessWidget {
                                     AmountInputFormatter(),
                                   ],
                                   style: filterFieldTextStyle,
-                                  decoration: const InputDecoration(
+                                  decoration: InputDecoration(
                                     isDense: true,
                                     hintText: '0,00',
-                                    hintStyle: filterFieldHintTextStyle,
+                                    hintStyle: filterFieldHintTextStyleOf(context),
                                     border: InputBorder.none,
                                     contentPadding: EdgeInsets.only(right: 8),
                                   ),
@@ -669,10 +670,10 @@ class _ExpenseLinesTable extends StatelessWidget {
                                 child: TextField(
                                   controller: entry.noteController,
                                   style: filterFieldTextStyle,
-                                  decoration: const InputDecoration(
+                                  decoration: InputDecoration(
                                     isDense: true,
                                     hintText: 'Комментарий',
-                                    hintStyle: filterFieldHintTextStyle,
+                                    hintStyle: filterFieldHintTextStyleOf(context),
                                     border: InputBorder.none,
                                     contentPadding: EdgeInsets.only(left: 4),
                                   ),
@@ -681,10 +682,10 @@ class _ExpenseLinesTable extends StatelessWidget {
                               IconButton(
                                 tooltip: 'Удалить',
                                 onPressed: () => onRemoveLine(index),
-                                icon: const Icon(
+                                icon: Icon(
                                   LucideIcons.x,
                                   size: 16,
-                                  color: Colors.grey,
+                                  color: context.appColors.secondaryText,
                                 ),
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(
@@ -748,7 +749,7 @@ class _ExpenseCategoriesPanelState extends State<_ExpenseCategoriesPanel> {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.appColors.border),
         borderRadius: BorderRadius.circular(10),
       ),
       child: ClipRRect(
@@ -756,7 +757,7 @@ class _ExpenseCategoriesPanelState extends State<_ExpenseCategoriesPanel> {
         child: Column(
           children: [
             Container(
-              color: const Color(0xFFF9F9F9),
+              color: context.appColors.navActiveBackground,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: const Row(
                 children: [
@@ -772,7 +773,7 @@ class _ExpenseCategoriesPanelState extends State<_ExpenseCategoriesPanel> {
                 ],
               ),
             ),
-            const Divider(height: 1, thickness: 1, color: AppColors.border),
+            Divider(height: 1, thickness: 1, color: context.appColors.border),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(
@@ -784,17 +785,17 @@ class _ExpenseCategoriesPanelState extends State<_ExpenseCategoriesPanel> {
                       decoration: InputDecoration(
                         isDense: true,
                         hintText: 'Поиск категории',
-                        hintStyle: filterFieldHintTextStyle,
+                        hintStyle: filterFieldHintTextStyleOf(context),
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: context.appColors.surface,
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 10,
                           vertical: 10,
                         ),
-                        prefixIcon: const Icon(
+                        prefixIcon: Icon(
                           LucideIcons.search,
                           size: 16,
-                          color: Colors.grey,
+                          color: context.appColors.secondaryText,
                         ),
                         suffixIcon: _searchQuery.isEmpty
                             ? null
@@ -804,26 +805,26 @@ class _ExpenseCategoriesPanelState extends State<_ExpenseCategoriesPanel> {
                                   _searchController.clear();
                                   setState(() => _searchQuery = '');
                                 },
-                                icon: const Icon(
+                                icon: Icon(
                                   LucideIcons.x,
                                   size: 16,
-                                  color: Colors.grey,
+                                  color: context.appColors.secondaryText,
                                 ),
                               ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                           borderSide:
-                              const BorderSide(color: AppColors.border),
+                              BorderSide(color: context.appColors.border),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                           borderSide:
-                              const BorderSide(color: AppColors.border),
+                              BorderSide(color: context.appColors.border),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                           borderSide:
-                              const BorderSide(color: AppColors.primary),
+                              BorderSide(color: AppColors.primary),
                         ),
                       ),
                       onChanged: (value) =>
@@ -838,9 +839,9 @@ class _ExpenseCategoriesPanelState extends State<_ExpenseCategoriesPanel> {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: context.appColors.surface,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.border),
+                        border: Border.all(color: context.appColors.border),
                       ),
                       child: const Icon(
                         LucideIcons.plus,
@@ -852,7 +853,7 @@ class _ExpenseCategoriesPanelState extends State<_ExpenseCategoriesPanel> {
                 ],
               ),
             ),
-            const Divider(height: 1, thickness: 1, color: AppColors.border),
+            Divider(height: 1, thickness: 1, color: context.appColors.border),
             Expanded(
               child: filteredCategories.isEmpty
                   ? Center(
@@ -860,15 +861,15 @@ class _ExpenseCategoriesPanelState extends State<_ExpenseCategoriesPanel> {
                         hasSearch
                             ? 'Ничего не найдено'
                             : 'Нет категорий расхода',
-                        style: filterFieldHintTextStyle,
+                        style: filterFieldHintTextStyleOf(context),
                       ),
                     )
                   : ListView.separated(
                       itemCount: filteredCategories.length,
-                      separatorBuilder: (_, _) => const Divider(
+                      separatorBuilder: (_, _) => Divider(
                         height: 1,
                         thickness: 1,
-                        color: AppColors.border,
+                        color: context.appColors.border,
                       ),
                       itemBuilder: (context, index) {
                         final category = filteredCategories[index];
@@ -952,14 +953,14 @@ class _FilterPlaceholder extends StatelessWidget {
         horizontal: filterFieldHorizontalPadding,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appColors.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE7E7E7)),
+        border: Border.all(color: context.appColors.border),
       ),
       alignment: Alignment.centerLeft,
       child: Text(
         label,
-        style: filterFieldHintTextStyle,
+        style: filterFieldHintTextStyleOf(context),
       ),
     );
   }

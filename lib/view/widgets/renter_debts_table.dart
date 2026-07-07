@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/models/renter_debt_report_item.dart';
 import 'package:easy_fin/view/widgets/report_table_theme.dart';
 import 'package:flutter/material.dart';
@@ -36,18 +37,19 @@ class RenterDebtsTable extends StatelessWidget {
           child: Column(
             children: [
                 const _RenterDebtsTableHeader(),
-                ReportTableTheme.sectionDivider,
+                ReportTableTheme.sectionDivider(context),
                 Expanded(
                   child: items.isEmpty
-                      ? const Center(
+                      ? Center(
                           child: Text(
                             'Нет задолженностей',
-                            style: filterFieldHintTextStyle,
+                            style: filterFieldHintTextStyleOf(context),
                           ),
                         )
                       : ListView.separated(
                           itemCount: items.length,
-                          separatorBuilder: (_, _) => ReportTableTheme.rowDivider,
+                          separatorBuilder: (_, _) =>
+                              ReportTableTheme.rowDivider(context),
                           itemBuilder: (context, index) {
                             final item = items[index];
                             return _RenterDebtsTableRow(
@@ -97,7 +99,7 @@ class _RenterDebtsTableHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: ReportTableTheme.headerHeight,
-      color: Colors.white,
+      color: context.appColors.surface,
       padding: const EdgeInsets.symmetric(
         horizontal: ReportTableTheme.horizontalPadding,
       ),
@@ -147,7 +149,7 @@ class _RenterDebtsTableRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: ReportTableTheme.rowHeight,
-      color: Colors.white,
+      color: context.appColors.surface,
       padding: const EdgeInsets.symmetric(
         horizontal: ReportTableTheme.horizontalPadding,
       ),
@@ -158,7 +160,7 @@ class _RenterDebtsTableRow extends StatelessWidget {
             flex: 3,
             child: Text(
               renterName,
-              style: ReportTableTheme.cellTextStyle,
+              style: ReportTableTheme.cellTextStyle(context),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -168,7 +170,7 @@ class _RenterDebtsTableRow extends StatelessWidget {
             child: Text(
               '${amountFormat.format(debt)} ₽',
               textAlign: TextAlign.right,
-              style: ReportTableTheme.cellTextStyle,
+              style: ReportTableTheme.cellTextStyle(context),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -178,7 +180,7 @@ class _RenterDebtsTableRow extends StatelessWidget {
             flex: 2,
             child: Text(
               baseName,
-              style: ReportTableTheme.secondaryCellTextStyle,
+              style: ReportTableTheme.secondaryCellTextStyle(context),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),

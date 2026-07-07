@@ -1,3 +1,4 @@
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 
@@ -13,6 +14,7 @@ class TemplatePage extends StatelessWidget {
   final bool hasBackButton;
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -25,7 +27,7 @@ class TemplatePage extends StatelessWidget {
               if (hasBackButton) ...[
                 BackButton(
                   style: ButtonStyle(
-                    foregroundColor: WidgetStateProperty.all(Colors.grey),
+                    foregroundColor: WidgetStateProperty.all(colors.secondaryText),
                     iconSize: WidgetStateProperty.all(20),
                   ),
                 ),
@@ -34,16 +36,17 @@ class TemplatePage extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
+                    color: colors.primaryText,
                   ),
                 ),
               ),
             ],
           ),
         ),
-        Divider(color: Colors.grey.withValues(alpha: .5), thickness: .5),
+        Divider(color: colors.border, thickness: .5),
         const Gap(20),
         Expanded(
           child: Padding(

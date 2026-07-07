@@ -1,5 +1,5 @@
-import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -20,14 +20,16 @@ class DatePickerField extends StatelessWidget {
   final bool expand;
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+
     return SizedBox(
       height: filterFieldHeight,
       width: expand ? double.infinity : width,
       child: Material(
-        color: Colors.white,
+        color: colors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
-          side: const BorderSide(color: AppColors.border),
+          side: BorderSide(color: colors.border),
         ),
         clipBehavior: Clip.antiAlias,
         child: Row(
@@ -69,8 +71,10 @@ class DatePickerField extends StatelessWidget {
                                 'ru',
                               ).format(selectedDate!),
                         style: selectedDate == null
-                            ? filterFieldHintTextStyle
-                            : filterFieldTextStyle,
+                            ? filterFieldHintTextStyleOf(context)
+                            : filterFieldTextStyle.copyWith(
+                                color: colors.primaryText,
+                              ),
                       ),
                     ),
                   ),
@@ -83,10 +87,10 @@ class DatePickerField extends StatelessWidget {
                 child: IconButton(
                   tooltip: 'Сбросить',
                   onPressed: () => onChanged(null),
-                  icon: const Icon(
+                  icon: Icon(
                     LucideIcons.x,
                     size: 16,
-                    color: Colors.grey,
+                    color: colors.secondaryText,
                   ),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(

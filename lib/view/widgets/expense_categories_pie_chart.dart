@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/models/expense_category_report_item.dart';
 import 'package:easy_fin/view/widgets/expense_chart_common.dart';
 import 'package:flutter/material.dart';
@@ -24,6 +25,8 @@ class ExpenseCategoriesPieChart extends StatelessWidget {
       return const ExpenseChartEmpty();
     }
 
+    final holeColor = context.appColors.surface;
+
     return SizedBox(
       width: double.infinity,
       height: chartSize,
@@ -37,6 +40,7 @@ class ExpenseCategoriesPieChart extends StatelessWidget {
               painter: _PieChartPainter(
                 items: items,
                 colors: _resolveColors(items.length),
+                holeColor: holeColor,
               ),
             ),
           ),
@@ -86,6 +90,8 @@ class _LegendItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+
     return Row(
       children: [
         Container(
@@ -100,7 +106,7 @@ class _LegendItem extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(fontSize: 12),
+            style: TextStyle(fontSize: 12, color: colors.primaryText),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -110,7 +116,7 @@ class _LegendItem extends StatelessWidget {
           '$percentage%',
           style: TextStyle(
             fontSize: 12,
-            color: Colors.grey.shade700,
+            color: colors.secondaryText,
           ),
         ),
       ],
@@ -122,10 +128,12 @@ class _PieChartPainter extends CustomPainter {
   _PieChartPainter({
     required this.items,
     required this.colors,
+    required this.holeColor,
   });
 
   final List<ExpenseCategoryReportItem> items;
   final List<Color> colors;
+  final Color holeColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -145,12 +153,14 @@ class _PieChartPainter extends CustomPainter {
       startAngle += sweepAngle;
     }
 
-    final holePaint = Paint()..color = Colors.white;
+    final holePaint = Paint()..color = holeColor;
     canvas.drawCircle(center, radius * 0.55, holePaint);
   }
 
   @override
   bool shouldRepaint(covariant _PieChartPainter oldDelegate) {
-    return oldDelegate.items != items || oldDelegate.colors != colors;
+    return oldDelegate.items != items ||
+        oldDelegate.colors != colors ||
+        oldDelegate.holeColor != holeColor;
   }
 }

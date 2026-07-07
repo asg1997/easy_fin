@@ -5,6 +5,7 @@ import 'package:easy_fin/models/import_expense_review.dart';
 import 'package:easy_fin/models/import_income_review.dart';
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/widgets/dropdown_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -47,25 +48,28 @@ class _ImportExpenseReviewDialogState
   static final _dateFormat = DateFormat('dd.MM.yyyy', 'ru');
   static final _amountFormat = NumberFormat('#,##0.00', 'ru');
 
-  static const _fieldDecoration = InputDecoration(
+  InputDecoration _fieldDecoration(BuildContext context) {
+    final colors = context.appColors;
+    return InputDecoration(
     filled: true,
-    fillColor: Colors.white,
-    contentPadding: EdgeInsets.symmetric(
+    fillColor: colors.surface,
+    contentPadding: const EdgeInsets.symmetric(
       horizontal: filterFieldHorizontalPadding,
     ),
     border: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(10)),
-      borderSide: BorderSide(color: AppColors.border),
+      borderRadius: const BorderRadius.all(Radius.circular(10)),
+      borderSide: BorderSide(color: colors.border),
     ),
     enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(10)),
-      borderSide: BorderSide(color: AppColors.border),
+      borderRadius: const BorderRadius.all(Radius.circular(10)),
+      borderSide: BorderSide(color: colors.border),
     ),
-    focusedBorder: OutlineInputBorder(
+    focusedBorder: const OutlineInputBorder(
       borderRadius: BorderRadius.all(Radius.circular(10)),
       borderSide: BorderSide(color: AppColors.primary),
     ),
   );
+  }
 
   late final List<_ReviewItemForm> _forms;
   late List<ExpenseCategory> _categories;
@@ -153,7 +157,7 @@ class _ImportExpenseReviewDialogState
     final screenHeight = MediaQuery.sizeOf(context).height;
 
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: context.appColors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ConstrainedBox(
         constraints: BoxConstraints(
@@ -171,7 +175,7 @@ class _ImportExpenseReviewDialogState
               ),
               const Gap(12),
               Divider(
-                color: Colors.grey.withValues(alpha: 0.5),
+                color: context.appColors.border,
                 thickness: 0.5,
                 height: 1,
               ),
@@ -184,7 +188,7 @@ class _ImportExpenseReviewDialogState
                 style: TextStyle(
                   fontSize: 14,
                   height: 1.4,
-                  color: Colors.grey.shade600,
+                  color: context.appColors.secondaryText,
                 ),
               ),
               if (_validationError != null) ...[
@@ -209,7 +213,7 @@ class _ImportExpenseReviewDialogState
                         categories: _categories,
                         dateFormat: _dateFormat,
                         amountFormat: _amountFormat,
-                        fieldDecoration: _fieldDecoration,
+                        fieldDecoration: _fieldDecoration(context),
                         onChanged: () => setState(() => _validationError = null),
                       ),
                       ImportExpenseStandaloneItem() => _StandaloneCard(
@@ -218,7 +222,7 @@ class _ImportExpenseReviewDialogState
                         categories: _categories,
                         dateFormat: _dateFormat,
                         amountFormat: _amountFormat,
-                        fieldDecoration: _fieldDecoration,
+                        fieldDecoration: _fieldDecoration(context),
                         onChanged: () => setState(() => _validationError = null),
                       ),
                     };
@@ -236,7 +240,7 @@ class _ImportExpenseReviewDialogState
                             const ImportExpenseReviewCancelled(),
                           ),
                     style: TextButton.styleFrom(
-                      foregroundColor: Colors.grey,
+                      foregroundColor: context.appColors.secondaryText,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 10,
@@ -427,7 +431,7 @@ class _CounterpartyCard extends StatelessWidget {
                       item.originalAccountNumber,
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey.shade600,
+                        color: context.appColors.secondaryText,
                       ),
                     ),
                   ],
@@ -449,7 +453,7 @@ class _CounterpartyCard extends StatelessWidget {
               '${amountFormat.format(preview.amount)} · ${preview.note}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 13, color: context.appColors.secondaryText),
             ),
           ],
           const Gap(12),
@@ -473,14 +477,14 @@ class _CounterpartyCard extends StatelessWidget {
                         ? Icons.expand_less
                         : Icons.expand_more,
                     size: 18,
-                    color: Colors.grey.shade700,
+                    color: context.appColors.secondaryText,
                   ),
                   const Gap(4),
                   Text(
                     'Расходы (${item.operations.length})',
                     style: TextStyle(
                       fontSize: 13,
-                      color: Colors.grey.shade700,
+                      color: context.appColors.secondaryText,
                     ),
                   ),
                 ],
@@ -498,7 +502,7 @@ class _CounterpartyCard extends StatelessWidget {
                   '${operation.note}',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                  style: TextStyle(fontSize: 13, color: context.appColors.secondaryText),
                 ),
               ),
             ),
@@ -554,7 +558,7 @@ class _StandaloneCard extends StatelessWidget {
               Text(
                 '${dateFormat.format(operation.date)} · '
                 '${amountFormat.format(operation.amount)} ₽',
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                style: TextStyle(fontSize: 13, color: context.appColors.secondaryText),
               ),
             ],
           ),
@@ -660,7 +664,7 @@ class _ClassificationSection extends StatelessWidget {
                             style: filterFieldTextStyle,
                             decoration: fieldDecoration.copyWith(
                               hintText: 'Название категории',
-                              hintStyle: filterFieldHintTextStyle,
+                              hintStyle: filterFieldHintTextStyleOf(context),
                             ),
                             onChanged: (_) => onChanged(),
                           ),
@@ -710,7 +714,7 @@ class _ReviewCardShell extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.appColors.border),
         borderRadius: BorderRadius.circular(10),
       ),
       child: child,

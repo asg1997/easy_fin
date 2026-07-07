@@ -1,4 +1,5 @@
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/providers/renter_debts_by_base_provider.dart';
 import 'package:easy_fin/view/providers/renter_debts_monthly_provider.dart';
@@ -90,7 +91,7 @@ class RenterDebtsReportPage extends ConsumerWidget {
                         'Сумма задолженности на конец каждого месяца',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade600,
+                          color: context.appColors.secondaryText,
                         ),
                       ),
                       const Gap(12),
@@ -175,12 +176,12 @@ class _FilterPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appColors.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: context.appColors.border),
       ),
       child: Center(
-        child: Text(label, style: filterFieldHintTextStyle),
+        child: Text(label, style: filterFieldHintTextStyleOf(context)),
       ),
     );
   }

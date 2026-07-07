@@ -1,8 +1,8 @@
 import 'package:easy_fin/models/account_filter_type.dart';
 import 'package:easy_fin/models/base.dart';
 import 'package:easy_fin/models/document_type.dart';
-import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/providers/documents_filters_provider.dart';
 import 'package:easy_fin/view/providers/documents_list_provider.dart';
@@ -122,10 +122,12 @@ class _DocumentTypeTabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: AppColors.border),
+          bottom: BorderSide(color: colors.border),
         ),
       ),
       child: Row(
@@ -155,6 +157,8 @@ class _DocumentTypeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -162,7 +166,7 @@ class _DocumentTypeTab extends StatelessWidget {
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(
-              color: isSelected ? AppColors.primary : Colors.transparent,
+              color: isSelected ? colors.primaryText : Colors.transparent,
               width: 2,
             ),
           ),
@@ -171,7 +175,7 @@ class _DocumentTypeTab extends StatelessWidget {
           label,
           style: filterFieldTextStyle.copyWith(
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-            color: isSelected ? AppColors.primary : Colors.grey,
+            color: isSelected ? colors.primaryText : colors.secondaryText,
           ),
         ),
       ),
@@ -226,20 +230,22 @@ class _FilterPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+
     return Container(
       height: filterFieldHeight,
       padding: const EdgeInsets.symmetric(
         horizontal: filterFieldHorizontalPadding,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE7E7E7)),
+        border: Border.all(color: colors.border),
       ),
       alignment: Alignment.centerLeft,
       child: Text(
         label,
-        style: filterFieldHintTextStyle,
+        style: filterFieldHintTextStyleOf(context),
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:easy_fin/models/base.dart';
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/widgets/dropdown_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
@@ -42,25 +43,28 @@ class _ImportBaseCreationDialogState extends State<ImportBaseCreationDialog> {
   late bool _isCreatingNew;
   Base? _selectedBase;
 
-  static const _fieldDecoration = InputDecoration(
+  InputDecoration _fieldDecoration(BuildContext context) {
+    final colors = context.appColors;
+    return InputDecoration(
     filled: true,
-    fillColor: Colors.white,
-    contentPadding: EdgeInsets.symmetric(
+    fillColor: colors.surface,
+    contentPadding: const EdgeInsets.symmetric(
       horizontal: filterFieldHorizontalPadding,
     ),
     border: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(10)),
-      borderSide: BorderSide(color: AppColors.border),
+      borderRadius: const BorderRadius.all(Radius.circular(10)),
+      borderSide: BorderSide(color: colors.border),
     ),
     enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(10)),
-      borderSide: BorderSide(color: AppColors.border),
+      borderRadius: const BorderRadius.all(Radius.circular(10)),
+      borderSide: BorderSide(color: colors.border),
     ),
-    focusedBorder: OutlineInputBorder(
+    focusedBorder: const OutlineInputBorder(
       borderRadius: BorderRadius.all(Radius.circular(10)),
       borderSide: BorderSide(color: AppColors.primary),
     ),
   );
+  }
 
   bool get _hasExistingBases => widget.existingBases.isNotEmpty;
 
@@ -104,7 +108,7 @@ class _ImportBaseCreationDialogState extends State<ImportBaseCreationDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: context.appColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
@@ -125,7 +129,7 @@ class _ImportBaseCreationDialogState extends State<ImportBaseCreationDialog> {
               ),
               const Gap(12),
               Divider(
-                color: Colors.grey.withValues(alpha: 0.5),
+                color: context.appColors.border,
                 thickness: 0.5,
                 height: 1,
               ),
@@ -140,7 +144,7 @@ class _ImportBaseCreationDialogState extends State<ImportBaseCreationDialog> {
                 style: TextStyle(
                   fontSize: 14,
                   height: 1.4,
-                  color: Colors.grey.shade600,
+                  color: context.appColors.secondaryText,
                 ),
               ),
               const Gap(20),
@@ -159,9 +163,9 @@ class _ImportBaseCreationDialogState extends State<ImportBaseCreationDialog> {
                   horizontal: filterFieldHorizontalPadding,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8F8F8),
+                  color: context.appColors.navActiveBackground,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.border),
+                  border: Border.all(color: context.appColors.border),
                 ),
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -209,9 +213,9 @@ class _ImportBaseCreationDialogState extends State<ImportBaseCreationDialog> {
                     controller: _nameController,
                     autofocus: !_hasExistingBases,
                     style: filterFieldTextStyle,
-                    decoration: _fieldDecoration.copyWith(
+                    decoration: _fieldDecoration(context).copyWith(
                       hintText: 'Введите название',
-                      hintStyle: filterFieldHintTextStyle,
+                      hintStyle: filterFieldHintTextStyleOf(context),
                     ),
                     onChanged: (_) => setState(() {}),
                     onSubmitted: _canContinue ? (_) => _onContinue() : null,
@@ -242,7 +246,7 @@ class _ImportBaseCreationDialogState extends State<ImportBaseCreationDialog> {
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
                     style: TextButton.styleFrom(
-                      foregroundColor: Colors.grey,
+                      foregroundColor: context.appColors.secondaryText,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 10,
@@ -300,11 +304,11 @@ class _ModeOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: isSelected ? AppColors.primary : Colors.white,
+      color: isSelected ? AppColors.primary : context.appColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
         side: BorderSide(
-          color: isSelected ? AppColors.primary : AppColors.border,
+          color: isSelected ? AppColors.primary : context.appColors.border,
         ),
       ),
       clipBehavior: Clip.antiAlias,
@@ -318,7 +322,7 @@ class _ModeOption extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: isSelected ? Colors.white : Colors.black87,
+                color: isSelected ? Colors.white : context.appColors.primaryText,
               ),
             ),
           ),

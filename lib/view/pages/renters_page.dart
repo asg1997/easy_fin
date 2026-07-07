@@ -4,6 +4,7 @@ import 'package:easy_fin/models/renter.dart';
 import 'package:easy_fin/utils/account_number_validator.dart';
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/providers/renter_debts_provider.dart';
 import 'package:easy_fin/view/providers/renters_list_provider.dart';
@@ -269,10 +270,10 @@ class _RentersPageState extends ConsumerState<RentersPage> {
                                   minWidth: 32,
                                   minHeight: 32,
                                 ),
-                                icon: const Icon(
+                                icon: Icon(
                                   LucideIcons.pencil,
                                   size: 16,
-                                  color: Colors.grey,
+                                  color: context.appColors.secondaryText,
                                 ),
                               ),
                               IconButton(
@@ -283,10 +284,10 @@ class _RentersPageState extends ConsumerState<RentersPage> {
                                   minWidth: 28,
                                   minHeight: 28,
                                 ),
-                                icon: const Icon(
+                                icon: Icon(
                                   LucideIcons.trash2,
                                   size: 16,
-                                  color: Colors.grey,
+                                  color: context.appColors.secondaryText,
                                 ),
                               ),
                               if (showArchiveIcon)
@@ -315,17 +316,17 @@ class _RentersPageState extends ConsumerState<RentersPage> {
                                 decoration: InputDecoration(
                                   isDense: true,
                                   hintText: 'Поиск арендатора',
-                                  hintStyle: filterFieldHintTextStyle,
+                                  hintStyle: filterFieldHintTextStyleOf(context),
                                   filled: true,
-                                  fillColor: Colors.white,
+                                  fillColor: context.appColors.surface,
                                   contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 10,
                                     vertical: 10,
                                   ),
-                                  prefixIcon: const Icon(
+                                  prefixIcon: Icon(
                                     LucideIcons.search,
                                     size: 16,
-                                    color: Colors.grey,
+                                    color: context.appColors.secondaryText,
                                   ),
                                   suffixIcon: _searchQuery.isEmpty
                                       ? null
@@ -335,22 +336,22 @@ class _RentersPageState extends ConsumerState<RentersPage> {
                                             _searchController.clear();
                                             setState(() => _searchQuery = '');
                                           },
-                                          icon: const Icon(
+                                          icon: Icon(
                                             LucideIcons.x,
                                             size: 16,
-                                            color: Colors.grey,
+                                            color: context.appColors.secondaryText,
                                           ),
                                         ),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(
-                                      color: AppColors.border,
+                                    borderSide: BorderSide(
+                                      color: context.appColors.border,
                                     ),
                                   ),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(
-                                      color: AppColors.border,
+                                    borderSide: BorderSide(
+                                      color: context.appColors.border,
                                     ),
                                   ),
                                   focusedBorder: OutlineInputBorder(
@@ -375,11 +376,11 @@ class _RentersPageState extends ConsumerState<RentersPage> {
                                 minHeight: 36,
                               ),
                               style: IconButton.styleFrom(
-                                backgroundColor: Colors.white,
+                                backgroundColor: context.appColors.surface,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
-                                  side: const BorderSide(
-                                    color: AppColors.border,
+                                  side: BorderSide(
+                                    color: context.appColors.border,
                                   ),
                                 ),
                               ),
@@ -467,9 +468,9 @@ class _ShowArchivedCheckbox extends StatelessWidget {
       height: filterFieldHeight,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.appColors.surface,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFE7E7E7)),
+          border: Border.all(color: context.appColors.border),
         ),
         child: InkWell(
           borderRadius: BorderRadius.circular(10),
@@ -492,7 +493,7 @@ class _ShowArchivedCheckbox extends StatelessWidget {
                   ),
                 ),
                 const Gap(4),
-                const Text(
+                Text(
                   'Показать архив',
                   style: TextStyle(
                     fontSize: 14,
@@ -521,14 +522,14 @@ class _FilterPlaceholder extends StatelessWidget {
         horizontal: filterFieldHorizontalPadding,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appColors.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE7E7E7)),
+        border: Border.all(color: context.appColors.border),
       ),
       alignment: Alignment.centerLeft,
       child: Text(
         label,
-        style: filterFieldHintTextStyle,
+        style: filterFieldHintTextStyleOf(context),
       ),
     );
   }

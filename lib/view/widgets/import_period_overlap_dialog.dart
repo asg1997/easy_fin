@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 
 class ImportPeriodOverlapDialog extends StatelessWidget {
   const ImportPeriodOverlapDialog({
@@ -24,7 +25,7 @@ class ImportPeriodOverlapDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: context.appColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
@@ -45,7 +46,7 @@ class ImportPeriodOverlapDialog extends StatelessWidget {
               ),
               const Gap(12),
               Divider(
-                color: Colors.grey.withValues(alpha: 0.5),
+                color: context.appColors.border,
                 thickness: 0.5,
                 height: 1,
               ),
@@ -56,7 +57,7 @@ class ImportPeriodOverlapDialog extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   height: 1.4,
-                  color: Colors.grey.shade600,
+                  color: context.appColors.secondaryText,
                 ),
               ),
               const Gap(20),
@@ -78,7 +79,7 @@ class ImportPeriodOverlapDialog extends StatelessWidget {
                     onPressed: () => Navigator.of(context).pop(),
                     height: 40,
                     minWidth: 110,
-                    color: Colors.grey.shade200,
+                    color: context.appColors.border,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
@@ -86,7 +87,7 @@ class ImportPeriodOverlapDialog extends StatelessWidget {
                     child: Text(
                       'Пропустить',
                       style: TextStyle(
-                        color: Colors.grey.shade800,
+                        color: context.appColors.secondaryText,
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
@@ -124,7 +125,7 @@ class _InfoRow extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey.shade600,
+              color: context.appColors.secondaryText,
             ),
           ),
         ),
@@ -134,7 +135,7 @@ class _InfoRow extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: highlight ? Colors.orange.shade800 : Colors.black87,
+              color: highlight ? Colors.orange.shade800 : context.appColors.primaryText,
             ),
           ),
         ),

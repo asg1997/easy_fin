@@ -1,4 +1,5 @@
 import 'package:easy_fin/utils/app_colors.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 
@@ -18,8 +19,10 @@ class ConfirmDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
@@ -33,14 +36,15 @@ class ConfirmDialog extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
+                  color: colors.primaryText,
                 ),
               ),
               const Gap(12),
               Divider(
-                color: Colors.grey.withValues(alpha: 0.5),
+                color: colors.border,
                 thickness: 0.5,
                 height: 1,
               ),
@@ -50,7 +54,7 @@ class ConfirmDialog extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   height: 1.4,
-                  color: Colors.grey.shade600,
+                  color: colors.secondaryText,
                 ),
               ),
               const Gap(24),
@@ -60,7 +64,7 @@ class ConfirmDialog extends StatelessWidget {
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(false),
                     style: TextButton.styleFrom(
-                      foregroundColor: Colors.grey,
+                      foregroundColor: colors.secondaryText,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 10,

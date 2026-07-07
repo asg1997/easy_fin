@@ -1,5 +1,5 @@
-import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:flutter/material.dart';
 
 class SimpleTable extends StatelessWidget {
@@ -28,9 +28,11 @@ class SimpleTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+
     return DecoratedBox(
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: colors.border),
         borderRadius: BorderRadius.circular(10),
       ),
       child: ClipRRect(
@@ -45,16 +47,16 @@ class SimpleTable extends StatelessWidget {
               leadingWidth: leadingWidth,
             ),
             if (belowHeader != null) ...[
-              const Divider(
+              Divider(
                 height: 1,
                 thickness: 1,
-                color: AppColors.border,
+                color: colors.border,
               ),
               belowHeader!,
-              const Divider(
+              Divider(
                 height: 1,
                 thickness: 1,
-                color: AppColors.border,
+                color: colors.border,
               ),
             ],
             Expanded(
@@ -62,15 +64,15 @@ class SimpleTable extends StatelessWidget {
                   ? Center(
                       child: Text(
                         emptyMessage,
-                        style: filterFieldHintTextStyle,
+                        style: filterFieldHintTextStyleOf(context),
                       ),
                     )
                   : ListView.separated(
                       itemCount: rows.length,
-                      separatorBuilder: (_, _) => const Divider(
+                      separatorBuilder: (_, _) => Divider(
                         height: 1,
                         thickness: 1,
-                        color: AppColors.border,
+                        color: colors.border,
                       ),
                       itemBuilder: (context, index) {
                         final row = rows[index];
@@ -93,7 +95,9 @@ class SimpleTable extends StatelessWidget {
                                     textAlign: alignRightColumns.contains(i)
                                         ? TextAlign.right
                                         : TextAlign.left,
-                                    style: filterFieldTextStyle,
+                                    style: filterFieldTextStyle.copyWith(
+                                      color: colors.primaryText,
+                                    ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -145,8 +149,10 @@ class _SimpleTableHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+
     return Container(
-      color: const Color(0xFFF9F9F9),
+      color: colors.navActiveBackground,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
@@ -160,9 +166,10 @@ class _SimpleTableHeader extends StatelessWidget {
                 textAlign: alignRightColumns.contains(i)
                     ? TextAlign.right
                     : TextAlign.left,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
+                  color: colors.primaryText,
                 ),
               ),
             ),

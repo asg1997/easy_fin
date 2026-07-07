@@ -1,4 +1,5 @@
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/models/renter_debt_by_base_report_item.dart';
 import 'package:easy_fin/view/widgets/report_table_theme.dart';
 import 'package:flutter/material.dart';
@@ -36,11 +37,11 @@ class RenterDebtsByBaseTable extends StatelessWidget {
             mainAxisSize: expanded ? MainAxisSize.min : MainAxisSize.max,
             children: [
                 const _RenterDebtsByBaseTableHeader(),
-                ReportTableTheme.sectionDivider,
+                ReportTableTheme.sectionDivider(context),
                 if (expanded)
-                  _buildBody()
+                  _buildBody(context)
                 else
-                  Expanded(child: _buildBody()),
+                  Expanded(child: _buildBody(context)),
                 if (items.isNotEmpty)
                   ReportTableSumFooter(
                     amount: _amountFormat.format(totalDebt),
@@ -53,14 +54,14 @@ class RenterDebtsByBaseTable extends StatelessWidget {
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(BuildContext context) {
     if (items.isEmpty) {
       return SizedBox(
         height: expanded ? _emptyHeight : null,
-        child: const Center(
+        child: Center(
           child: Text(
             'Нет задолженностей',
-            style: filterFieldHintTextStyle,
+            style: filterFieldHintTextStyleOf(context),
           ),
         ),
       );
@@ -70,7 +71,7 @@ class RenterDebtsByBaseTable extends StatelessWidget {
       shrinkWrap: expanded,
       physics: expanded ? const NeverScrollableScrollPhysics() : null,
       itemCount: items.length,
-      separatorBuilder: (_, _) => ReportTableTheme.rowDivider,
+      separatorBuilder: (_, _) => ReportTableTheme.rowDivider(context),
       itemBuilder: (context, index) {
         final item = items[index];
         return _RenterDebtsByBaseTableRow(
@@ -110,7 +111,7 @@ class _RenterDebtsByBaseTableHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: ReportTableTheme.headerHeight,
-      color: Colors.white,
+      color: context.appColors.surface,
       padding: const EdgeInsets.symmetric(
         horizontal: ReportTableTheme.horizontalPadding,
       ),
@@ -151,7 +152,7 @@ class _RenterDebtsByBaseTableRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: ReportTableTheme.rowHeight,
-      color: Colors.white,
+      color: context.appColors.surface,
       padding: const EdgeInsets.symmetric(
         horizontal: ReportTableTheme.horizontalPadding,
       ),
@@ -162,7 +163,7 @@ class _RenterDebtsByBaseTableRow extends StatelessWidget {
             flex: 3,
             child: Text(
               baseName,
-              style: ReportTableTheme.cellTextStyle,
+              style: ReportTableTheme.cellTextStyle(context),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -172,7 +173,7 @@ class _RenterDebtsByBaseTableRow extends StatelessWidget {
             child: Text(
               '${amountFormat.format(debt)} ₽',
               textAlign: TextAlign.right,
-              style: ReportTableTheme.cellTextStyle,
+              style: ReportTableTheme.cellTextStyle(context),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),

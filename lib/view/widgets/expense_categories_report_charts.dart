@@ -5,6 +5,7 @@ import 'package:easy_fin/view/models/expense_base_report_item.dart';
 import 'package:easy_fin/view/models/expense_category_comparison_item.dart';
 import 'package:easy_fin/view/models/expense_category_report_item.dart';
 import 'package:easy_fin/view/models/expense_monthly_report_item.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/widgets/expense_chart_common.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -28,6 +29,7 @@ class ExpenseCategoriesVerticalBarChart extends StatelessWidget {
 
     final maxAmount =
         items.fold<double>(0, (max, item) => math.max(max, item.amount));
+    final colors = context.appColors;
 
     return SizedBox(
       width: double.infinity,
@@ -37,6 +39,9 @@ class ExpenseCategoriesVerticalBarChart extends StatelessWidget {
           items: items,
           axisMax: ExpenseChartAxis.resolveMax(maxAmount),
           amountFormat: _amountFormat,
+          primaryTextColor: colors.primaryText,
+          secondaryTextColor: colors.secondaryText,
+          borderColor: colors.border,
         ),
       ),
     );
@@ -48,11 +53,17 @@ class _VerticalBarChartPainter extends CustomPainter {
     required this.items,
     required this.axisMax,
     required this.amountFormat,
+    required this.primaryTextColor,
+    required this.secondaryTextColor,
+    required this.borderColor,
   });
 
   final List<ExpenseCategoryReportItem> items;
   final double axisMax;
   final NumberFormat amountFormat;
+  final Color primaryTextColor;
+  final Color secondaryTextColor;
+  final Color borderColor;
 
   static const _gridLines = 4;
   static const _leftPadding = 44.0;
@@ -75,7 +86,7 @@ class _VerticalBarChartPainter extends CustomPainter {
 
   void _drawGrid(Canvas canvas, Offset origin, double width, double height) {
     final gridPaint = Paint()
-      ..color = const Color(0xFFE5E7EB)
+      ..color = borderColor
       ..strokeWidth = 1;
 
     for (var index = 0; index <= _gridLines; index++) {
@@ -92,7 +103,7 @@ class _VerticalBarChartPainter extends CustomPainter {
       final label = TextPainter(
         text: TextSpan(
           text: ExpenseChartAxis.formatLabel(value),
-          style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+          style: TextStyle(fontSize: 11, color: secondaryTextColor),
         ),
         textDirection: ui.TextDirection.ltr,
       )..layout();
@@ -107,7 +118,7 @@ class _VerticalBarChartPainter extends CustomPainter {
     canvas.drawLine(
       Offset(origin.dx, baselineY),
       Offset(origin.dx + width, baselineY),
-      Paint()..color = const Color(0xFFD1D5DB),
+      Paint()..color = borderColor,
     );
   }
 
@@ -165,6 +176,7 @@ class _VerticalBarChartPainter extends CustomPainter {
         barTop: barTop,
         maxWidth: slotWidth - 4,
         chartTop: origin.dy,
+        textColor: primaryTextColor,
       );
     }
   }
@@ -181,7 +193,7 @@ class _VerticalBarChartPainter extends CustomPainter {
       final label = TextPainter(
         text: TextSpan(
           text: truncateChartLabel(items[index].categoryName),
-          style: const TextStyle(fontSize: 10, color: Color(0xFF9CA3AF)),
+          style: TextStyle(fontSize: 10, color: secondaryTextColor),
         ),
         textDirection: ui.TextDirection.ltr,
       )..layout(maxWidth: slotWidth - 4);
@@ -196,7 +208,11 @@ class _VerticalBarChartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _VerticalBarChartPainter oldDelegate) {
-    return oldDelegate.items != items || oldDelegate.axisMax != axisMax;
+    return oldDelegate.items != items ||
+        oldDelegate.axisMax != axisMax ||
+        oldDelegate.primaryTextColor != primaryTextColor ||
+        oldDelegate.secondaryTextColor != secondaryTextColor ||
+        oldDelegate.borderColor != borderColor;
   }
 }
 
@@ -241,6 +257,7 @@ class ExpenseCategoriesMonthlyChart extends StatelessWidget {
     final maxAmount = items
         .where((item) => !item.isFutureMonth)
         .fold<double>(0, (max, item) => math.max(max, item.amount));
+    final colors = context.appColors;
 
     return SizedBox(
       width: double.infinity,
@@ -251,6 +268,9 @@ class ExpenseCategoriesMonthlyChart extends StatelessWidget {
           axisMax: ExpenseChartAxis.resolveMax(maxAmount),
           amountFormat: _amountFormat,
           monthNames: _monthNames,
+          primaryTextColor: colors.primaryText,
+          secondaryTextColor: colors.secondaryText,
+          borderColor: colors.border,
         ),
       ),
     );
@@ -263,12 +283,18 @@ class _MonthlyChartPainter extends CustomPainter {
     required this.axisMax,
     required this.amountFormat,
     required this.monthNames,
+    required this.primaryTextColor,
+    required this.secondaryTextColor,
+    required this.borderColor,
   });
 
   final List<ExpenseMonthlyReportItem> items;
   final double axisMax;
   final NumberFormat amountFormat;
   final List<String> monthNames;
+  final Color primaryTextColor;
+  final Color secondaryTextColor;
+  final Color borderColor;
 
   static const _barColor = Color(0xFF93C5FD);
   static const _futureBarColor = Color(0xFFE5E7EB);
@@ -293,7 +319,7 @@ class _MonthlyChartPainter extends CustomPainter {
 
   void _drawGrid(Canvas canvas, Offset origin, double width, double height) {
     final gridPaint = Paint()
-      ..color = const Color(0xFFE5E7EB)
+      ..color = borderColor
       ..strokeWidth = 1;
 
     for (var index = 0; index <= _gridLines; index++) {
@@ -309,7 +335,7 @@ class _MonthlyChartPainter extends CustomPainter {
       final label = TextPainter(
         text: TextSpan(
           text: ExpenseChartAxis.formatLabel(value),
-          style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+          style: TextStyle(fontSize: 11, color: secondaryTextColor),
         ),
         textDirection: ui.TextDirection.ltr,
       )..layout();
@@ -381,6 +407,7 @@ class _MonthlyChartPainter extends CustomPainter {
         barTop: barTop,
         maxWidth: slotWidth - 4,
         chartTop: origin.dy,
+        textColor: primaryTextColor,
       );
     }
   }
@@ -401,8 +428,8 @@ class _MonthlyChartPainter extends CustomPainter {
           style: TextStyle(
             fontSize: 11,
             color: item.isFutureMonth
-                ? const Color(0xFFD1D5DB)
-                : const Color(0xFF9CA3AF),
+                ? borderColor
+                : secondaryTextColor,
           ),
         ),
         textDirection: ui.TextDirection.ltr,
@@ -418,7 +445,11 @@ class _MonthlyChartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _MonthlyChartPainter oldDelegate) {
-    return oldDelegate.items != items || oldDelegate.axisMax != axisMax;
+    return oldDelegate.items != items ||
+        oldDelegate.axisMax != axisMax ||
+        oldDelegate.primaryTextColor != primaryTextColor ||
+        oldDelegate.secondaryTextColor != secondaryTextColor ||
+        oldDelegate.borderColor != borderColor;
   }
 }
 
@@ -455,6 +486,7 @@ class ExpenseCategoriesComparisonChart extends StatelessWidget {
         math.max(item.currentAmount, item.previousAmount),
       );
     });
+    final colors = context.appColors;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -478,6 +510,9 @@ class ExpenseCategoriesComparisonChart extends StatelessWidget {
               items: items,
               axisMax: ExpenseChartAxis.resolveMax(maxAmount),
               amountFormat: NumberFormat('#,##0', 'ru'),
+              primaryTextColor: colors.primaryText,
+              secondaryTextColor: colors.secondaryText,
+              borderColor: colors.border,
             ),
           ),
         ),
@@ -494,6 +529,8 @@ class _LegendDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -505,7 +542,7 @@ class _LegendDot extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           label,
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+          style: TextStyle(fontSize: 12, color: colors.secondaryText),
         ),
       ],
     );
@@ -517,11 +554,17 @@ class _ComparisonChartPainter extends CustomPainter {
     required this.items,
     required this.axisMax,
     required this.amountFormat,
+    required this.primaryTextColor,
+    required this.secondaryTextColor,
+    required this.borderColor,
   });
 
   final List<ExpenseCategoryComparisonItem> items;
   final double axisMax;
   final NumberFormat amountFormat;
+  final Color primaryTextColor;
+  final Color secondaryTextColor;
+  final Color borderColor;
 
   static const _currentColor = Color(0xFF2563EB);
   static const _previousColor = Color(0xFFD1D5DB);
@@ -545,7 +588,7 @@ class _ComparisonChartPainter extends CustomPainter {
 
   void _drawGrid(Canvas canvas, Offset origin, double width, double height) {
     final gridPaint = Paint()
-      ..color = const Color(0xFFE5E7EB)
+      ..color = borderColor
       ..strokeWidth = 1;
 
     for (var index = 0; index <= _gridLines; index++) {
@@ -561,7 +604,7 @@ class _ComparisonChartPainter extends CustomPainter {
       final label = TextPainter(
         text: TextSpan(
           text: ExpenseChartAxis.formatLabel(value),
-          style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+          style: TextStyle(fontSize: 11, color: secondaryTextColor),
         ),
         textDirection: ui.TextDirection.ltr,
       )..layout();
@@ -639,6 +682,7 @@ class _ComparisonChartPainter extends CustomPainter {
       maxWidth: barWidth + 8,
       chartTop: origin.dy,
       fontSize: 9,
+      textColor: primaryTextColor,
     );
   }
 
@@ -654,7 +698,7 @@ class _ComparisonChartPainter extends CustomPainter {
       final label = TextPainter(
         text: TextSpan(
           text: truncateChartLabel(items[index].categoryName),
-          style: const TextStyle(fontSize: 10, color: Color(0xFF9CA3AF)),
+          style: TextStyle(fontSize: 10, color: secondaryTextColor),
         ),
         textDirection: ui.TextDirection.ltr,
       )..layout(maxWidth: slotWidth - 4);
@@ -669,7 +713,11 @@ class _ComparisonChartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ComparisonChartPainter oldDelegate) {
-    return oldDelegate.items != items || oldDelegate.axisMax != axisMax;
+    return oldDelegate.items != items ||
+        oldDelegate.axisMax != axisMax ||
+        oldDelegate.primaryTextColor != primaryTextColor ||
+        oldDelegate.secondaryTextColor != secondaryTextColor ||
+        oldDelegate.borderColor != borderColor;
   }
 }
 
@@ -699,6 +747,7 @@ class ExpenseCategoriesTop5Chart extends StatelessWidget {
 
     final maxAmount =
         topItems.fold<double>(0, (max, item) => math.max(max, item.amount));
+    final colors = context.appColors;
 
     return SizedBox(
       width: double.infinity,
@@ -708,6 +757,8 @@ class ExpenseCategoriesTop5Chart extends StatelessWidget {
           items: topItems,
           maxAmount: maxAmount,
           amountFormat: _amountFormat,
+          primaryTextColor: colors.primaryText,
+          secondaryTextColor: colors.secondaryText,
         ),
       ),
     );
@@ -719,11 +770,15 @@ class _Top5ChartPainter extends CustomPainter {
     required this.items,
     required this.maxAmount,
     required this.amountFormat,
+    required this.primaryTextColor,
+    required this.secondaryTextColor,
   });
 
   final List<ExpenseCategoryReportItem> items;
   final double maxAmount;
   final NumberFormat amountFormat;
+  final Color primaryTextColor;
+  final Color secondaryTextColor;
 
   static const _leftPadding = 120.0;
   static const _rightPadding = 72.0;
@@ -743,7 +798,7 @@ class _Top5ChartPainter extends CustomPainter {
       final nameLabel = TextPainter(
         text: TextSpan(
           text: truncateChartLabel(item.categoryName, maxLength: 14),
-          style: const TextStyle(fontSize: 12, color: Color(0xFF333333)),
+          style: TextStyle(fontSize: 12, color: primaryTextColor),
         ),
         textDirection: ui.TextDirection.ltr,
         textAlign: TextAlign.right,
@@ -774,7 +829,7 @@ class _Top5ChartPainter extends CustomPainter {
       final amountLabel = TextPainter(
         text: TextSpan(
           text: amountFormat.format(item.amount),
-          style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+          style: TextStyle(fontSize: 11, color: secondaryTextColor),
         ),
         textDirection: ui.TextDirection.ltr,
       )..layout();
@@ -788,7 +843,10 @@ class _Top5ChartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _Top5ChartPainter oldDelegate) {
-    return oldDelegate.items != items || oldDelegate.maxAmount != maxAmount;
+    return oldDelegate.items != items ||
+        oldDelegate.maxAmount != maxAmount ||
+        oldDelegate.primaryTextColor != primaryTextColor ||
+        oldDelegate.secondaryTextColor != secondaryTextColor;
   }
 }
 
@@ -810,6 +868,7 @@ class ExpenseCategoriesParetoChart extends StatelessWidget {
 
     final maxAmount =
         items.fold<double>(0, (max, item) => math.max(max, item.amount));
+    final colors = context.appColors;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -833,6 +892,9 @@ class ExpenseCategoriesParetoChart extends StatelessWidget {
               items: items,
               axisMax: ExpenseChartAxis.resolveMax(maxAmount),
               amountFormat: NumberFormat('#,##0', 'ru'),
+              primaryTextColor: colors.primaryText,
+              secondaryTextColor: colors.secondaryText,
+              borderColor: colors.border,
             ),
           ),
         ),
@@ -846,11 +908,17 @@ class _ParetoChartPainter extends CustomPainter {
     required this.items,
     required this.axisMax,
     required this.amountFormat,
+    required this.primaryTextColor,
+    required this.secondaryTextColor,
+    required this.borderColor,
   });
 
   final List<ExpenseCategoryReportItem> items;
   final double axisMax;
   final NumberFormat amountFormat;
+  final Color primaryTextColor;
+  final Color secondaryTextColor;
+  final Color borderColor;
 
   static const _leftPadding = 44.0;
   static const _rightPadding = 40.0;
@@ -881,7 +949,7 @@ class _ParetoChartPainter extends CustomPainter {
     double height,
   ) {
     final gridPaint = Paint()
-      ..color = const Color(0xFFE5E7EB)
+      ..color = borderColor
       ..strokeWidth = 1;
 
     for (var index = 0; index <= _gridLines; index++) {
@@ -897,7 +965,7 @@ class _ParetoChartPainter extends CustomPainter {
       final label = TextPainter(
         text: TextSpan(
           text: ExpenseChartAxis.formatLabel(value),
-          style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+          style: TextStyle(fontSize: 11, color: secondaryTextColor),
         ),
         textDirection: ui.TextDirection.ltr,
       )..layout();
@@ -925,7 +993,7 @@ class _ParetoChartPainter extends CustomPainter {
       final label = TextPainter(
         text: TextSpan(
           text: '$percent%',
-          style: const TextStyle(fontSize: 10, color: Color(0xFF9CA3AF)),
+          style: TextStyle(fontSize: 10, color: secondaryTextColor),
         ),
         textDirection: ui.TextDirection.ltr,
       )..layout();
@@ -990,6 +1058,7 @@ class _ParetoChartPainter extends CustomPainter {
         barTop: barTop,
         maxWidth: slotWidth - 4,
         chartTop: origin.dy,
+        textColor: primaryTextColor,
       );
     }
   }
@@ -1045,7 +1114,7 @@ class _ParetoChartPainter extends CustomPainter {
       final label = TextPainter(
         text: TextSpan(
           text: truncateChartLabel(items[index].categoryName),
-          style: const TextStyle(fontSize: 10, color: Color(0xFF9CA3AF)),
+          style: TextStyle(fontSize: 10, color: secondaryTextColor),
         ),
         textDirection: ui.TextDirection.ltr,
       )..layout(maxWidth: slotWidth - 4);
@@ -1060,7 +1129,11 @@ class _ParetoChartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ParetoChartPainter oldDelegate) {
-    return oldDelegate.items != items || oldDelegate.axisMax != axisMax;
+    return oldDelegate.items != items ||
+        oldDelegate.axisMax != axisMax ||
+        oldDelegate.primaryTextColor != primaryTextColor ||
+        oldDelegate.secondaryTextColor != secondaryTextColor ||
+        oldDelegate.borderColor != borderColor;
   }
 }
 
@@ -1082,6 +1155,8 @@ class ExpenseBasesStructureChart extends StatelessWidget {
       return const ExpenseChartEmpty();
     }
 
+    final colors = context.appColors;
+
     return SizedBox(
       width: double.infinity,
       height: chartSize,
@@ -1095,6 +1170,7 @@ class ExpenseBasesStructureChart extends StatelessWidget {
               painter: _BasesPiePainter(
                 items: items,
                 colors: _resolveColors(items.length),
+                holeColor: colors.surface,
               ),
             ),
           ),
@@ -1123,7 +1199,10 @@ class ExpenseBasesStructureChart extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 items[index].baseName,
-                                style: const TextStyle(fontSize: 12),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: colors.primaryText,
+                                ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -1133,7 +1212,7 @@ class ExpenseBasesStructureChart extends StatelessWidget {
                               '${_percentFormat.format(items[index].percentage)}%',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey.shade700,
+                                color: colors.secondaryText,
                               ),
                             ),
                           ],
@@ -1158,10 +1237,12 @@ class _BasesPiePainter extends CustomPainter {
   _BasesPiePainter({
     required this.items,
     required this.colors,
+    required this.holeColor,
   });
 
   final List<ExpenseBaseReportItem> items;
   final List<Color> colors;
+  final Color holeColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1188,12 +1269,14 @@ class _BasesPiePainter extends CustomPainter {
     canvas.drawCircle(
       center,
       radius * 0.55,
-      Paint()..color = Colors.white,
+      Paint()..color = holeColor,
     );
   }
 
   @override
   bool shouldRepaint(covariant _BasesPiePainter oldDelegate) {
-    return oldDelegate.items != items || oldDelegate.colors != colors;
+    return oldDelegate.items != items ||
+        oldDelegate.colors != colors ||
+        oldDelegate.holeColor != holeColor;
   }
 }

@@ -1,5 +1,6 @@
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/pages/bases_page.dart';
 import 'package:easy_fin/view/pages/expense_categories_page.dart';
 import 'package:easy_fin/view/pages/income_categories_page.dart';
@@ -67,8 +68,10 @@ class _SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+
     return Material(
-      color: Colors.white,
+      color: colors.surface,
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         onTap: onTap,
@@ -76,7 +79,7 @@ class _SettingsTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: colors.border),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Row(
@@ -91,20 +94,21 @@ class _SettingsTile extends StatelessWidget {
                       title,
                       style: filterFieldTextStyle.copyWith(
                         fontWeight: FontWeight.w500,
+                        color: colors.primaryText,
                       ),
                     ),
                     const Gap(4),
                     Text(
                       subtitle,
-                      style: filterFieldHintTextStyle,
+                      style: filterFieldHintTextStyleOf(context),
                     ),
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 LucideIcons.chevronRight,
                 size: 18,
-                color: Colors.grey,
+                color: colors.secondaryText,
               ),
             ],
           ),

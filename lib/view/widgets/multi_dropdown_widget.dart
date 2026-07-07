@@ -1,5 +1,5 @@
-import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:flutter/material.dart';
 
 class MultiDropdownWidget<T> extends StatelessWidget {
@@ -34,6 +34,8 @@ class MultiDropdownWidget<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+
     return SizedBox(
       height: filterFieldHeight,
       width: expand ? double.infinity : width,
@@ -42,12 +44,12 @@ class MultiDropdownWidget<T> extends StatelessWidget {
           padding: WidgetStateProperty.all(
             const EdgeInsets.symmetric(vertical: 8),
           ),
-          backgroundColor: WidgetStateProperty.all(Colors.white),
+          backgroundColor: WidgetStateProperty.all(colors.surface),
           elevation: WidgetStateProperty.all(0),
           shape: WidgetStateProperty.all(
             RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
-              side: const BorderSide(color: AppColors.border),
+              side: BorderSide(color: colors.border),
             ),
           ),
         ),
@@ -72,16 +74,18 @@ class MultiDropdownWidget<T> extends StatelessWidget {
               },
               child: Text(
                 labelBuilder(item),
-                style: filterFieldTextStyle,
+                style: filterFieldTextStyle.copyWith(
+                  color: colors.primaryText,
+                ),
               ),
             ),
         ],
         builder: (context, controller, child) {
           return Material(
-            color: Colors.white,
+            color: colors.surface,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
-              side: const BorderSide(color: AppColors.border),
+              side: BorderSide(color: colors.border),
             ),
             clipBehavior: Clip.antiAlias,
             child: InkWell(
@@ -105,14 +109,16 @@ class MultiDropdownWidget<T> extends StatelessWidget {
                           _buttonLabel(),
                           overflow: TextOverflow.ellipsis,
                           style: selectedItems.isEmpty
-                              ? filterFieldHintTextStyle
-                              : filterFieldTextStyle,
+                              ? filterFieldHintTextStyleOf(context)
+                              : filterFieldTextStyle.copyWith(
+                                  color: colors.primaryText,
+                                ),
                         ),
                       ),
-                      const Icon(
+                      Icon(
                         Icons.keyboard_arrow_down,
                         size: 20,
-                        color: Colors.grey,
+                        color: colors.secondaryText,
                       ),
                     ],
                   ),

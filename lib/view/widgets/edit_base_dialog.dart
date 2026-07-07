@@ -3,6 +3,7 @@ import 'package:easy_fin/models/base_account.dart';
 import 'package:easy_fin/models/bank_name.dart';
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/widgets/confirm_dialog.dart';
 import 'package:easy_fin/view/widgets/dropdown_widget.dart';
 import 'package:flutter/material.dart';
@@ -50,25 +51,28 @@ class _EditBaseDialogState extends State<EditBaseDialog> {
   late final TextEditingController _nameController;
   late final List<_AccountField> _accountFields;
 
-  static const _fieldDecoration = InputDecoration(
+  InputDecoration _fieldDecoration(BuildContext context) {
+    final colors = context.appColors;
+    return InputDecoration(
     filled: true,
-    fillColor: Colors.white,
-    contentPadding: EdgeInsets.symmetric(
+    fillColor: colors.surface,
+    contentPadding: const EdgeInsets.symmetric(
       horizontal: filterFieldHorizontalPadding,
     ),
     border: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(10)),
-      borderSide: BorderSide(color: AppColors.border),
+      borderRadius: const BorderRadius.all(Radius.circular(10)),
+      borderSide: BorderSide(color: colors.border),
     ),
     enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(10)),
-      borderSide: BorderSide(color: AppColors.border),
+      borderRadius: const BorderRadius.all(Radius.circular(10)),
+      borderSide: BorderSide(color: colors.border),
     ),
-    focusedBorder: OutlineInputBorder(
+    focusedBorder: const OutlineInputBorder(
       borderRadius: BorderRadius.all(Radius.circular(10)),
       borderSide: BorderSide(color: AppColors.primary),
     ),
   );
+  }
 
   @override
   void initState() {
@@ -185,7 +189,7 @@ class _EditBaseDialogState extends State<EditBaseDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: context.appColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
@@ -197,7 +201,7 @@ class _EditBaseDialogState extends State<EditBaseDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Редактировать базу',
                 style: TextStyle(
                   fontSize: 20,
@@ -206,7 +210,7 @@ class _EditBaseDialogState extends State<EditBaseDialog> {
               ),
               const Gap(12),
               Divider(
-                color: Colors.grey.withValues(alpha: 0.5),
+                color: context.appColors.border,
                 thickness: 0.5,
                 height: 1,
               ),
@@ -230,15 +234,15 @@ class _EditBaseDialogState extends State<EditBaseDialog> {
                           controller: _nameController,
                           autofocus: true,
                           style: filterFieldTextStyle,
-                          decoration: _fieldDecoration.copyWith(
+                          decoration: _fieldDecoration(context).copyWith(
                             hintText: 'Введите название',
-                            hintStyle: filterFieldHintTextStyle,
+                            hintStyle: filterFieldHintTextStyleOf(context),
                           ),
                           onChanged: (_) => setState(() {}),
                         ),
                       ),
                       const Gap(16),
-                      const Text(
+                      Text(
                         'Счета',
                         style: TextStyle(
                           fontSize: 14,
@@ -256,12 +260,12 @@ class _EditBaseDialogState extends State<EditBaseDialog> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   if (index == 0)
-                                    const Text(
+                                    Text(
                                       'Банк',
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w500,
-                                        color: Colors.grey,
+                                        color: context.appColors.secondaryText,
                                       ),
                                     ),
                                   if (index == 0) const Gap(6),
@@ -290,12 +294,12 @@ class _EditBaseDialogState extends State<EditBaseDialog> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   if (index == 0)
-                                    const Text(
+                                    Text(
                                       'Номер р/с',
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w500,
-                                        color: Colors.grey,
+                                        color: context.appColors.secondaryText,
                                       ),
                                     ),
                                   if (index == 0) const Gap(6),
@@ -305,9 +309,9 @@ class _EditBaseDialogState extends State<EditBaseDialog> {
                                       controller:
                                           _accountFields[index].accountController,
                                       style: filterFieldTextStyle,
-                                      decoration: _fieldDecoration.copyWith(
+                                      decoration: _fieldDecoration(context).copyWith(
                                         hintText: 'Введите номер счёта',
-                                        hintStyle: filterFieldHintTextStyle,
+                                        hintStyle: filterFieldHintTextStyleOf(context),
                                       ),
                                       onChanged: (_) => setState(() {}),
                                       onSubmitted:
@@ -329,10 +333,10 @@ class _EditBaseDialogState extends State<EditBaseDialog> {
                                     minWidth: 32,
                                     minHeight: 32,
                                   ),
-                                  icon: const Icon(
+                                  icon: Icon(
                                     LucideIcons.x,
                                     size: 16,
-                                    color: Colors.grey,
+                                    color: context.appColors.secondaryText,
                                   ),
                                 ),
                               ),
@@ -398,7 +402,7 @@ class _EditBaseDialogState extends State<EditBaseDialog> {
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
                     style: TextButton.styleFrom(
-                      foregroundColor: Colors.grey,
+                      foregroundColor: context.appColors.secondaryText,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 10,

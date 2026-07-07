@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/models/renter_debt_monthly_report_item.dart';
+import 'package:easy_fin/view/widgets/expense_chart_common.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -40,21 +42,14 @@ class RenterDebtsBarChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (_shouldShowEmpty) {
-      return SizedBox(
+      return const SizedBox(
         width: double.infinity,
         height: chartHeight,
-        child: const Center(
-          child: Text(
-            'Нет данных для диаграммы',
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey,
-            ),
-          ),
-        ),
+        child: ExpenseChartEmpty(height: chartHeight),
       );
     }
 
+    final colors = context.appColors;
     final maxDebt = items
         .where((item) => !item.isFutureMonth)
         .fold<double>(0, (max, item) => math.max(max, item.debt));
@@ -67,6 +62,9 @@ class RenterDebtsBarChart extends StatelessWidget {
           items: items,
           axisMax: _resolveAxisMax(maxDebt),
           amountFormat: _amountFormat,
+          primaryTextColor: colors.primaryText,
+          secondaryTextColor: colors.secondaryText,
+          borderColor: colors.border,
         ),
       ),
     );
@@ -97,18 +95,20 @@ class _BarChartPainter extends CustomPainter {
     required this.items,
     required this.axisMax,
     required this.amountFormat,
+    required this.primaryTextColor,
+    required this.secondaryTextColor,
+    required this.borderColor,
   });
 
   final List<RenterDebtMonthlyReportItem> items;
   final double axisMax;
   final NumberFormat amountFormat;
+  final Color primaryTextColor;
+  final Color secondaryTextColor;
+  final Color borderColor;
 
   static const _barColor = Color(0xFF93C5FD);
   static const _futureBarColor = Color(0xFFE5E7EB);
-  static const _gridColor = Color(0xFFE5E7EB);
-  static const _axisColor = Color(0xFFD1D5DB);
-  static const _axisLabelColor = Color(0xFF9CA3AF);
-  static const _futureLabelColor = Color(0xFFD1D5DB);
 
   static const _leftPadding = 44.0;
   static const _bottomPadding = 40.0;
@@ -138,12 +138,12 @@ class _BarChartPainter extends CustomPainter {
     double height,
   ) {
     final gridPaint = Paint()
-      ..color = _gridColor
+      ..color = borderColor
       ..strokeWidth = 1;
 
     final labelStyle = TextStyle(
       fontSize: 11,
-      color: _axisLabelColor,
+      color: secondaryTextColor,
     );
 
     for (var index = 0; index <= _gridLines; index++) {
@@ -179,7 +179,7 @@ class _BarChartPainter extends CustomPainter {
     double height,
   ) {
     final axisPaint = Paint()
-      ..color = _axisColor
+      ..color = borderColor
       ..strokeWidth = 1;
 
     final baselineY = origin.dy + height;
@@ -255,10 +255,10 @@ class _BarChartPainter extends CustomPainter {
       final label = TextPainter(
         text: TextSpan(
           text: amountFormat.format(item.debt),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF1F1F1F),
+            color: primaryTextColor,
           ),
         ),
         textDirection: ui.TextDirection.ltr,
@@ -284,7 +284,7 @@ class _BarChartPainter extends CustomPainter {
       final monthLabel = _formatMonth(item.month);
       final labelStyle = TextStyle(
         fontSize: 11,
-        color: item.isFutureMonth ? _futureLabelColor : _axisLabelColor,
+        color: item.isFutureMonth ? borderColor : secondaryTextColor,
       );
 
       final label = TextPainter(
@@ -318,6 +318,10 @@ class _BarChartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _BarChartPainter oldDelegate) {
-    return oldDelegate.items != items || oldDelegate.axisMax != axisMax;
+    return oldDelegate.items != items ||
+        oldDelegate.axisMax != axisMax ||
+        oldDelegate.primaryTextColor != primaryTextColor ||
+        oldDelegate.secondaryTextColor != secondaryTextColor ||
+        oldDelegate.borderColor != borderColor;
   }
 }

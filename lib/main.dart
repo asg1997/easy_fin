@@ -1,5 +1,6 @@
 import 'package:easy_fin/utils/app_theme.dart';
 import 'package:easy_fin/view/pages/main_nav_page.dart';
+import 'package:easy_fin/view/providers/theme_mode_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,16 +12,14 @@ Future<void> main() async {
   runApp(const ProviderScope(child: MainApp()));
 }
 
-class MainApp extends ConsumerStatefulWidget {
+class MainApp extends ConsumerWidget {
   const MainApp({super.key});
 
   @override
-  ConsumerState<MainApp> createState() => _MainAppState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeModeAsync = ref.watch(themeModeProvider);
+    final themeMode = themeModeAsync.value ?? AppThemeMode.light;
 
-class _MainAppState extends ConsumerState<MainApp> {
-  @override
-  Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       locale: const Locale('ru'),
@@ -33,7 +32,11 @@ class _MainAppState extends ConsumerState<MainApp> {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      theme: buildAppTheme(),
+      theme: buildLightTheme(),
+      darkTheme: buildDarkTheme(),
+      themeMode: themeMode == AppThemeMode.dark
+          ? ThemeMode.dark
+          : ThemeMode.light,
       home: const MainNavPage(),
     );
   }

@@ -11,6 +11,7 @@ import 'package:easy_fin/view/widgets/template_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 
 class BasesPage extends ConsumerWidget {
   const BasesPage({super.key});
@@ -131,10 +132,10 @@ class BasesPage extends ConsumerWidget {
                 minWidth: 32,
                 minHeight: 32,
               ),
-              icon: const Icon(
+              icon: Icon(
                 LucideIcons.pencil,
                 size: 16,
-                color: Colors.grey,
+                color: context.appColors.secondaryText,
               ),
             ),
             emptyMessage: 'Нет баз',

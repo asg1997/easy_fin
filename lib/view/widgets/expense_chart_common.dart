@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:easy_fin/utils/app_colors.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:flutter/material.dart';
 
 abstract class ExpenseChartColors {
@@ -68,15 +69,17 @@ class ExpenseChartSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w500,
-            color: Color(0xFF333333),
+            color: colors.primaryText,
           ),
         ),
         if (subtitle != null) ...[
@@ -85,7 +88,7 @@ class ExpenseChartSection extends StatelessWidget {
             subtitle!,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey.shade600,
+              color: colors.secondaryText,
             ),
           ),
         ],
@@ -106,15 +109,17 @@ class ExpenseChartEmpty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+
     return SizedBox(
       width: double.infinity,
       height: height,
-      child: const Center(
+      child: Center(
         child: Text(
           'Нет данных для диаграммы',
           style: TextStyle(
             fontSize: 13,
-            color: Colors.grey,
+            color: colors.secondaryText,
           ),
         ),
       ),
@@ -133,6 +138,7 @@ void paintBarValueLabel(
   required double centerX,
   required double barTop,
   required double maxWidth,
+  required Color textColor,
   double chartTop = 0,
   double fontSize = 11,
 }) {
@@ -142,7 +148,7 @@ void paintBarValueLabel(
       style: TextStyle(
         fontSize: fontSize,
         fontWeight: FontWeight.w600,
-        color: const Color(0xFF1F1F1F),
+        color: textColor,
       ),
     ),
     textDirection: ui.TextDirection.ltr,

@@ -2,6 +2,7 @@ import 'package:easy_fin/data/expense_categories_storage/expense_categories_stor
 import 'package:easy_fin/models/expense_category.dart';
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/widgets/confirm_dialog.dart';
 import 'package:easy_fin/view/widgets/simple_table.dart';
 import 'package:easy_fin/view/widgets/template_page.dart';
@@ -243,7 +244,7 @@ class _ExpenseCategoriesPageState extends ConsumerState<ExpenseCategoriesPage> {
                                     ? LucideIcons.archiveRestore
                                     : LucideIcons.archive,
                                 size: 16,
-                                color: Colors.grey,
+                                color: context.appColors.secondaryText,
                               ),
                             ),
                             IconButton(
@@ -254,10 +255,10 @@ class _ExpenseCategoriesPageState extends ConsumerState<ExpenseCategoriesPage> {
                                 minWidth: 28,
                                 minHeight: 28,
                               ),
-                              icon: const Icon(
+                              icon: Icon(
                                 LucideIcons.trash2,
                                 size: 16,
-                                color: Colors.grey,
+                                color: context.appColors.secondaryText,
                               ),
                             ),
                           ],

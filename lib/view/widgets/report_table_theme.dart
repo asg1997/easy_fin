@@ -1,4 +1,4 @@
-import 'package:easy_fin/utils/app_colors.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:flutter/material.dart';
 
 abstract class ReportTableTheme {
@@ -7,50 +7,45 @@ abstract class ReportTableTheme {
   static const rowHeight = 40.0;
   static const footerHeight = 40.0;
   static const horizontalPadding = 12.0;
-  static const rowDividerColor = Color(0xFFF0F0F0);
-  static const secondaryText = Color(0xFF8E8E8E);
-  static const primaryText = Color(0xFF333333);
-  static const borderColor = Color(0xFFEBEBEB);
   static const borderWidth = 1.0;
-
-  static const sectionTitleTextStyle = TextStyle(
-    fontSize: 18,
-    fontWeight: FontWeight.w500,
-    color: primaryText,
-    height: 1.3,
-  );
-
-  static const headerTextStyle = TextStyle(
-    fontSize: 12,
-    fontWeight: FontWeight.w400,
-    color: secondaryText,
-  );
-
-  static const cellTextStyle = TextStyle(
-    fontSize: 13,
-    fontWeight: FontWeight.w400,
-    color: primaryText,
-  );
-
-  static const secondaryCellTextStyle = TextStyle(
-    fontSize: 13,
-    fontWeight: FontWeight.w400,
-    color: secondaryText,
-  );
-
   static const borderRadius = BorderRadius.all(Radius.circular(8));
 
-  static const rowDivider = Divider(
-    height: 1,
-    thickness: 1,
-    color: rowDividerColor,
-  );
+  static TextStyle sectionTitleTextStyle(BuildContext context) => TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.w500,
+        color: context.appColors.primaryText,
+        height: 1.3,
+      );
 
-  static const sectionDivider = Divider(
-    height: 1,
-    thickness: 1,
-    color: AppColors.border,
-  );
+  static TextStyle headerTextStyle(BuildContext context) => TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w400,
+        color: context.appColors.secondaryText,
+      );
+
+  static TextStyle cellTextStyle(BuildContext context) => TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w400,
+        color: context.appColors.primaryText,
+      );
+
+  static TextStyle secondaryCellTextStyle(BuildContext context) => TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w400,
+        color: context.appColors.secondaryText,
+      );
+
+  static Widget rowDivider(BuildContext context) => Divider(
+        height: 1,
+        thickness: 1,
+        color: context.appColors.tableRowDivider,
+      );
+
+  static Widget sectionDivider(BuildContext context) => Divider(
+        height: 1,
+        thickness: 1,
+        color: context.appColors.border,
+      );
 }
 
 class ReportTableFrame extends StatelessWidget {
@@ -63,24 +58,29 @@ class ReportTableFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         borderRadius: ReportTableTheme.borderRadius,
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x0D000000),
-            blurRadius: 12,
-            offset: Offset(0, 2),
-          ),
-        ],
+        boxShadow: isDark
+            ? null
+            : const [
+                BoxShadow(
+                  color: Color(0x0D000000),
+                  blurRadius: 12,
+                  offset: Offset(0, 2),
+                ),
+              ],
       ),
       child: Material(
-        color: Colors.white,
+        color: colors.surface,
         clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
           borderRadius: ReportTableTheme.borderRadius,
-          side: const BorderSide(
-            color: ReportTableTheme.borderColor,
+          side: BorderSide(
+            color: colors.border,
             width: ReportTableTheme.borderWidth,
           ),
         ),
@@ -97,13 +97,9 @@ class ReportTableSectionDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: verticalPadding),
-      child: Divider(
-        height: 1,
-        thickness: 1,
-        color: AppColors.border,
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: verticalPadding),
+      child: ReportTableTheme.sectionDivider(context),
     );
   }
 }
@@ -120,7 +116,7 @@ class ReportTableTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: ReportTableTheme.sectionTitleTextStyle,
+      style: ReportTableTheme.sectionTitleTextStyle(context),
     );
   }
 }
@@ -140,7 +136,7 @@ class ReportTableHeaderLabel extends StatelessWidget {
     return Text(
       label,
       textAlign: textAlign,
-      style: ReportTableTheme.headerTextStyle,
+      style: ReportTableTheme.headerTextStyle(context),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
     );
@@ -159,12 +155,14 @@ class ReportTableSumFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+
     return Column(
       children: [
-        ReportTableTheme.sectionDivider,
+        ReportTableTheme.sectionDivider(context),
         Container(
           height: ReportTableTheme.footerHeight,
-          color: Colors.white,
+          color: colors.surface,
           padding: const EdgeInsets.symmetric(
             horizontal: ReportTableTheme.horizontalPadding,
           ),
@@ -175,20 +173,14 @@ class ReportTableSumFooter extends StatelessWidget {
               Text.rich(
                 TextSpan(
                   children: [
-                    const TextSpan(
+                    TextSpan(
                       text: 'Sum ',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
-                        color: ReportTableTheme.secondaryText,
-                      ),
+                      style: ReportTableTheme.secondaryCellTextStyle(context),
                     ),
                     TextSpan(
                       text: '$amount$suffix',
-                      style: const TextStyle(
-                        fontSize: 13,
+                      style: ReportTableTheme.cellTextStyle(context).copyWith(
                         fontWeight: FontWeight.w500,
-                        color: ReportTableTheme.primaryText,
                       ),
                     ),
                   ],

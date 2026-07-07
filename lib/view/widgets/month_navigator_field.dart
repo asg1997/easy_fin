@@ -1,5 +1,5 @@
-import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -30,14 +30,16 @@ class MonthNavigatorField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+
     return SizedBox(
       height: filterFieldHeight,
       width: expand ? double.infinity : 250,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colors.surface,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: colors.border),
         ),
         child: Row(
           children: [
@@ -49,7 +51,9 @@ class MonthNavigatorField extends StatelessWidget {
               child: Text(
                 _monthLabel,
                 textAlign: TextAlign.center,
-                style: filterFieldTextStyle,
+                style: filterFieldTextStyle.copyWith(
+                  color: colors.primaryText,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -76,6 +80,8 @@ class _NavigationButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+
     return SizedBox(
       width: 40,
       height: filterFieldHeight,
@@ -85,7 +91,9 @@ class _NavigationButton extends StatelessWidget {
         icon: Icon(
           icon,
           size: 18,
-          color: onPressed == null ? Colors.grey.shade300 : Colors.grey,
+          color: onPressed == null
+              ? colors.border
+              : colors.secondaryText,
         ),
       ),
     );

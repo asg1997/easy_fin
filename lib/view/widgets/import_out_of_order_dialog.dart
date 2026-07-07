@@ -1,4 +1,5 @@
 import 'package:easy_fin/utils/app_colors.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
@@ -34,7 +35,7 @@ class ImportOutOfOrderDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: context.appColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
@@ -55,7 +56,7 @@ class ImportOutOfOrderDialog extends StatelessWidget {
               ),
               const Gap(12),
               Divider(
-                color: Colors.grey.withValues(alpha: 0.5),
+                color: context.appColors.border,
                 thickness: 0.5,
                 height: 1,
               ),
@@ -71,7 +72,7 @@ class ImportOutOfOrderDialog extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   height: 1.4,
-                  color: Colors.grey.shade600,
+                  color: context.appColors.secondaryText,
                 ),
               ),
               const Gap(20),
@@ -108,7 +109,7 @@ class ImportOutOfOrderDialog extends StatelessWidget {
                       ImportOutOfOrderDialogResult.cancel,
                     ),
                     style: TextButton.styleFrom(
-                      foregroundColor: Colors.grey,
+                      foregroundColor: context.appColors.secondaryText,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 10,
@@ -175,7 +176,7 @@ class _InfoRow extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey.shade600,
+              color: context.appColors.secondaryText,
             ),
           ),
         ),
@@ -185,7 +186,7 @@ class _InfoRow extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: highlight ? Colors.orange.shade800 : Colors.black87,
+              color: highlight ? Colors.orange.shade800 : context.appColors.primaryText,
             ),
           ),
         ),

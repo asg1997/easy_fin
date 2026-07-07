@@ -13,6 +13,7 @@ import 'package:easy_fin/utils/account_number_validator.dart';
 import 'package:easy_fin/utils/amount_input_formatter.dart';
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/providers/account_balances_provider.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/providers/documents_list_provider.dart';
@@ -758,7 +759,7 @@ class _IncomeLinesTable extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.appColors.border),
         borderRadius: BorderRadius.circular(10),
       ),
       child: ClipRRect(
@@ -766,7 +767,7 @@ class _IncomeLinesTable extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              color: const Color(0xFFF9F9F9),
+              color: context.appColors.navActiveBackground,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: const Row(
                 children: [
@@ -828,19 +829,19 @@ class _IncomeLinesTable extends StatelessWidget {
             ),
             Expanded(
               child: entries.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Text(
                         'Дважды нажмите на источник справа',
-                        style: filterFieldHintTextStyle,
+                        style: filterFieldHintTextStyleOf(context),
                         textAlign: TextAlign.center,
                       ),
                     )
                   : ListView.separated(
                       itemCount: entries.length,
-                      separatorBuilder: (_, _) => const Divider(
+                      separatorBuilder: (_, _) => Divider(
                         height: 1,
                         thickness: 1,
-                        color: AppColors.border,
+                        color: context.appColors.border,
                       ),
                       itemBuilder: (context, index) {
                         final entry = entries[index];
@@ -910,10 +911,10 @@ class _IncomeLinesTable extends StatelessWidget {
                                     AmountInputFormatter(),
                                   ],
                                   style: filterFieldTextStyle,
-                                  decoration: const InputDecoration(
+                                  decoration: InputDecoration(
                                     isDense: true,
                                     hintText: '0,00',
-                                    hintStyle: filterFieldHintTextStyle,
+                                    hintStyle: filterFieldHintTextStyleOf(context),
                                     border: InputBorder.none,
                                     contentPadding: EdgeInsets.only(right: 8),
                                   ),
@@ -925,10 +926,10 @@ class _IncomeLinesTable extends StatelessWidget {
                                 child: TextField(
                                   controller: entry.noteController,
                                   style: filterFieldTextStyle,
-                                  decoration: const InputDecoration(
+                                  decoration: InputDecoration(
                                     isDense: true,
                                     hintText: 'Комментарий',
-                                    hintStyle: filterFieldHintTextStyle,
+                                    hintStyle: filterFieldHintTextStyleOf(context),
                                     border: InputBorder.none,
                                     contentPadding: EdgeInsets.only(left: 4),
                                   ),
@@ -937,10 +938,10 @@ class _IncomeLinesTable extends StatelessWidget {
                               IconButton(
                                 tooltip: 'Удалить',
                                 onPressed: () => onRemoveLine(index),
-                                icon: const Icon(
+                                icon: Icon(
                                   LucideIcons.x,
                                   size: 16,
-                                  color: Colors.grey,
+                                  color: context.appColors.secondaryText,
                                 ),
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(
@@ -1016,14 +1017,13 @@ class _IncomeSourcesPanelState extends State<_IncomeSourcesPanel> {
 
   Widget _buildSectionHeader(String title) {
     return Container(
-      color: const Color(0xFFF9F9F9),
+      color: context.appColors.navActiveBackground,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Text(
         title,
-        style: const TextStyle(
-          fontSize: 12,
+        style: TextStyle(fontSize: 12,
           fontWeight: FontWeight.w500,
-          color: Colors.black54,
+          color: context.appColors.secondaryText,
         ),
       ),
     );
@@ -1074,7 +1074,7 @@ class _IncomeSourcesPanelState extends State<_IncomeSourcesPanel> {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.appColors.border),
         borderRadius: BorderRadius.circular(10),
       ),
       child: ClipRRect(
@@ -1082,7 +1082,7 @@ class _IncomeSourcesPanelState extends State<_IncomeSourcesPanel> {
         child: Column(
           children: [
             Container(
-              color: const Color(0xFFF9F9F9),
+              color: context.appColors.navActiveBackground,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: const Row(
                 children: [
@@ -1109,7 +1109,7 @@ class _IncomeSourcesPanelState extends State<_IncomeSourcesPanel> {
                 ],
               ),
             ),
-            const Divider(height: 1, thickness: 1, color: AppColors.border),
+            Divider(height: 1, thickness: 1, color: context.appColors.border),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(
@@ -1121,17 +1121,17 @@ class _IncomeSourcesPanelState extends State<_IncomeSourcesPanel> {
                       decoration: InputDecoration(
                         isDense: true,
                         hintText: 'Поиск источника',
-                        hintStyle: filterFieldHintTextStyle,
+                        hintStyle: filterFieldHintTextStyleOf(context),
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: context.appColors.surface,
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 10,
                           vertical: 10,
                         ),
-                        prefixIcon: const Icon(
+                        prefixIcon: Icon(
                           LucideIcons.search,
                           size: 16,
-                          color: Colors.grey,
+                          color: context.appColors.secondaryText,
                         ),
                         suffixIcon: _searchQuery.isEmpty
                             ? null
@@ -1141,26 +1141,26 @@ class _IncomeSourcesPanelState extends State<_IncomeSourcesPanel> {
                                   _searchController.clear();
                                   setState(() => _searchQuery = '');
                                 },
-                                icon: const Icon(
+                                icon: Icon(
                                   LucideIcons.x,
                                   size: 16,
-                                  color: Colors.grey,
+                                  color: context.appColors.secondaryText,
                                 ),
                               ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                           borderSide:
-                              const BorderSide(color: AppColors.border),
+                              BorderSide(color: context.appColors.border),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                           borderSide:
-                              const BorderSide(color: AppColors.border),
+                              BorderSide(color: context.appColors.border),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                           borderSide:
-                              const BorderSide(color: AppColors.primary),
+                              BorderSide(color: AppColors.primary),
                         ),
                       ),
                       onChanged: (value) =>
@@ -1192,9 +1192,9 @@ class _IncomeSourcesPanelState extends State<_IncomeSourcesPanel> {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: context.appColors.surface,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.border),
+                        border: Border.all(color: context.appColors.border),
                       ),
                       child: const Icon(
                         LucideIcons.plus,
@@ -1206,7 +1206,7 @@ class _IncomeSourcesPanelState extends State<_IncomeSourcesPanel> {
                 ],
               ),
             ),
-            const Divider(height: 1, thickness: 1, color: AppColors.border),
+            Divider(height: 1, thickness: 1, color: context.appColors.border),
             Expanded(
               child: widget.isLoadingRenters
                   ? const Center(child: CircularProgressIndicator())
@@ -1216,7 +1216,7 @@ class _IncomeSourcesPanelState extends State<_IncomeSourcesPanel> {
                         hasSearch
                             ? 'Ничего не найдено'
                             : 'Нет источников прихода',
-                        style: filterFieldHintTextStyle,
+                        style: filterFieldHintTextStyleOf(context),
                       ),
                     )
                   : ListView(
@@ -1225,10 +1225,10 @@ class _IncomeSourcesPanelState extends State<_IncomeSourcesPanel> {
                           _buildSectionHeader('Прочее'),
                           for (var i = 0; i < filteredCategories.length; i++) ...[
                             if (i > 0)
-                              const Divider(
+                              Divider(
                                 height: 1,
                                 thickness: 1,
-                                color: AppColors.border,
+                                color: context.appColors.border,
                               ),
                             _buildSourceRow(
                               name: filteredCategories[i].name,
@@ -1241,19 +1241,19 @@ class _IncomeSourcesPanelState extends State<_IncomeSourcesPanel> {
                         ],
                         if (filteredCategories.isNotEmpty &&
                             filteredRenters.isNotEmpty)
-                          const Divider(
+                          Divider(
                             height: 1,
                             thickness: 1,
-                            color: AppColors.border,
+                            color: context.appColors.border,
                           ),
                         if (filteredRenters.isNotEmpty) ...[
                           _buildSectionHeader('Взаиморасчёты'),
                           for (var i = 0; i < filteredRenters.length; i++) ...[
                             if (i > 0)
-                              const Divider(
+                              Divider(
                                 height: 1,
                                 thickness: 1,
-                                color: AppColors.border,
+                                color: context.appColors.border,
                               ),
                             _buildSourceRow(
                               name: filteredRenters[i].name,
@@ -1327,14 +1327,14 @@ class _FilterPlaceholder extends StatelessWidget {
         horizontal: filterFieldHorizontalPadding,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appColors.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE7E7E7)),
+        border: Border.all(color: context.appColors.border),
       ),
       alignment: Alignment.centerLeft,
       child: Text(
         label,
-        style: filterFieldHintTextStyle,
+        style: filterFieldHintTextStyleOf(context),
       ),
     );
   }

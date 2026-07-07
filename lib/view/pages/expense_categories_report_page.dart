@@ -1,5 +1,6 @@
 import 'package:easy_fin/models/base.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/providers/expense_categories_charts_provider.dart';
 import 'package:easy_fin/view/providers/expense_categories_report_filters_provider.dart';
@@ -273,12 +274,12 @@ class _FilterPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appColors.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: context.appColors.border),
       ),
       child: Center(
-        child: Text(label, style: filterFieldHintTextStyle),
+        child: Text(label, style: filterFieldHintTextStyleOf(context)),
       ),
     );
   }

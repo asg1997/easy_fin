@@ -9,6 +9,7 @@ import 'package:easy_fin/utils/account_number_validator.dart';
 import 'package:easy_fin/utils/amount_input_formatter.dart';
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/providers/documents_list_provider.dart';
 import 'package:easy_fin/view/providers/renter_debts_provider.dart';
@@ -449,7 +450,7 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
                   child: MaterialButton(
                     onPressed: _onCopyFromPreviousMonth,
                     elevation: 0,
-                    color: Colors.white,
+                    color: context.appColors.surface,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(25),
                       side: const BorderSide(color: AppColors.purple),
@@ -595,17 +596,17 @@ class _RentersTableState extends State<_RentersTable> {
                 decoration: InputDecoration(
                   isDense: true,
                   hintText: 'Поиск арендатора',
-                  hintStyle: filterFieldHintTextStyle,
+                  hintStyle: filterFieldHintTextStyleOf(context),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: context.appColors.surface,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 10,
                     vertical: 10,
                   ),
-                  prefixIcon: const Icon(
+                  prefixIcon: Icon(
                     LucideIcons.search,
                     size: 16,
-                    color: Colors.grey,
+                    color: context.appColors.secondaryText,
                   ),
                   suffixIcon: _searchQuery.isEmpty
                       ? null
@@ -615,19 +616,19 @@ class _RentersTableState extends State<_RentersTable> {
                             _searchController.clear();
                             setState(() => _searchQuery = '');
                           },
-                          icon: const Icon(
+                          icon: Icon(
                             LucideIcons.x,
                             size: 16,
-                            color: Colors.grey,
+                            color: context.appColors.secondaryText,
                           ),
                         ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.border),
+                    borderSide: BorderSide(color: context.appColors.border),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.border),
+                    borderSide: BorderSide(color: context.appColors.border),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -647,10 +648,10 @@ class _RentersTableState extends State<_RentersTable> {
                 minHeight: 36,
               ),
               style: IconButton.styleFrom(
-                backgroundColor: Colors.white,
+                backgroundColor: context.appColors.surface,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
-                  side: const BorderSide(color: AppColors.border),
+                  side: BorderSide(color: context.appColors.border),
                 ),
               ),
               icon: const Icon(
@@ -676,7 +677,7 @@ class _RentersTablePlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.appColors.border),
         borderRadius: BorderRadius.circular(10),
       ),
       child: const Center(
@@ -699,7 +700,7 @@ class _RentAccrualsTable extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.appColors.border),
         borderRadius: BorderRadius.circular(10),
       ),
       child: ClipRRect(
@@ -707,7 +708,7 @@ class _RentAccrualsTable extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              color: const Color(0xFFF9F9F9),
+              color: context.appColors.navActiveBackground,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: const Row(
                 children: [
@@ -747,19 +748,19 @@ class _RentAccrualsTable extends StatelessWidget {
             ),
             Expanded(
               child: entries.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Text(
                         'Дважды нажмите на арендатора справа',
-                        style: filterFieldHintTextStyle,
+                        style: filterFieldHintTextStyleOf(context),
                         textAlign: TextAlign.center,
                       ),
                     )
                   : ListView.separated(
                       itemCount: entries.length,
-                      separatorBuilder: (_, _) => const Divider(
+                      separatorBuilder: (_, _) => Divider(
                         height: 1,
                         thickness: 1,
-                        color: AppColors.border,
+                        color: context.appColors.border,
                       ),
                       itemBuilder: (context, index) {
                         final entry = entries[index];
@@ -805,10 +806,10 @@ class _RentAccrualsTable extends StatelessWidget {
                                     AmountInputFormatter(),
                                   ],
                                   style: filterFieldTextStyle,
-                                  decoration: const InputDecoration(
+                                  decoration: InputDecoration(
                                     isDense: true,
                                     hintText: '0,00',
-                                    hintStyle: filterFieldHintTextStyle,
+                                    hintStyle: filterFieldHintTextStyleOf(context),
                                     border: InputBorder.none,
                                     contentPadding: EdgeInsets.zero,
                                   ),
@@ -817,10 +818,10 @@ class _RentAccrualsTable extends StatelessWidget {
                               IconButton(
                                 tooltip: 'Удалить',
                                 onPressed: () => onRemoveEntry(index),
-                                icon: const Icon(
+                                icon: Icon(
                                   LucideIcons.x,
                                   size: 16,
-                                  color: Colors.grey,
+                                  color: context.appColors.secondaryText,
                                 ),
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(
@@ -895,14 +896,14 @@ class _FilterPlaceholder extends StatelessWidget {
         horizontal: filterFieldHorizontalPadding,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appColors.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE7E7E7)),
+        border: Border.all(color: context.appColors.border),
       ),
       alignment: Alignment.centerLeft,
       child: Text(
         label,
-        style: filterFieldHintTextStyle,
+        style: filterFieldHintTextStyleOf(context),
       ),
     );
   }

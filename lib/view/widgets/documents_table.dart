@@ -7,6 +7,7 @@ import 'package:easy_fin/data/renter_assignments_storage/renter_assignments_stor
 import 'package:easy_fin/models/document_type.dart';
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/models/documents_table_item.dart';
 import 'package:easy_fin/view/pages/add_expense_page.dart';
 import 'package:easy_fin/view/pages/add_income_page.dart';
@@ -294,17 +295,17 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
           child: IconButton(
             tooltip: 'Столбцы',
             onPressed: _showColumnSettings,
-            icon: const Icon(
+            icon: Icon(
               LucideIcons.columns3,
               size: 18,
-              color: Colors.grey,
+              color: context.appColors.secondaryText,
             ),
           ),
         ),
         Expanded(
           child: DecoratedBox(
             decoration: BoxDecoration(
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: context.appColors.border),
               borderRadius: BorderRadius.circular(10),
             ),
             child: ClipRRect(
@@ -342,16 +343,16 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
                                       widget.items.isEmpty
                                           ? 'Нет документов'
                                           : 'Ничего не найдено',
-                                      style: filterFieldHintTextStyle,
+                                      style: filterFieldHintTextStyleOf(context),
                                     ),
                                   )
                                 : ListView.separated(
                                     itemCount: filteredItems.length,
                                     separatorBuilder: (_, _) =>
-                                        const Divider(
+                                        Divider(
                                       height: 1,
                                       thickness: 1,
-                                      color: AppColors.border,
+                                      color: context.appColors.border,
                                     ),
                                     itemBuilder: (context, index) {
                                       final item = filteredItems[index];
@@ -419,7 +420,7 @@ class _DocumentsTableHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFFF9F9F9),
+      color: context.appColors.navActiveBackground,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
@@ -474,9 +475,9 @@ class _AmountColumnHeader extends StatelessWidget {
         decoration: InputDecoration(
           isDense: true,
           hintText: 'Поиск по сумме',
-          hintStyle: filterFieldHintTextStyle,
+          hintStyle: filterFieldHintTextStyleOf(context),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: context.appColors.surface,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 10,
             vertical: 8,
@@ -484,19 +485,19 @@ class _AmountColumnHeader extends StatelessWidget {
           suffixIcon: IconButton(
             tooltip: 'Закрыть поиск',
             onPressed: onSearchToggle,
-            icon: const Icon(
+            icon: Icon(
               LucideIcons.x,
               size: 16,
-              color: Colors.grey,
+              color: context.appColors.secondaryText,
             ),
           ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: AppColors.border),
+            borderSide: BorderSide(color: context.appColors.border),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: AppColors.border),
+            borderSide: BorderSide(color: context.appColors.border),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
@@ -518,10 +519,10 @@ class _AmountColumnHeader extends StatelessWidget {
             minWidth: 28,
             minHeight: 28,
           ),
-          icon: const Icon(
+          icon: Icon(
             LucideIcons.search,
             size: 16,
-            color: Colors.grey,
+            color: context.appColors.secondaryText,
           ),
         ),
         const Flexible(
@@ -627,10 +628,10 @@ class _DocumentsTableRow extends StatelessWidget {
                     minWidth: 32,
                     minHeight: 32,
                   ),
-                  icon: const Icon(
+                  icon: Icon(
                     LucideIcons.trash2,
                     size: 16,
-                    color: Colors.grey,
+                    color: context.appColors.secondaryText,
                   ),
                 ),
             ],

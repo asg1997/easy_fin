@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
-import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/models/account_balance_report_item.dart';
 import 'package:easy_fin/view/widgets/report_table_theme.dart';
 import 'package:flutter/material.dart';
@@ -37,23 +37,23 @@ class AccountBalancesTable extends StatelessWidget {
           child: Column(
             children: [
                 const _AccountBalancesTableHeader(),
-                ReportTableTheme.sectionDivider,
+                ReportTableTheme.sectionDivider(context),
                 Expanded(
                   child: items.isEmpty
-                      ? const Center(
+                      ? Center(
                           child: Text(
                             'Нет данных',
-                            style: filterFieldHintTextStyle,
+                            style: filterFieldHintTextStyleOf(context),
                           ),
                         )
                       : ListView.separated(
                           itemCount: _rowCount,
-                          separatorBuilder: (_, index) => Divider(
+                          separatorBuilder: (context, index) => Divider(
                             height: 1,
                             thickness: 1,
                             color: _isLastAccountInBase(index)
-                                ? AppColors.border
-                                : ReportTableTheme.rowDividerColor,
+                                ? context.appColors.border
+                                : context.appColors.tableRowDivider,
                           ),
                           itemBuilder: (context, index) {
                             final row = _rowAt(index);
@@ -147,7 +147,7 @@ class _AccountBalancesTableHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: ReportTableTheme.headerHeight,
-      color: Colors.white,
+      color: context.appColors.surface,
       padding: const EdgeInsets.symmetric(
         horizontal: ReportTableTheme.horizontalPadding,
       ),
@@ -188,12 +188,13 @@ class _AccountBalancesTableRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
     final rowHeight =
         isBase ? AccountBalancesTable._baseRowHeight : AccountBalancesTable._accountRowHeight;
 
     return Container(
       height: rowHeight,
-      color: Colors.white,
+      color: colors.surface,
       padding: EdgeInsets.fromLTRB(
         ReportTableTheme.horizontalPadding,
         0,
@@ -210,11 +211,9 @@ class _AccountBalancesTableRow extends StatelessWidget {
               child: Text(
                 label,
                 style: TextStyle(
-                  fontSize: isBase ? 13 : 13,
+                  fontSize: 13,
                   fontWeight: isBase ? FontWeight.w600 : FontWeight.w400,
-                  color: isBase
-                      ? ReportTableTheme.primaryText
-                      : ReportTableTheme.secondaryText,
+                  color: isBase ? colors.primaryText : colors.secondaryText,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -229,7 +228,7 @@ class _AccountBalancesTableRow extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: isBase ? FontWeight.w600 : FontWeight.w400,
-                color: ReportTableTheme.primaryText,
+                color: colors.primaryText,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

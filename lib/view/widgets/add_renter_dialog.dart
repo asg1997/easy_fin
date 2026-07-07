@@ -1,6 +1,7 @@
 import 'package:easy_fin/utils/account_number_validator.dart';
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -28,25 +29,28 @@ class _AddRenterDialogState extends State<AddRenterDialog> {
     TextEditingController(),
   ];
 
-  static const _fieldDecoration = InputDecoration(
+  InputDecoration _fieldDecoration(BuildContext context) {
+    final colors = context.appColors;
+    return InputDecoration(
     filled: true,
-    fillColor: Colors.white,
-    contentPadding: EdgeInsets.symmetric(
+    fillColor: colors.surface,
+    contentPadding: const EdgeInsets.symmetric(
       horizontal: filterFieldHorizontalPadding,
     ),
     border: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(10)),
-      borderSide: BorderSide(color: AppColors.border),
+      borderRadius: const BorderRadius.all(Radius.circular(10)),
+      borderSide: BorderSide(color: colors.border),
     ),
     enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(10)),
-      borderSide: BorderSide(color: AppColors.border),
+      borderRadius: const BorderRadius.all(Radius.circular(10)),
+      borderSide: BorderSide(color: colors.border),
     ),
-    focusedBorder: OutlineInputBorder(
+    focusedBorder: const OutlineInputBorder(
       borderRadius: BorderRadius.all(Radius.circular(10)),
       borderSide: BorderSide(color: AppColors.primary),
     ),
   );
+  }
 
   List<String> get _accountNumbers {
     return _accountControllers
@@ -114,7 +118,7 @@ class _AddRenterDialogState extends State<AddRenterDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: context.appColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
@@ -135,7 +139,7 @@ class _AddRenterDialogState extends State<AddRenterDialog> {
               ),
               const Gap(12),
               Divider(
-                color: Colors.grey.withValues(alpha: 0.5),
+                color: context.appColors.border,
                 thickness: 0.5,
                 height: 1,
               ),
@@ -159,9 +163,9 @@ class _AddRenterDialogState extends State<AddRenterDialog> {
                           controller: _nameController,
                           autofocus: true,
                           style: filterFieldTextStyle,
-                          decoration: _fieldDecoration.copyWith(
+                          decoration: _fieldDecoration(context).copyWith(
                             hintText: 'Введите название',
-                            hintStyle: filterFieldHintTextStyle,
+                            hintStyle: filterFieldHintTextStyleOf(context),
                           ),
                           onChanged: (_) => setState(() {}),
                         ),
@@ -186,9 +190,9 @@ class _AddRenterDialogState extends State<AddRenterDialog> {
                                   controller: _accountControllers[index],
                                   style: filterFieldTextStyle,
                                   maxLength: accountNumberLength,
-                                  decoration: _fieldDecoration.copyWith(
+                                  decoration: _fieldDecoration(context).copyWith(
                                     hintText: 'Введите номер счёта (20 символов)',
-                                    hintStyle: filterFieldHintTextStyle,
+                                    hintStyle: filterFieldHintTextStyleOf(context),
                                     counterText: '',
                                   ),
                                   onChanged: (_) => setState(() {}),
@@ -206,10 +210,10 @@ class _AddRenterDialogState extends State<AddRenterDialog> {
                                   minWidth: 32,
                                   minHeight: 32,
                                 ),
-                                icon: const Icon(
+                                icon: Icon(
                                   LucideIcons.x,
                                   size: 16,
-                                  color: Colors.grey,
+                                  color: context.appColors.secondaryText,
                                 ),
                               ),
                             ],
@@ -266,7 +270,7 @@ class _AddRenterDialogState extends State<AddRenterDialog> {
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
                     style: TextButton.styleFrom(
-                      foregroundColor: Colors.grey,
+                      foregroundColor: context.appColors.secondaryText,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 10,
