@@ -8,7 +8,7 @@ class Xls2CvsConverterError extends Error {
   final String message;
 }
 
-/// Конвертация .xls/.xlsx → .csv через LibreOffice.
+/// Конвертация .xls → .csv через LibreOffice.
 /// Выбрасывает ошибку [Xls2CvsConverterError].
 class Xls2CvsConverter {
   const Xls2CvsConverter._();

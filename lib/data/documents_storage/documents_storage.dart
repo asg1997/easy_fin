@@ -78,7 +78,7 @@ class DocumentsStorageImpl implements DocumentsStorage {
             operationId: operationId,
             date: operation.date,
             documentType: _documentType(operation.isCredit),
-            accountType: AccountFilterType.bank.label,
+            accountType: statement.accountNumber,
             baseName: baseName,
             amount: operation.credit ?? operation.debit ?? 0,
             note: _bankOperationNote(

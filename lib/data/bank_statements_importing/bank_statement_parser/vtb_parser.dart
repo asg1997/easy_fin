@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:csv/csv.dart';
 import 'package:easy_fin/data/models/back_statement.dart';
 import 'package:easy_fin/data/models/bank_statement_operation.dart';
+import 'package:easy_fin/utils/account_number_validator.dart';
 import 'package:intl/intl.dart';
 
 typedef Table = List<List<dynamic>>;
@@ -19,7 +20,7 @@ class VtbParser {
     return BankStatement(
       startDate: startDate,
       endDate: endDate,
-      accountNumber: accountNumber,
+      accountNumber: normalizeAccountNumber(accountNumber),
       bankName: '',
       initialBalance: initialBalance,
       finalBalance: finalBalance,

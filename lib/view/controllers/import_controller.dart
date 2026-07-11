@@ -1,12 +1,13 @@
 import 'dart:io';
 
-import 'package:easy_fin/data/expense_category_accounts_storage/expense_category_accounts_storage.dart';
-import 'package:easy_fin/data/bank_statements_importing/statement_expense_review_analyzer.dart';
-import 'package:easy_fin/data/bank_statements_importing/statement_income_review_analyzer.dart';
-import 'package:easy_fin/data/bank_statements_importing/bank_statemenets_importer.dart';
 import 'package:easy_fin/data/bank_statements_importing/bank_statement_import_validator.dart';
 import 'package:easy_fin/data/bank_statements_importing/bank_statement_parser/xls2_cvs_converter.dart';
+import 'package:easy_fin/data/bank_statements_importing/bank_statement_parser/xlsx2_csv_converter.dart';
+import 'package:easy_fin/data/bank_statements_importing/bank_statemenets_importer.dart';
 import 'package:easy_fin/data/bank_statements_importing/errors/bank_statement_import_error.dart';
+import 'package:easy_fin/data/bank_statements_importing/statement_expense_review_analyzer.dart';
+import 'package:easy_fin/data/bank_statements_importing/statement_income_review_analyzer.dart';
+import 'package:easy_fin/data/expense_category_accounts_storage/expense_category_accounts_storage.dart';
 import 'package:easy_fin/data/bank_statements_storage/bank_statement_saver/bank_statement_saver.dart';
 import 'package:easy_fin/data/bank_statements_storage/bank_statement_storage.dart';
 import 'package:easy_fin/data/bases_storage/bases_storage.dart';
@@ -19,6 +20,7 @@ import 'package:easy_fin/models/base_account.dart';
 import 'package:easy_fin/models/import_expense_review.dart';
 import 'package:easy_fin/models/import_income_review.dart';
 import 'package:easy_fin/models/renter.dart';
+import 'package:easy_fin/utils/account_number_validator.dart';
 import 'package:easy_fin/utils/money.dart';
 import 'package:easy_fin/view/controllers/import_state.dart';
 import 'package:easy_fin/view/providers/account_balances_provider.dart';
@@ -33,12 +35,14 @@ final importControllerProvider =
     NotifierProvider<ImportController, ImportState>(ImportController.new);
 
 class ImportController extends Notifier<ImportState> {
-  static const _allowedExtension = 'xls';
+  static const _allowedExtensions = ['xls', 'xlsx'];
 
   static const _importValidator = BankStatementImportValidator();
 
   final List<BankStatement> _pendingStatements = [];
   var _savedCount = 0;
+  var _totalStatements = 0;
+  var _completedStatements = 0;
   var _skipBalanceCheckForCurrent = false;
   var _skipOutOfOrderCheckForCurrent = false;
 
@@ -48,7 +52,8 @@ class ImportController extends Notifier<ImportState> {
   Future<void> pickAndImport() async {
     if (state.isImportInProgress) return;
 
-    state = const ImportLoading();
+    _resetProgress();
+    _setLoading(phase: ImportLoadingPhase.readingFiles);
     try {
       final files = await _pickFiles();
       if (files.isEmpty) {
@@ -61,7 +66,10 @@ class ImportController extends Notifier<ImportState> {
         ..clear()
         ..addAll(bankStatements);
       _savedCount = 0;
+      _totalStatements = bankStatements.length;
+      _completedStatements = 0;
 
+      _setLoading(phase: ImportLoadingPhase.processing);
       await _processQueue();
     } on Object catch (error) {
       _failImport(error);
@@ -85,7 +93,7 @@ class ImportController extends Notifier<ImportState> {
       trimmedName,
       [
         BaseAccount(
-          accountNumber: currentState.accountNumber,
+          accountNumber: normalizeAccountNumber(currentState.accountNumber),
           bankName: currentState.bankName,
         ),
       ],
@@ -106,7 +114,7 @@ class ImportController extends Notifier<ImportState> {
     final existingBase = await storage.findById(baseId);
     if (existingBase == null) return;
 
-    final accountNumber = currentState.accountNumber;
+    final accountNumber = normalizeAccountNumber(currentState.accountNumber);
     if (!existingBase.accountNumbers.contains(accountNumber)) {
       final updatedBase = Base(
         id: existingBase.id,
@@ -133,7 +141,7 @@ class ImportController extends Notifier<ImportState> {
 
     _skipBalanceCheckForCurrent = true;
 
-    state = const ImportLoading();
+    _setLoading(phase: ImportLoadingPhase.processing);
     await _processQueue();
   }
 
@@ -141,7 +149,7 @@ class ImportController extends Notifier<ImportState> {
     if (state is! ImportAwaitingBalanceConfirmation) return;
 
     _pendingStatements.removeAt(0);
-    state = const ImportLoading();
+    _markStatementCompleted();
     await _processQueue();
   }
 
@@ -151,7 +159,7 @@ class ImportController extends Notifier<ImportState> {
 
     _skipOutOfOrderCheckForCurrent = true;
 
-    state = const ImportLoading();
+    _setLoading(phase: ImportLoadingPhase.processing);
     await _processQueue();
   }
 
@@ -159,7 +167,7 @@ class ImportController extends Notifier<ImportState> {
     if (state is! ImportAwaitingOutOfOrderConfirmation) return;
 
     _pendingStatements.removeAt(0);
-    state = const ImportLoading();
+    _markStatementCompleted();
     await _processQueue();
   }
 
@@ -167,7 +175,7 @@ class ImportController extends Notifier<ImportState> {
     if (state is! ImportPeriodOverlapBlocked) return;
 
     _pendingStatements.removeAt(0);
-    state = const ImportLoading();
+    _markStatementCompleted();
     await _processQueue();
   }
 
@@ -178,12 +186,157 @@ class ImportController extends Notifier<ImportState> {
     if (currentState is! ImportAwaitingIncomeReview) return;
     if (_pendingStatements.isEmpty) return;
 
-    final rentersStorage = ref.read(rentersStorageProvider);
-    var operations = List<BankStatementOperation>.from(
-      currentState.statement.operations,
+    final reviewResult = await _applyIncomeReviewResolutions(
+      statement: currentState.statement,
+      baseId: currentState.baseId,
+      autoMatchedRenterIds: currentState.autoMatchedRenterIds,
+      resolutions: resolutions,
     );
 
-    for (final entry in currentState.autoMatchedRenterIds.entries) {
+    final expenseResult = currentState.pendingExpenseResult;
+    if (expenseResult.reviewItems.isNotEmpty) {
+      state = ImportAwaitingExpenseReview(
+        statement: reviewResult.statement,
+        baseId: currentState.baseId,
+        baseName: currentState.baseName,
+        autoMatchedCategoryIds: expenseResult.autoMatchedCategoryIds,
+        reviewItems: expenseResult.reviewItems,
+        pendingRentersToSave: reviewResult.rentersToSave,
+      );
+      return;
+    }
+
+    await _commitReviewedStatement(
+      statement: reviewResult.statement,
+      rentersToSave: reviewResult.rentersToSave,
+      autoMatchedCategoryIds: expenseResult.autoMatchedCategoryIds,
+      expenseResolutions: const [],
+    );
+  }
+
+  Future<void> cancelIncomeReview() async {
+    if (state is! ImportAwaitingIncomeReview) return;
+
+    _pendingStatements.removeAt(0);
+    _markStatementCompleted();
+    await _processQueue();
+  }
+
+  Future<void> confirmExpenseReview(
+    List<ImportExpenseResolution> resolutions,
+  ) async {
+    final currentState = state;
+    if (currentState is! ImportAwaitingExpenseReview) return;
+    if (_pendingStatements.isEmpty) return;
+
+    await _commitReviewedStatement(
+      statement: currentState.statement,
+      rentersToSave: currentState.pendingRentersToSave,
+      autoMatchedCategoryIds: currentState.autoMatchedCategoryIds,
+      expenseResolutions: resolutions,
+    );
+  }
+
+  Future<void> cancelExpenseReview() async {
+    if (state is! ImportAwaitingExpenseReview) return;
+
+    _pendingStatements.removeAt(0);
+    _markStatementCompleted();
+    await _processQueue();
+  }
+
+  Future<void> _commitReviewedStatement({
+    required BankStatement statement,
+    required List<Renter> rentersToSave,
+    required Map<int, int> autoMatchedCategoryIds,
+    required List<ImportExpenseResolution> expenseResolutions,
+  }) async {
+    final accountNumber = normalizeAccountNumber(statement.accountNumber);
+    final normalizedStatement = statement.accountNumber == accountNumber
+        ? statement
+        : statement.copyWith(accountNumber: accountNumber);
+
+    final resolvedBase = await ref
+        .read(basesStorageProvider)
+        .findByAccount(accountNumber);
+    if (resolvedBase == null) {
+      if (_pendingStatements.isNotEmpty) {
+        _pendingStatements[0] = normalizedStatement;
+      }
+      state = ImportAwaitingBase(
+        accountNumber: accountNumber,
+        bankName: normalizedStatement.bankName,
+      );
+      return;
+    }
+
+    final rentersStorage = ref.read(rentersStorageProvider);
+    for (final renter in rentersToSave) {
+      await rentersStorage.save(renter);
+    }
+
+    final categoryAccountsStorage = ref.read(
+      expenseCategoryAccountsStorageProvider,
+    );
+    for (final resolution in expenseResolutions) {
+      if (resolution.classification != ImportExpenseClassification.other) {
+        continue;
+      }
+
+      final categoryId = resolution.expenseCategoryId;
+      final counterpartyAccount = resolution.accountNumber?.trim();
+      if (categoryId == null ||
+          counterpartyAccount == null ||
+          counterpartyAccount.isEmpty) {
+        continue;
+      }
+
+      await categoryAccountsStorage.saveLink(
+        baseId: resolvedBase.id,
+        categoryId: categoryId,
+        accountNumber: counterpartyAccount,
+      );
+    }
+
+    final statementToSave = applyExpenseClassification(
+      normalizedStatement,
+      autoMatchedCategoryIds: autoMatchedCategoryIds,
+      resolutions: expenseResolutions,
+    );
+
+    try {
+      await ref.read(bankStatementStorageProvider).save(statementToSave);
+    } on BankAccountNotFoundError {
+      if (_pendingStatements.isNotEmpty) {
+        _pendingStatements[0] = statementToSave;
+      }
+      state = ImportAwaitingBase(
+        accountNumber: accountNumber,
+        bankName: normalizedStatement.bankName,
+      );
+      return;
+    }
+
+    _pendingStatements.removeAt(0);
+    _savedCount++;
+    _markStatementCompleted();
+    await _processQueue();
+  }
+
+  Future<({
+    BankStatement statement,
+    List<Renter> rentersToSave,
+  })> _applyIncomeReviewResolutions({
+    required BankStatement statement,
+    required BaseId baseId,
+    required Map<int, String> autoMatchedRenterIds,
+    required List<ImportIncomeResolution> resolutions,
+  }) async {
+    final rentersStorage = ref.read(rentersStorageProvider);
+    final rentersToSave = <Renter>[];
+    var operations = List<BankStatementOperation>.from(statement.operations);
+
+    for (final entry in autoMatchedRenterIds.entries) {
       operations[entry.key] = operations[entry.key].copyWith(
         renterId: entry.value,
         clearIncomeCategoryId: true,
@@ -193,14 +346,17 @@ class ImportController extends Notifier<ImportState> {
     for (final resolution in resolutions) {
       switch (resolution.classification) {
         case ImportIncomeClassification.renter:
-          final renterId = await _resolveRenterForIncomeReview(
+          final prepared = await _prepareRenterForIncomeReview(
             rentersStorage: rentersStorage,
-            baseId: currentState.baseId,
+            baseId: baseId,
             resolution: resolution,
           );
+          if (prepared.renterToSave != null) {
+            rentersToSave.add(prepared.renterToSave!);
+          }
           for (final index in resolution.operationIndices) {
             operations[index] = operations[index].copyWith(
-              renterId: renterId,
+              renterId: prepared.renterId,
               clearIncomeCategoryId: true,
             );
           }
@@ -221,129 +377,13 @@ class ImportController extends Notifier<ImportState> {
       }
     }
 
-    final statement = currentState.statement.copyWith(operations: operations);
-
-    await _saveStatementAfterReviews(statement, currentState.baseId);
-  }
-
-  Future<void> cancelIncomeReview() async {
-    if (state is! ImportAwaitingIncomeReview) return;
-
-    _pendingStatements.removeAt(0);
-    state = const ImportLoading();
-    await _processQueue();
-  }
-
-  Future<void> confirmExpenseReview(
-    List<ImportExpenseResolution> resolutions,
-  ) async {
-    final currentState = state;
-    if (currentState is! ImportAwaitingExpenseReview) return;
-    if (_pendingStatements.isEmpty) return;
-
-    final categoryAccountsStorage = ref.read(
-      expenseCategoryAccountsStorageProvider,
+    return (
+      statement: statement.copyWith(operations: operations),
+      rentersToSave: rentersToSave,
     );
-
-    for (final resolution in resolutions) {
-      if (resolution.classification != ImportExpenseClassification.other) {
-        continue;
-      }
-
-      final categoryId = resolution.expenseCategoryId;
-      final accountNumber = resolution.accountNumber?.trim();
-      if (categoryId == null || accountNumber == null || accountNumber.isEmpty) {
-        continue;
-      }
-
-      await categoryAccountsStorage.saveLink(
-        baseId: currentState.baseId,
-        categoryId: categoryId,
-        accountNumber: accountNumber,
-      );
-    }
-
-    final statement = applyExpenseClassification(
-      currentState.statement,
-      autoMatchedCategoryIds: currentState.autoMatchedCategoryIds,
-      resolutions: resolutions,
-    );
-
-    try {
-      await ref.read(bankStatementStorageProvider).save(statement);
-    } on BankAccountNotFoundError {
-      state = ImportAwaitingBase(
-        accountNumber: statement.accountNumber,
-        bankName: statement.bankName,
-      );
-      return;
-    }
-
-    _pendingStatements.removeAt(0);
-    _savedCount++;
-
-    state = const ImportLoading();
-    await _processQueue();
   }
 
-  Future<void> cancelExpenseReview() async {
-    if (state is! ImportAwaitingExpenseReview) return;
-
-    _pendingStatements.removeAt(0);
-    state = const ImportLoading();
-    await _processQueue();
-  }
-
-  Future<void> _saveStatementAfterReviews(
-    BankStatement statement,
-    BaseId baseId,
-  ) async {
-    final saved = await _finalizeStatementSave(statement, baseId);
-    if (!saved) return;
-
-    _pendingStatements.removeAt(0);
-    _savedCount++;
-
-    state = const ImportLoading();
-    await _processQueue();
-  }
-
-  Future<bool> _finalizeStatementSave(
-    BankStatement statement,
-    BaseId baseId,
-  ) async {
-    final expenseResult = await ref
-        .read(statementExpenseReviewAnalyzerProvider)
-        .analyze(statement, baseId: baseId);
-
-    if (expenseResult.reviewItems.isNotEmpty) {
-      state = ImportAwaitingExpenseReview(
-        statement: statement,
-        baseId: baseId,
-        autoMatchedCategoryIds: expenseResult.autoMatchedCategoryIds,
-        reviewItems: expenseResult.reviewItems,
-      );
-      return false;
-    }
-
-    final statementToSave = applyExpenseClassification(
-      statement,
-      autoMatchedCategoryIds: expenseResult.autoMatchedCategoryIds,
-    );
-
-    try {
-      await ref.read(bankStatementStorageProvider).save(statementToSave);
-      return true;
-    } on BankAccountNotFoundError {
-      state = ImportAwaitingBase(
-        accountNumber: statement.accountNumber,
-        bankName: statement.bankName,
-      );
-      return false;
-    }
-  }
-
-  Future<RenterId> _resolveRenterForIncomeReview({
+  Future<({String renterId, Renter? renterToSave})> _prepareRenterForIncomeReview({
     required RentersStorage rentersStorage,
     required BaseId baseId,
     required ImportIncomeResolution resolution,
@@ -356,17 +396,19 @@ class ImportController extends Notifier<ImportState> {
         name: resolution.name!.trim(),
         accountNumbers: [accountNumber],
       );
-      await rentersStorage.save(renter);
-      return renter.id;
+      return (renterId: renter.id, renterToSave: renter);
     }
 
     final linkedRenterId = resolution.linkedRenterId!;
     final existingRenter = await rentersStorage.findById(linkedRenterId);
-    if (existingRenter == null) return linkedRenterId;
+    if (existingRenter == null) {
+      return (renterId: linkedRenterId, renterToSave: null);
+    }
 
     if (!existingRenter.accountNumbers.contains(accountNumber)) {
-      await rentersStorage.save(
-        Renter(
+      return (
+        renterId: linkedRenterId,
+        renterToSave: Renter(
           id: existingRenter.id,
           baseId: existingRenter.baseId,
           name: existingRenter.name,
@@ -379,7 +421,7 @@ class ImportController extends Notifier<ImportState> {
       );
     }
 
-    return linkedRenterId;
+    return (renterId: linkedRenterId, renterToSave: null);
   }
 
   Future<void> _saveCurrentStatementAndContinue() async {
@@ -391,8 +433,7 @@ class ImportController extends Notifier<ImportState> {
 
     _pendingStatements.removeAt(0);
     _savedCount++;
-
-    state = const ImportLoading();
+    _markStatementCompleted();
     await _processQueue();
   }
 
@@ -400,11 +441,13 @@ class ImportController extends Notifier<ImportState> {
     if (state is! ImportAwaitingBase) return;
 
     _pendingStatements.removeAt(0);
-    state = const ImportLoading();
+    _markStatementCompleted();
     await _processQueue();
   }
 
   Future<void> _processQueue() async {
+    _setLoading(phase: ImportLoadingPhase.processing);
+
     while (_pendingStatements.isNotEmpty) {
       final statement = _pendingStatements.first;
       final saved = await _trySaveStatement(statement);
@@ -412,43 +455,52 @@ class ImportController extends Notifier<ImportState> {
 
       _pendingStatements.removeAt(0);
       _savedCount++;
+      _markStatementCompleted();
     }
 
     _finishImport();
   }
 
   Future<bool> _trySaveStatement(BankStatement statement) async {
+    final accountNumber = normalizeAccountNumber(statement.accountNumber);
+    final normalizedStatement = statement.accountNumber == accountNumber
+        ? statement
+        : statement.copyWith(accountNumber: accountNumber);
+
     final base = await ref
         .read(basesStorageProvider)
-        .findByAccount(statement.accountNumber);
+        .findByAccount(accountNumber);
     if (base == null) {
+      if (_pendingStatements.isNotEmpty) {
+        _pendingStatements[0] = normalizedStatement;
+      }
       state = ImportAwaitingBase(
-        accountNumber: statement.accountNumber,
-        bankName: statement.bankName,
+        accountNumber: accountNumber,
+        bankName: normalizedStatement.bankName,
       );
       return false;
     }
 
-    final overlapIssue = await _findPeriodOverlapIssue(statement);
+    final overlapIssue = await _findPeriodOverlapIssue(normalizedStatement);
     if (overlapIssue != null) {
       final existing = overlapIssue.overlappingStatement!;
       state = ImportPeriodOverlapBlocked(
         existingStartDate: existing.startDate,
         existingEndDate: existing.endDate,
-        newStartDate: statement.startDate,
-        newEndDate: statement.endDate,
+        newStartDate: normalizedStatement.startDate,
+        newEndDate: normalizedStatement.endDate,
       );
       return false;
     }
 
     if (!_skipOutOfOrderCheckForCurrent) {
-      final outOfOrderIssue = await _findOutOfOrderIssue(statement);
+      final outOfOrderIssue = await _findOutOfOrderIssue(normalizedStatement);
       if (outOfOrderIssue != null) {
         final next = outOfOrderIssue.nextStatement!;
         state = ImportAwaitingOutOfOrderConfirmation(
-          newStartDate: statement.startDate,
-          newEndDate: statement.endDate,
-          newFinalBalance: statement.finalBalance,
+          newStartDate: normalizedStatement.startDate,
+          newEndDate: normalizedStatement.endDate,
+          newFinalBalance: normalizedStatement.finalBalance,
           nextStartDate: next.startDate,
           nextEndDate: next.endDate,
           nextInitialBalance: next.initialBalance,
@@ -463,15 +515,15 @@ class ImportController extends Notifier<ImportState> {
     }
 
     if (!_skipBalanceCheckForCurrent) {
-      final balanceIssue = await _findBalanceContinuityIssue(statement);
+      final balanceIssue = await _findBalanceContinuityIssue(normalizedStatement);
       if (balanceIssue != null) {
         final previous = balanceIssue.previousStatement!;
         state = ImportAwaitingBalanceConfirmation(
           previousEndDate: previous.endDate,
           previousFinalBalance: balanceIssue.expectedBalance!,
           newInitialBalance: balanceIssue.actualBalance!,
-          newStartDate: statement.startDate,
-          newEndDate: statement.endDate,
+          newStartDate: normalizedStatement.startDate,
+          newEndDate: normalizedStatement.endDate,
         );
         return false;
       }
@@ -480,26 +532,59 @@ class ImportController extends Notifier<ImportState> {
     _skipBalanceCheckForCurrent = false;
     _skipOutOfOrderCheckForCurrent = false;
 
-    final reviewResult = await ref
+    final incomeResult = await ref
         .read(statementIncomeReviewAnalyzerProvider)
-        .analyze(statement, baseId: base.id);
+        .analyze(normalizedStatement, baseId: base.id);
+    final expenseResult = await ref
+        .read(statementExpenseReviewAnalyzerProvider)
+        .analyze(normalizedStatement, baseId: base.id);
 
-    if (reviewResult.reviewItems.isNotEmpty) {
+    if (incomeResult.reviewItems.isNotEmpty) {
       state = ImportAwaitingIncomeReview(
-        statement: statement,
+        statement: normalizedStatement,
         baseId: base.id,
-        autoMatchedRenterIds: reviewResult.autoMatchedRenterIds,
-        reviewItems: reviewResult.reviewItems,
+        baseName: base.name,
+        autoMatchedRenterIds: incomeResult.autoMatchedRenterIds,
+        reviewItems: incomeResult.reviewItems,
+        pendingExpenseResult: expenseResult,
       );
       return false;
     }
 
     final statementAfterIncome = applyIncomeClassification(
-      statement,
-      autoMatchedRenterIds: reviewResult.autoMatchedRenterIds,
+      normalizedStatement,
+      autoMatchedRenterIds: incomeResult.autoMatchedRenterIds,
     );
 
-    return _finalizeStatementSave(statementAfterIncome, base.id);
+    if (expenseResult.reviewItems.isNotEmpty) {
+      state = ImportAwaitingExpenseReview(
+        statement: statementAfterIncome,
+        baseId: base.id,
+        baseName: base.name,
+        autoMatchedCategoryIds: expenseResult.autoMatchedCategoryIds,
+        reviewItems: expenseResult.reviewItems,
+      );
+      return false;
+    }
+
+    final statementToSave = applyExpenseClassification(
+      statementAfterIncome,
+      autoMatchedCategoryIds: expenseResult.autoMatchedCategoryIds,
+    );
+
+    try {
+      await ref.read(bankStatementStorageProvider).save(statementToSave);
+      return true;
+    } on BankAccountNotFoundError {
+      if (_pendingStatements.isNotEmpty) {
+        _pendingStatements[0] = statementToSave;
+      }
+      state = ImportAwaitingBase(
+        accountNumber: accountNumber,
+        bankName: normalizedStatement.bankName,
+      );
+      return false;
+    }
   }
 
   Future<BankStatementImportIssue?> _findPeriodOverlapIssue(
@@ -572,6 +657,27 @@ class ImportController extends Notifier<ImportState> {
         .firstOrNull;
   }
 
+  void _resetProgress() {
+    _totalStatements = 0;
+    _completedStatements = 0;
+  }
+
+  void _markStatementCompleted() {
+    _completedStatements++;
+    if (_totalStatements == 0) {
+      _totalStatements = _completedStatements + _pendingStatements.length;
+    }
+    _setLoading(phase: ImportLoadingPhase.processing);
+  }
+
+  void _setLoading({required ImportLoadingPhase phase}) {
+    state = ImportLoading(
+      completed: _completedStatements,
+      total: _totalStatements,
+      phase: phase,
+    );
+  }
+
   void _finishImport() {
     if (_savedCount > 0) {
       ref.invalidate(documentsListProvider);
@@ -585,6 +691,7 @@ class ImportController extends Notifier<ImportState> {
   void _reset() {
     _pendingStatements.clear();
     _savedCount = 0;
+    _resetProgress();
     _skipBalanceCheckForCurrent = false;
     _skipOutOfOrderCheckForCurrent = false;
     state = const ImportIdle();
@@ -593,6 +700,7 @@ class ImportController extends Notifier<ImportState> {
   void _failImport(Object error) {
     _pendingStatements.clear();
     _savedCount = 0;
+    _resetProgress();
     _skipBalanceCheckForCurrent = false;
     _skipOutOfOrderCheckForCurrent = false;
     state = ImportError(message: _mapErrorMessage(error));
@@ -600,6 +708,9 @@ class ImportController extends Notifier<ImportState> {
 
   String _mapErrorMessage(Object error) {
     if (error is Xls2CvsConverterError) {
+      return error.message;
+    }
+    if (error is Xlsx2CsvConverterError) {
       return error.message;
     }
     if (error is BankStatementImportError) {
@@ -611,17 +722,41 @@ class ImportController extends Notifier<ImportState> {
     return 'Произошла ошибка при импорте';
   }
 
-  bool _isXlsFile(String path) =>
-      path.toLowerCase().endsWith('.$_allowedExtension');
+  bool _isSpreadsheetFile(String path) {
+    final lower = path.toLowerCase();
+    return _allowedExtensions.any((ext) => lower.endsWith('.$ext'));
+  }
 
-  Future<List<BankStatement>> _parseFiles(List<File> files) async => ref
-      .read(bankStatementsImporterProvider)
-      .import(BankStatementImportRequest(xlsFiles: files));
+  Future<List<BankStatement>> _parseFiles(List<File> files) async {
+    final importer = ref.read(bankStatementsImporterProvider);
+    final bankStatements = <BankStatement>[];
+
+    for (var index = 0; index < files.length; index++) {
+      state = ImportLoading(
+        completed: index,
+        total: files.length,
+        phase: ImportLoadingPhase.readingFiles,
+      );
+
+      final parsed = await importer.import(
+        BankStatementImportRequest(files: [files[index]]),
+      );
+      bankStatements.addAll(parsed);
+    }
+
+    state = ImportLoading(
+      completed: files.length,
+      total: files.length,
+      phase: ImportLoadingPhase.readingFiles,
+    );
+
+    return bankStatements;
+  }
 
   Future<List<File>> _pickFiles() async {
     final pickResult = await FilePicker.pickFiles(
       type: FileType.custom,
-      allowedExtensions: [_allowedExtension],
+      allowedExtensions: _allowedExtensions,
       allowMultiple: true,
     );
 
@@ -629,7 +764,7 @@ class ImportController extends Notifier<ImportState> {
 
     return pickResult.paths
         .whereType<String>()
-        .where(_isXlsFile)
+        .where(_isSpreadsheetFile)
         .map(File.new)
         .toList();
   }

@@ -56,7 +56,7 @@ class SberParser {
       operations.addAll(_parseOperations(rows));
     }
 
-    final accountNumber = firstRows[3][12] as String;
+    final accountNumber = _parseAccountNumber(firstRows);
     final (startDate, endDate) = _parseStatementPeriod(firstRows);
     final initialBalance =
         _parseBalanceFromLabeledRow(firstRows, 'Входящий остаток') ?? 0;
@@ -148,6 +148,35 @@ class SberParser {
     final year = int.tryParse(m.group(3)!);
     if (day == null || month == null || year == null) return null;
     return DateTime(year, month, day);
+  }
+
+  String _parseAccountNumber(Table rows) {
+    for (final row in rows.take(15)) {
+      final hasStatementLabel = row.any(
+        (cell) => cell is String && cell.contains('ВЫПИСКА ОПЕРАЦИЙ'),
+      );
+      if (hasStatementLabel && row.length > 12) {
+        final account = _extractAccountNumber(row[12]);
+        if (account != null) return account;
+      }
+    }
+
+    for (final row in rows.take(15)) {
+      for (final cell in row) {
+        final account = _extractAccountNumber(cell);
+        if (account != null) return account;
+      }
+    }
+
+    /// TODO: выбрасывать ошибку, если номер счёта не найден
+    return '';
+  }
+
+  String? _extractAccountNumber(dynamic cell) {
+    if (cell is! String) return null;
+    final digits = cell.replaceAll(RegExp(r'\D'), '');
+    if (digits.length == 20) return digits;
+    return null;
   }
 
   (DateTime startDate, DateTime endDate) _parseStatementPeriod(Table rows) {

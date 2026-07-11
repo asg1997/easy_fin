@@ -9,6 +9,7 @@ import 'package:easy_fin/view/pages/settings_page.dart';
 import 'package:easy_fin/view/providers/github_sync_provider.dart';
 import 'package:easy_fin/view/providers/theme_mode_provider.dart';
 import 'package:easy_fin/view/widgets/add_action_speed_dial.dart';
+import 'package:easy_fin/view/widgets/app_keyboard_shortcuts.dart';
 import 'package:easy_fin/view/widgets/github_sync_conflict_dialog.dart';
 import 'package:easy_fin/view/widgets/import_state_listener.dart';
 import 'package:flutter/material.dart';
@@ -85,8 +86,9 @@ class _MainNavPageState extends ConsumerState<MainNavPage> {
     final themeModeAsync = ref.watch(themeModeProvider);
     final isDarkMode = themeModeAsync.value == AppThemeMode.dark;
 
-    return ImportStateListener(
-      child: Stack(
+    return AppKeyboardShortcuts(
+      child: ImportStateListener(
+        child: Stack(
         children: [
           Scaffold(
             floatingActionButton: const AddActionSpeedDial(),
@@ -206,6 +208,7 @@ class _MainNavPageState extends ConsumerState<MainNavPage> {
               ),
             ),
         ],
+        ),
       ),
     );
   }

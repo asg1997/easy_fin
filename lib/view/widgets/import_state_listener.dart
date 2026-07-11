@@ -5,7 +5,6 @@ import 'package:easy_fin/data/income_categories_storage/income_categories_storag
 import 'package:easy_fin/data/renters_storage/renters_storage.dart';
 import 'package:easy_fin/view/controllers/import_controller.dart';
 import 'package:easy_fin/view/controllers/import_state.dart';
-import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/widgets/import_balance_gap_dialog.dart';
 import 'package:easy_fin/view/widgets/import_base_creation_dialog.dart';
 import 'package:easy_fin/view/widgets/import_error_dialog.dart';
@@ -13,6 +12,7 @@ import 'package:easy_fin/view/widgets/import_expense_review_dialog.dart';
 import 'package:easy_fin/view/widgets/import_income_review_dialog.dart';
 import 'package:easy_fin/view/widgets/import_out_of_order_dialog.dart';
 import 'package:easy_fin/view/widgets/import_period_overlap_dialog.dart';
+import 'package:easy_fin/view/widgets/import_progress_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -126,7 +126,15 @@ class _ImportStateListenerState extends ConsumerState<ImportStateListener> {
       }
     });
 
-    return widget.child;
+    final importState = ref.watch(importControllerProvider);
+
+    return Stack(
+      children: [
+        widget.child,
+        if (importState is ImportLoading)
+          ImportProgressOverlay(state: importState),
+      ],
+    );
   }
 
   Future<void> _handleImportError(ImportError state) async {
@@ -149,8 +157,6 @@ class _ImportStateListenerState extends ConsumerState<ImportStateListener> {
     final currentState = ref.read(importControllerProvider);
     if (currentState is! ImportAwaitingBase) return;
 
-    final existingBases = await ref.read(basesListProvider.future);
-
     if (!context.mounted) return;
 
     final result = await showDialog<ImportBaseDialogResult>(
@@ -159,7 +165,6 @@ class _ImportStateListenerState extends ConsumerState<ImportStateListener> {
       builder: (dialogContext) {
         return ImportBaseCreationDialog(
           accountNumber: currentState.accountNumber,
-          existingBases: existingBases,
         );
       },
     );
@@ -170,8 +175,6 @@ class _ImportStateListenerState extends ConsumerState<ImportStateListener> {
     if (ref.read(importControllerProvider) is! ImportAwaitingBase) return;
 
     switch (result) {
-      case ImportBaseDialogSelectExisting(:final baseId):
-        await notifier.linkAccountToExistingBaseAndContinue(baseId);
       case ImportBaseDialogCreateNew(:final baseName):
         await notifier.createBaseAndContinue(baseName);
       case null:
@@ -311,6 +314,7 @@ class _ImportStateListenerState extends ConsumerState<ImportStateListener> {
       builder: (dialogContext) {
         return ImportIncomeReviewDialog(
           statement: currentState.statement,
+          baseName: currentState.baseName,
           reviewItems: currentState.reviewItems,
           renters: renters,
           categories: categories,
@@ -351,6 +355,7 @@ class _ImportStateListenerState extends ConsumerState<ImportStateListener> {
       builder: (dialogContext) {
         return ImportExpenseReviewDialog(
           statement: currentState.statement,
+          baseName: currentState.baseName,
           reviewItems: currentState.reviewItems,
           categories: categories,
         );

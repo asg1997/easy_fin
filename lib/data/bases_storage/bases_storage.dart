@@ -4,6 +4,7 @@ import 'package:easy_fin/drift/db/app_database_provider.dart';
 import 'package:easy_fin/drift/mappers/base_mapper.dart';
 import 'package:easy_fin/models/base.dart';
 import 'package:easy_fin/models/base_account.dart';
+import 'package:easy_fin/utils/account_number_validator.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final basesStorageProvider = Provider<BasesStorage>(
@@ -67,10 +68,11 @@ class BasesStorageImpl implements BasesStorage {
   @override
   Future<Base?> findByAccount(AccountNumber accountNumber) async {
     final db = ref.read(appDatabaseProvider);
+    final normalized = normalizeAccountNumber(accountNumber);
 
     final accountRow =
         await (db.select(db.baseAccountNumbers)
-              ..where((table) => table.accountNumber.equals(accountNumber)))
+              ..where((table) => table.accountNumber.equals(normalized)))
             .getSingleOrNull();
     if (accountRow == null) return null;
 
@@ -208,8 +210,14 @@ class BasesStorageImpl implements BasesStorage {
     final seenAccountNumbers = <AccountNumber>{};
 
     for (final account in accounts) {
-      if (seenAccountNumbers.add(account.accountNumber)) {
-        uniqueAccounts.add(account);
+      final accountNumber = normalizeAccountNumber(account.accountNumber);
+      if (seenAccountNumbers.add(accountNumber)) {
+        uniqueAccounts.add(
+          BaseAccount(
+            accountNumber: accountNumber,
+            bankName: account.bankName,
+          ),
+        );
       }
     }
 

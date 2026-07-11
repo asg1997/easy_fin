@@ -30,6 +30,7 @@ final class ImportIncomeReviewCancelled extends ImportIncomeReviewDialogResult {
 class ImportIncomeReviewDialog extends ConsumerStatefulWidget {
   const ImportIncomeReviewDialog({
     required this.statement,
+    required this.baseName,
     required this.reviewItems,
     required this.renters,
     required this.categories,
@@ -38,6 +39,7 @@ class ImportIncomeReviewDialog extends ConsumerStatefulWidget {
   });
 
   final BankStatement statement;
+  final String baseName;
   final List<ImportIncomeReviewItem> reviewItems;
   final List<Renter> renters;
   final List<IncomeCategory> categories;
@@ -206,9 +208,24 @@ class _ImportIncomeReviewDialogState
               ),
               const Gap(12),
               Text(
+                'Выписка по счёту ${widget.statement.accountNumber}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Gap(4),
+              Text(
+                'База: ${widget.baseName}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const Gap(4),
+              Text(
                 '${_dateFormat.format(widget.statement.startDate)} — '
                 '${_dateFormat.format(widget.statement.endDate)} · '
-                '${widget.statement.accountNumber} · '
                 '$_totalOperations ${_pluralPositions(_totalOperations)}',
                 style: TextStyle(
                   fontSize: 14,
@@ -497,7 +514,7 @@ class _CounterpartyCard extends StatelessWidget {
                     Text(
                       item.suggestedName.isNotEmpty
                           ? item.suggestedName
-                          : 'Контрагент',
+                          : 'Плательщик',
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -505,7 +522,7 @@ class _CounterpartyCard extends StatelessWidget {
                     ),
                     const Gap(4),
                     Text(
-                      item.originalAccountNumber,
+                      'Р/с плательщика: ${item.originalAccountNumber}',
                       style: TextStyle(
                         fontSize: 13,
                         color: context.appColors.secondaryText,
@@ -528,6 +545,19 @@ class _CounterpartyCard extends StatelessWidget {
             Text(
               'Счёт привязан к «${item.otherBaseRenterName}» (другая база)',
               style: TextStyle(fontSize: 13, color: Colors.orange.shade800),
+            ),
+          ],
+          if (item.operations.length == 1 &&
+              preview.note.trim().isNotEmpty) ...[
+            const Gap(6),
+            Text(
+              '${dateFormat.format(preview.date)} · ${preview.note}',
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13,
+                color: context.appColors.secondaryText,
+              ),
             ),
           ],
           if (!form.operationsExpanded && item.operations.length > 1) ...[

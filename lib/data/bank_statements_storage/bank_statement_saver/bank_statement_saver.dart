@@ -3,6 +3,7 @@ import 'package:easy_fin/data/bases_storage/bases_storage.dart';
 import 'package:easy_fin/data/models/back_statement.dart';
 import 'package:easy_fin/drift/db/app_database_provider.dart';
 import 'package:easy_fin/drift/mappers/bank_statement_mapper.dart';
+import 'package:easy_fin/utils/account_number_validator.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final bankStatementSaverProvider = Provider<BankStatementSaver>(
@@ -14,9 +15,14 @@ sealed class BankStatementSaveError implements Exception {
   BankStatementSaveError();
 }
 
-///  Банковский счет не найден в базе
+/// Банковский счет не найден в базе
 class BankAccountNotFoundError extends BankStatementSaveError {
   BankAccountNotFoundError();
+}
+
+/// Счёт выписки не принадлежит указанной базе
+class BankAccountBaseMismatchError extends BankStatementSaveError {
+  BankAccountBaseMismatchError();
 }
 
 abstract class BankStatementSaver {
@@ -34,17 +40,26 @@ class BankStatementSaverImpl implements BankStatementSaver {
 
   @override
   Future<void> save(BankStatement bankStatement) async {
+    final accountNumber = normalizeAccountNumber(bankStatement.accountNumber);
+    final statement = bankStatement.accountNumber == accountNumber
+        ? bankStatement
+        : bankStatement.copyWith(accountNumber: accountNumber);
+
     final base = await ref
         .read(basesStorageProvider)
-        .findByAccount(bankStatement.accountNumber);
+        .findByAccount(accountNumber);
     if (base == null) throw BankAccountNotFoundError();
 
-    await _saveToDatabase(bankStatement, baseId: base.id);
+    if (!base.accountNumbers.contains(accountNumber)) {
+      throw BankAccountBaseMismatchError();
+    }
+
+    await _saveToDatabase(statement, baseId: base.id);
     await ref
         .read(basesStorageProvider)
         .updateAccountBankName(
-          bankStatement.accountNumber,
-          bankStatement.bankName,
+          accountNumber,
+          statement.bankName,
         );
   }
 

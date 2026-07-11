@@ -2,6 +2,7 @@ import 'package:easy_fin/data/models/back_statement.dart';
 import 'package:easy_fin/models/base.dart';
 import 'package:easy_fin/models/import_expense_review.dart';
 import 'package:easy_fin/models/import_income_review.dart';
+import 'package:easy_fin/models/renter.dart';
 import 'package:equatable/equatable.dart';
 
 sealed class ImportState extends Equatable {
@@ -32,8 +33,33 @@ final class ImportIdle extends ImportState {
   const ImportIdle();
 }
 
+enum ImportLoadingPhase {
+  readingFiles,
+  processing,
+}
+
 final class ImportLoading extends ImportState {
-  const ImportLoading();
+  const ImportLoading({
+    this.completed = 0,
+    this.total = 0,
+    this.phase = ImportLoadingPhase.processing,
+  });
+
+  final int completed;
+  final int total;
+  final ImportLoadingPhase phase;
+
+  double? get progress => total > 0 ? completed / total : null;
+
+  int get percent => progress == null ? 0 : (progress! * 100).round();
+
+  String get label => switch (phase) {
+    ImportLoadingPhase.readingFiles => 'Чтение файлов',
+    ImportLoadingPhase.processing => 'Импорт выписок',
+  };
+
+  @override
+  List<Object?> get props => [completed, total, phase];
 }
 
 final class ImportAwaitingBase extends ImportState {
@@ -131,21 +157,27 @@ final class ImportAwaitingIncomeReview extends ImportState {
   const ImportAwaitingIncomeReview({
     required this.statement,
     required this.baseId,
+    required this.baseName,
     required this.autoMatchedRenterIds,
     required this.reviewItems,
+    required this.pendingExpenseResult,
   });
 
   final BankStatement statement;
   final BaseId baseId;
+  final String baseName;
   final Map<int, String> autoMatchedRenterIds;
   final List<ImportIncomeReviewItem> reviewItems;
+  final StatementExpenseReviewResult pendingExpenseResult;
 
   @override
   List<Object?> get props => [
     statement,
     baseId,
+    baseName,
     autoMatchedRenterIds,
     reviewItems,
+    pendingExpenseResult,
   ];
 }
 
@@ -153,21 +185,27 @@ final class ImportAwaitingExpenseReview extends ImportState {
   const ImportAwaitingExpenseReview({
     required this.statement,
     required this.baseId,
+    required this.baseName,
     required this.autoMatchedCategoryIds,
     required this.reviewItems,
+    this.pendingRentersToSave = const [],
   });
 
   final BankStatement statement;
   final BaseId baseId;
+  final String baseName;
   final Map<int, int> autoMatchedCategoryIds;
   final List<ImportExpenseReviewItem> reviewItems;
+  final List<Renter> pendingRentersToSave;
 
   @override
   List<Object?> get props => [
     statement,
     baseId,
+    baseName,
     autoMatchedCategoryIds,
     reviewItems,
+    pendingRentersToSave,
   ];
 }
 

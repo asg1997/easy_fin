@@ -29,12 +29,14 @@ final class ImportExpenseReviewCancelled extends ImportExpenseReviewDialogResult
 class ImportExpenseReviewDialog extends ConsumerStatefulWidget {
   const ImportExpenseReviewDialog({
     required this.statement,
+    required this.baseName,
     required this.reviewItems,
     required this.categories,
     super.key,
   });
 
   final BankStatement statement;
+  final String baseName;
   final List<ImportExpenseReviewItem> reviewItems;
   final List<ExpenseCategory> categories;
 
@@ -181,9 +183,24 @@ class _ImportExpenseReviewDialogState
               ),
               const Gap(12),
               Text(
+                'Выписка по счёту ${widget.statement.accountNumber}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Gap(4),
+              Text(
+                'База: ${widget.baseName}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const Gap(4),
+              Text(
                 '${_dateFormat.format(widget.statement.startDate)} — '
                 '${_dateFormat.format(widget.statement.endDate)} · '
-                '${widget.statement.accountNumber} · '
                 '$_totalOperations ${_pluralPositions(_totalOperations)}',
                 style: TextStyle(
                   fontSize: 14,
@@ -420,7 +437,7 @@ class _CounterpartyCard extends StatelessWidget {
                     Text(
                       item.suggestedName.isNotEmpty
                           ? item.suggestedName
-                          : 'Контрагент',
+                          : 'Получатель',
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -428,7 +445,7 @@ class _CounterpartyCard extends StatelessWidget {
                     ),
                     const Gap(4),
                     Text(
-                      item.originalAccountNumber,
+                      'Р/с получателя: ${item.originalAccountNumber}',
                       style: TextStyle(
                         fontSize: 13,
                         color: context.appColors.secondaryText,
@@ -446,6 +463,19 @@ class _CounterpartyCard extends StatelessWidget {
               ),
             ],
           ),
+          if (item.operations.length == 1 &&
+              preview.note.trim().isNotEmpty) ...[
+            const Gap(6),
+            Text(
+              '${dateFormat.format(preview.date)} · ${preview.note}',
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13,
+                color: context.appColors.secondaryText,
+              ),
+            ),
+          ],
           if (!form.operationsExpanded && item.operations.length > 1) ...[
             const Gap(6),
             Text(

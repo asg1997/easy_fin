@@ -1,9 +1,9 @@
 import 'package:easy_fin/utils/app_colors.dart';
+import 'package:easy_fin/utils/app_shortcuts.dart';
 import 'package:easy_fin/utils/app_theme_colors.dart';
+import 'package:easy_fin/view/actions/quick_add_actions.dart';
 import 'package:easy_fin/view/controllers/import_controller.dart';
-import 'package:easy_fin/view/pages/add_expense_page.dart';
-import 'package:easy_fin/view/pages/add_income_page.dart';
-import 'package:easy_fin/view/pages/add_rent_accrual_page.dart';
+import 'package:easy_fin/view/controllers/import_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
@@ -44,8 +44,11 @@ class AddActionSpeedDial extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isImportLoading =
-        ref.watch(importControllerProvider).isImportInProgress;
+    final importState = ref.watch(importControllerProvider);
+    final isImportLoading = importState.isImportInProgress;
+    final importPercent = importState is ImportLoading && importState.total > 0
+        ? importState.percent
+        : null;
 
     return SpeedDial(
       icon: LucideIcons.plus,
@@ -63,24 +66,33 @@ class AddActionSpeedDial extends ConsumerWidget {
           backgroundColor: AppColors.green,
           foregroundColor: Colors.white,
           shape: const CircleBorder(),
-          labelWidget: _speedDialLabel(context, 'Добавить приход'),
-          onTap: () => AddIncomePage.navigate(context),
+          labelWidget: _speedDialLabel(
+            context,
+            'Добавить приход (${shortcutLabel('G')})',
+          ),
+          onTap: () => openAddIncome(context),
         ),
         SpeedDialChild(
           child: const Icon(LucideIcons.circleMinus, size: 20),
           backgroundColor: AppColors.red,
           foregroundColor: Colors.white,
           shape: const CircleBorder(),
-          labelWidget: _speedDialLabel(context, 'Добавить расход'),
-          onTap: () => AddExpensePage.navigate(context),
+          labelWidget: _speedDialLabel(
+            context,
+            'Добавить расход (${shortcutLabel('H')})',
+          ),
+          onTap: () => openAddExpense(context),
         ),
         SpeedDialChild(
           child: const Icon(LucideIcons.building2, size: 20),
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           shape: const CircleBorder(),
-          labelWidget: _speedDialLabel(context, 'Начисление по аренде'),
-          onTap: () => AddRentAccrualPage.navigate(context),
+          labelWidget: _speedDialLabel(
+            context,
+            'Начисление по аренде (${shortcutLabel('Y')})',
+          ),
+          onTap: () => openAddRentAccrual(context),
         ),
         SpeedDialChild(
           child: isImportLoading
@@ -96,11 +108,13 @@ class AddActionSpeedDial extends ConsumerWidget {
           backgroundColor: AppColors.blue,
           foregroundColor: Colors.white,
           shape: const CircleBorder(),
-          labelWidget: _speedDialLabel(context, 'Импорт'),
-          onTap: () async {
-            if (isImportLoading) return;
-            await ref.read(importControllerProvider.notifier).pickAndImport();
-          },
+          labelWidget: _speedDialLabel(
+            context,
+            importPercent != null
+                ? 'Импорт $importPercent% (${shortcutLabel('B')})'
+                : 'Импорт (${shortcutLabel('B')})',
+          ),
+          onTap: () => openImport(context, ref),
         ),
       ],
     );
