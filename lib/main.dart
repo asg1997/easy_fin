@@ -21,6 +21,7 @@ class MainApp extends ConsumerWidget {
     final themeMode = themeModeAsync.value ?? AppThemeMode.light;
 
     return MaterialApp(
+      title: 'Easy Fin',
       debugShowCheckedModeBanner: false,
       locale: const Locale('ru'),
       supportedLocales: const [
