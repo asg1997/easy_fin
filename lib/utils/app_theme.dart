@@ -38,9 +38,17 @@ ThemeData buildLightTheme() {
         borderSide: BorderSide(color: AppThemeColors.light.border),
       ),
     ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        backgroundColor: AppThemeColors.light.accent,
+        foregroundColor: AppThemeColors.light.onAccent,
+      ),
+    ),
     datePickerTheme: _buildDatePickerTheme(
       backgroundColor: Colors.white,
       weekdayColor: Colors.grey,
+      accentColor: AppThemeColors.light.accent,
+      onAccentColor: AppThemeColors.light.onAccent,
     ),
   );
 }
@@ -48,8 +56,8 @@ ThemeData buildLightTheme() {
 ThemeData buildDarkTheme() {
   const colors = AppThemeColors.dark;
   const colorScheme = ColorScheme.dark(
-    primary: Color(0xFF1F1F1F),
-    onPrimary: Color(0xFFFFFFFF),
+    primary: Color(0xFFFFFFFF),
+    onPrimary: Color(0xFF1F1F1F),
     surface: Color(0xFF2A2A2A),
     onSurface: Color(0xFFFFFFFF),
   );
@@ -74,6 +82,12 @@ ThemeData buildDarkTheme() {
         borderRadius: BorderRadius.circular(12),
       ),
     ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        backgroundColor: colors.accent,
+        foregroundColor: colors.onAccent,
+      ),
+    ),
     inputDecorationTheme: InputDecorationTheme(
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
@@ -87,6 +101,8 @@ ThemeData buildDarkTheme() {
     datePickerTheme: _buildDatePickerTheme(
       backgroundColor: colors.surface,
       weekdayColor: colors.secondaryText,
+      accentColor: colors.accent,
+      onAccentColor: colors.onAccent,
     ),
   );
 }
@@ -94,6 +110,8 @@ ThemeData buildDarkTheme() {
 DatePickerThemeData _buildDatePickerTheme({
   required Color backgroundColor,
   required Color weekdayColor,
+  required Color accentColor,
+  required Color onAccentColor,
 }) {
   return DatePickerThemeData(
     backgroundColor: backgroundColor,
@@ -110,24 +128,24 @@ DatePickerThemeData _buildDatePickerTheme({
       borderRadius: BorderRadius.circular(12),
     ),
     cancelButtonStyle: TextButton.styleFrom(
-      foregroundColor: AppColors.primary,
+      foregroundColor: accentColor,
     ),
     confirmButtonStyle: TextButton.styleFrom(
-      foregroundColor: AppColors.primary,
+      foregroundColor: accentColor,
     ),
-    todayForegroundColor: WidgetStateProperty.all(AppColors.primary),
+    todayForegroundColor: WidgetStateProperty.all(accentColor),
     todayBackgroundColor: WidgetStateProperty.all(
-      AppColors.primary.withValues(alpha: 0.12),
+      accentColor.withValues(alpha: 0.12),
     ),
     dayForegroundColor: WidgetStateProperty.resolveWith((states) {
       if (states.contains(WidgetState.selected)) {
-        return Colors.white;
+        return onAccentColor;
       }
       return null;
     }),
     dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
       if (states.contains(WidgetState.selected)) {
-        return AppColors.primary;
+        return accentColor;
       }
       return null;
     }),

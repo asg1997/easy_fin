@@ -1,4 +1,3 @@
-import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
@@ -83,15 +82,15 @@ class ConfirmDialog extends StatelessWidget {
                     onPressed: () => Navigator.of(context).pop(true),
                     height: 40,
                     minWidth: 110,
-                    color: AppColors.primary,
+                    color: colors.accent,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       confirmLabel,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: colors.onAccent,
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),

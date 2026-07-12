@@ -17,6 +17,7 @@ import 'package:easy_fin/view/providers/documents_list_provider.dart';
 import 'package:easy_fin/view/providers/github_sync_provider.dart';
 import 'package:easy_fin/view/providers/renter_debts_provider.dart';
 import 'package:easy_fin/view/widgets/confirm_dialog.dart';
+import 'package:easy_fin/view/widgets/edit_bank_operation_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -386,6 +387,13 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
                                                 documentId:
                                                     item.expenseDocumentId,
                                               )
+                                            : item.isBankOperation
+                                            ? () =>
+                                                  EditBankOperationDialog.show(
+                                                    context,
+                                                    operationId:
+                                                        item.operationId!,
+                                                  )
                                             : null,
                                       );
                                     },
@@ -668,16 +676,16 @@ class _DocumentsTableRow extends StatelessWidget {
 class _DocumentsTableLayout {
   static const Map<DocumentsTableColumn, int> flexByColumn = {
     DocumentsTableColumn.date: 2,
-    DocumentsTableColumn.bankCash: 2,
-    DocumentsTableColumn.base: 3,
+    DocumentsTableColumn.bankCash: 3,
+    DocumentsTableColumn.base: 2,
     DocumentsTableColumn.amount: 2,
     DocumentsTableColumn.description: 4,
   };
 
   static const Map<DocumentsTableColumn, double> minWidthByColumn = {
     DocumentsTableColumn.date: 96,
-    DocumentsTableColumn.bankCash: 110,
-    DocumentsTableColumn.base: 120,
+    DocumentsTableColumn.bankCash: 160,
+    DocumentsTableColumn.base: 90,
     DocumentsTableColumn.amount: 130,
     DocumentsTableColumn.description: 200,
   };

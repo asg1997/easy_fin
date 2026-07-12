@@ -1,5 +1,4 @@
 import 'package:easy_fin/models/base.dart';
-import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:flutter/material.dart';
@@ -47,9 +46,9 @@ class _ImportBaseCreationDialogState extends State<ImportBaseCreationDialog> {
         borderRadius: const BorderRadius.all(Radius.circular(10)),
         borderSide: BorderSide(color: colors.border),
       ),
-      focusedBorder: const OutlineInputBorder(
-        borderRadius: BorderRadius.all(Radius.circular(10)),
-        borderSide: BorderSide(color: AppColors.primary),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: const BorderRadius.all(Radius.circular(10)),
+        borderSide: BorderSide(color: colors.accent),
       ),
     );
   }
@@ -185,16 +184,17 @@ class _ImportBaseCreationDialogState extends State<ImportBaseCreationDialog> {
                     onPressed: _canContinue ? _onContinue : null,
                     height: 40,
                     minWidth: 110,
-                    color: AppColors.primary,
-                    disabledColor: AppColors.primary.withValues(alpha: 0.35),
+                    color: context.appColors.accent,
+                    disabledColor:
+                        context.appColors.accent.withValues(alpha: 0.35),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Продолжить',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: context.appColors.onAccent,
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),

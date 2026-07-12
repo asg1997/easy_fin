@@ -3,7 +3,6 @@ import 'package:easy_fin/data/models/back_statement.dart';
 import 'package:easy_fin/models/expense_category.dart';
 import 'package:easy_fin/models/import_expense_review.dart';
 import 'package:easy_fin/models/import_income_review.dart';
-import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/widgets/dropdown_widget.dart';
@@ -66,9 +65,9 @@ class _ImportExpenseReviewDialogState
       borderRadius: const BorderRadius.all(Radius.circular(10)),
       borderSide: BorderSide(color: colors.border),
     ),
-    focusedBorder: const OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(10)),
-      borderSide: BorderSide(color: AppColors.primary),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: const BorderRadius.all(Radius.circular(10)),
+      borderSide: BorderSide(color: colors.accent),
     ),
   );
   }
@@ -276,25 +275,26 @@ class _ImportExpenseReviewDialogState
                     onPressed: _isSaving ? null : _onContinue,
                     height: 40,
                     minWidth: 150,
-                    color: AppColors.primary,
-                    disabledColor: AppColors.primary.withValues(alpha: 0.35),
+                    color: context.appColors.accent,
+                    disabledColor:
+                        context.appColors.accent.withValues(alpha: 0.35),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: _isSaving
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 18,
                             height: 18,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.white,
+                              color: context.appColors.onAccent,
                             ),
                           )
-                        : const Text(
+                        : Text(
                             'Продолжить импорт',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: context.appColors.onAccent,
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                             ),

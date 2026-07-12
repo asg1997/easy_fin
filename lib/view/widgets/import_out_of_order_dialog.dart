@@ -1,4 +1,3 @@
-import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
@@ -130,15 +129,15 @@ class ImportOutOfOrderDialog extends StatelessWidget {
                     ),
                     height: 40,
                     minWidth: 110,
-                    color: AppColors.primary,
+                    color: context.appColors.accent,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Импортировать',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: context.appColors.onAccent,
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),

@@ -12,6 +12,7 @@ class AppThemeColors extends ThemeExtension<AppThemeColors> {
     required this.navActiveText,
     required this.tableRowDivider,
     required this.accent,
+    required this.onAccent,
   });
 
   final Color sidebarBackground;
@@ -22,7 +23,10 @@ class AppThemeColors extends ThemeExtension<AppThemeColors> {
   final Color navActiveBackground;
   final Color navActiveText;
   final Color tableRowDivider;
+  /// Primary action button fill (dark in light theme, light in dark theme).
   final Color accent;
+  /// Text/icon color on [accent] buttons.
+  final Color onAccent;
 
   static const light = AppThemeColors(
     sidebarBackground: Color(0xFFFFFFFF),
@@ -34,6 +38,7 @@ class AppThemeColors extends ThemeExtension<AppThemeColors> {
     navActiveText: Color(0xFF1F1F1F),
     tableRowDivider: Color(0xFFF0F0F0),
     accent: Color(0xFF1F1F1F),
+    onAccent: Color(0xFFFFFFFF),
   );
 
   static const dark = AppThemeColors(
@@ -45,7 +50,8 @@ class AppThemeColors extends ThemeExtension<AppThemeColors> {
     navActiveBackground: Color(0xFF3A3A3A),
     navActiveText: Color(0xFFFFFFFF),
     tableRowDivider: Color(0xFF333333),
-    accent: Color(0xFF1F1F1F),
+    accent: Color(0xFFFFFFFF),
+    onAccent: Color(0xFF1F1F1F),
   );
 
   @override
@@ -59,6 +65,7 @@ class AppThemeColors extends ThemeExtension<AppThemeColors> {
     Color? navActiveText,
     Color? tableRowDivider,
     Color? accent,
+    Color? onAccent,
   }) {
     return AppThemeColors(
       sidebarBackground: sidebarBackground ?? this.sidebarBackground,
@@ -70,6 +77,7 @@ class AppThemeColors extends ThemeExtension<AppThemeColors> {
       navActiveText: navActiveText ?? this.navActiveText,
       tableRowDivider: tableRowDivider ?? this.tableRowDivider,
       accent: accent ?? this.accent,
+      onAccent: onAccent ?? this.onAccent,
     );
   }
 
@@ -88,6 +96,7 @@ class AppThemeColors extends ThemeExtension<AppThemeColors> {
       navActiveText: Color.lerp(navActiveText, other.navActiveText, t)!,
       tableRowDivider: Color.lerp(tableRowDivider, other.tableRowDivider, t)!,
       accent: Color.lerp(accent, other.accent, t)!,
+      onAccent: Color.lerp(onAccent, other.onAccent, t)!,
     );
   }
 }

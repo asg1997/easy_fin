@@ -34,6 +34,19 @@ abstract class BankStatementStorage {
     DateTime endDate,
   );
   Future<void> deleteOperation(int operationId);
+
+  Future<BankStatementOperation?> getOperation(int operationId);
+
+  /// Returns operation with its statement base id, or null if not found.
+  Future<({BankStatementOperation operation, String baseId})?>
+      getOperationWithBase(int operationId);
+
+  Future<void> updateOperationClassification({
+    required int operationId,
+    String? renterId,
+    int? incomeCategoryId,
+    int? expenseCategoryId,
+  });
 }
 
 class BankStatementStorageImpl implements BankStatementStorage {
@@ -242,5 +255,50 @@ class BankStatementStorageImpl implements BankStatementStorage {
             .go();
       }
     });
+  }
+
+  @override
+  Future<BankStatementOperation?> getOperation(int operationId) async {
+    final details = await getOperationWithBase(operationId);
+    return details?.operation;
+  }
+
+  @override
+  Future<({BankStatementOperation operation, String baseId})?>
+      getOperationWithBase(int operationId) async {
+    final db = ref.read(appDatabaseProvider);
+    final row = await (db.select(db.bankStatementOperations)
+          ..where((table) => table.id.equals(operationId)))
+        .getSingleOrNull();
+    if (row == null) return null;
+
+    final statement = await (db.select(db.bankStatements)
+          ..where((table) => table.id.equals(row.statementId)))
+        .getSingleOrNull();
+    if (statement == null) return null;
+
+    return (operation: row.toDomain(), baseId: statement.baseId);
+  }
+
+  @override
+  Future<void> updateOperationClassification({
+    required int operationId,
+    String? renterId,
+    int? incomeCategoryId,
+    int? expenseCategoryId,
+  }) async {
+    final db = ref.read(appDatabaseProvider);
+    final updated = await (db.update(db.bankStatementOperations)
+          ..where((table) => table.id.equals(operationId)))
+        .write(
+          BankStatementOperationsCompanion(
+            renterId: Value(renterId),
+            incomeCategoryId: Value(incomeCategoryId),
+            expenseCategoryId: Value(expenseCategoryId),
+          ),
+        );
+    if (updated == 0) {
+      throw StateError('Operation $operationId not found');
+    }
   }
 }

@@ -45,9 +45,9 @@ class _AddRenterDialogState extends State<AddRenterDialog> {
       borderRadius: const BorderRadius.all(Radius.circular(10)),
       borderSide: BorderSide(color: colors.border),
     ),
-    focusedBorder: const OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(10)),
-      borderSide: BorderSide(color: AppColors.primary),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: const BorderRadius.all(Radius.circular(10)),
+      borderSide: BorderSide(color: colors.accent),
     ),
   );
   }
@@ -289,16 +289,17 @@ class _AddRenterDialogState extends State<AddRenterDialog> {
                     onPressed: _canSave ? _onSave : null,
                     height: 40,
                     minWidth: 110,
-                    color: AppColors.primary,
-                    disabledColor: AppColors.primary.withValues(alpha: 0.35),
+                    color: context.appColors.accent,
+                    disabledColor:
+                        context.appColors.accent.withValues(alpha: 0.35),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Добавить',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: context.appColors.onAccent,
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),

@@ -50,4 +50,6 @@ class DocumentsTableItem {
 
   bool get isManualExpenseDocument =>
       documentType == DocumentType.outcome && expenseDocumentId != null;
+
+  bool get isBankOperation => operationId != null;
 }
