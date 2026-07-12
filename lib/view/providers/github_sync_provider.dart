@@ -12,6 +12,7 @@ import 'package:easy_fin/view/providers/renter_debts_by_base_provider.dart';
 import 'package:easy_fin/view/providers/renter_debts_monthly_provider.dart';
 import 'package:easy_fin/view/providers/renter_debts_provider.dart';
 import 'package:easy_fin/view/providers/renters_list_provider.dart';
+import 'package:easy_fin/view/providers/report_template_results_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -182,6 +183,7 @@ class GithubSyncNotifier extends Notifier<GithubSyncState> {
       ..invalidate(renterDebtsProvider)
       ..invalidate(renterDebtsMonthlyProvider)
       ..invalidate(renterDebtsByBaseProvider)
+      ..invalidate(reportTemplateResultsProvider)
       ..invalidate(githubSyncDirtyProvider);
   }
 }

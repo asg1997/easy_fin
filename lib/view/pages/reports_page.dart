@@ -2,21 +2,23 @@ import 'package:easy_fin/models/base.dart';
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:easy_fin/utils/app_theme_colors.dart';
+import 'package:easy_fin/view/pages/expense_categories_report_page.dart';
+import 'package:easy_fin/view/pages/renter_debts_report_page.dart';
 import 'package:easy_fin/view/providers/account_balances_provider.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/providers/expense_categories_report_filters_provider.dart';
 import 'package:easy_fin/view/providers/expense_categories_report_provider.dart';
 import 'package:easy_fin/view/providers/renter_debts_provider.dart';
 import 'package:easy_fin/view/providers/renter_debts_summary_filters_provider.dart';
+import 'package:easy_fin/view/providers/report_templates_provider.dart';
 import 'package:easy_fin/view/widgets/account_balances_table.dart';
 import 'package:easy_fin/view/widgets/dropdown_widget.dart';
-import 'package:easy_fin/view/pages/expense_categories_report_page.dart';
-import 'package:easy_fin/view/pages/renter_debts_report_page.dart';
 import 'package:easy_fin/view/widgets/expense_categories_table.dart';
 import 'package:easy_fin/view/widgets/month_navigator_field.dart';
 import 'package:easy_fin/view/widgets/renter_debts_base_filter_dropdown.dart';
 import 'package:easy_fin/view/widgets/renter_debts_table.dart';
 import 'package:easy_fin/view/widgets/report_table_theme.dart';
+import 'package:easy_fin/view/widgets/report_template_section.dart';
 import 'package:easy_fin/view/widgets/template_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -39,6 +41,7 @@ class ReportsPage extends ConsumerWidget {
     final expenseReportAsync = ref.watch(expenseCategoriesReportProvider);
     final expenseFiltersNotifier =
         ref.read(expenseCategoriesReportFiltersProvider.notifier);
+    final templatesAsync = ref.watch(reportTemplatesProvider);
 
     void ensureBaseSelected(List<Base> bases) {
       if (bases.isEmpty) return;
@@ -232,6 +235,15 @@ class ReportsPage extends ConsumerWidget {
                   ),
                 ],
               ),
+            ),
+            ...templatesAsync.maybeWhen(
+              data: (templates) => [
+                for (final template in templates) ...[
+                  const ReportTableSectionDivider(),
+                  ReportTemplateSection(template: template),
+                ],
+              ],
+              orElse: () => const <Widget>[],
             ),
             const Gap(20),
           ],

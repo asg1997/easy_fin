@@ -6,6 +6,7 @@ import 'package:easy_fin/view/pages/expense_categories_page.dart';
 import 'package:easy_fin/view/pages/github_sync_settings_page.dart';
 import 'package:easy_fin/view/pages/income_categories_page.dart';
 import 'package:easy_fin/view/pages/renters_page.dart';
+import 'package:easy_fin/view/pages/report_templates_page.dart';
 import 'package:easy_fin/view/widgets/template_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,6 +27,13 @@ class SettingsPage extends ConsumerWidget {
             subtitle: 'GitHub — резервная копия данных',
             icon: LucideIcons.cloud,
             onTap: () => GithubSyncSettingsPage.navigate(context),
+          ),
+          const Gap(12),
+          _SettingsTile(
+            title: 'Шаблоны отчётов',
+            subtitle: 'Конструктор таблиц прихода и расхода',
+            icon: LucideIcons.columns3,
+            onTap: () => ReportTemplatesPage.navigate(context),
           ),
           const Gap(12),
           _SettingsTile(
