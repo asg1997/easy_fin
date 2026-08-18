@@ -18,7 +18,8 @@ import 'package:easy_fin/view/widgets/template_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:intl/intl.dart';
+import 'package:lucide_flutter/lucide_flutter.dart';
 
 class RentersPage extends ConsumerStatefulWidget {
   const RentersPage({super.key});
@@ -156,15 +157,74 @@ class _RentersPageState extends ConsumerState<RentersPage> {
       ref.invalidate(rentersListProvider);
       ref.invalidate(renterDebtsProvider);
       ref.invalidate(githubSyncDirtyProvider);
-    } on RenterInUseError {
+    } on RenterInUseError catch (error) {
       if (!mounted) return;
-      await _showError(
-        'Арендатор используется в документах. Архивируйте его вместо удаления.',
-      );
+      await _showRenterInUseError(error);
     } on RenterNotFoundError {
       if (!mounted) return;
       await _showError('Арендатор не найден');
     }
+  }
+
+  Future<void> _showRenterInUseError(RenterInUseError error) async {
+    final dateFormat = DateFormat('dd.MM.yyyy', 'ru');
+    final amountFormat = NumberFormat('#,##0.00', 'ru');
+    final documents = error.documents.take(20).toList();
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Нельзя удалить арендатора'),
+        content: SizedBox(
+          width: 480,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(error.message),
+              if (documents.isNotEmpty) ...[
+                const Gap(16),
+                const Text(
+                  'Связанные документы:',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const Gap(8),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 240),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: documents.length,
+                    separatorBuilder: (_, _) => const Divider(height: 12),
+                    itemBuilder: (context, index) {
+                      final document = documents[index];
+                      return Text(
+                        '${dateFormat.format(document.date)} · '
+                        '${document.kindLabel} · '
+                        '${document.accountLabel} · '
+                        '${amountFormat.format(document.amount)} ₽',
+                      );
+                    },
+                  ),
+                ),
+                if (error.documents.length > documents.length)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      'и ещё ${error.documents.length - documents.length}',
+                    ),
+                  ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _showError(String message) async {

@@ -5,6 +5,7 @@ import 'package:easy_fin/drift/mappers/renter_mapper.dart';
 import 'package:easy_fin/models/base.dart';
 import 'package:easy_fin/models/renter.dart';
 import 'package:easy_fin/utils/account_number_validator.dart';
+import 'package:easy_fin/utils/money.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final rentersStorageProvider = Provider<RentersStorage>(
@@ -32,7 +33,51 @@ class InvalidRenterAccountNumberError extends RentersStorageError {
 }
 
 class RenterInUseError extends RentersStorageError {
-  const RenterInUseError();
+  const RenterInUseError({
+    this.bankOperationsCount = 0,
+    this.incomeLinesCount = 0,
+    this.assignmentsCount = 0,
+    this.documents = const [],
+  });
+
+  final int bankOperationsCount;
+  final int incomeLinesCount;
+  final int assignmentsCount;
+  final List<RenterUsageDocument> documents;
+
+  String get message {
+    final parts = <String>[];
+    if (bankOperationsCount > 0) {
+      parts.add('операций выписки: $bankOperationsCount');
+    }
+    if (incomeLinesCount > 0) {
+      parts.add('строк прихода: $incomeLinesCount');
+    }
+    if (assignmentsCount > 0) {
+      parts.add('начислений: $assignmentsCount');
+    }
+
+    final details = parts.isEmpty ? 'связанные документы' : parts.join(', ');
+    return 'Арендатор используется ($details). '
+        'Архивируйте его вместо удаления или удалите связанные записи '
+        'в разделе «Документы». '
+        'Сбросьте фильтры даты и «Касса/Банк», либо выберите этого '
+        'арендатора в фильтре документов.';
+  }
+}
+
+class RenterUsageDocument {
+  const RenterUsageDocument({
+    required this.date,
+    required this.kindLabel,
+    required this.accountLabel,
+    required this.amount,
+  });
+
+  final DateTime date;
+  final String kindLabel;
+  final String accountLabel;
+  final double amount;
 }
 
 class RenterNotFoundError extends RentersStorageError {
@@ -187,8 +232,14 @@ class RentersStorageImpl implements RentersStorage {
 
   @override
   Future<void> delete(RenterId id) async {
-    if (await isUsed(id)) {
-      throw const RenterInUseError();
+    final usage = await _usageCounts(id);
+    if (usage.isUsed) {
+      throw RenterInUseError(
+        bankOperationsCount: usage.bankOperationsCount,
+        incomeLinesCount: usage.incomeLinesCount,
+        assignmentsCount: usage.assignmentsCount,
+        documents: usage.documents,
+      );
     }
 
     final db = ref.read(appDatabaseProvider);
@@ -203,26 +254,92 @@ class RentersStorageImpl implements RentersStorage {
 
   @override
   Future<bool> isUsed(RenterId id) async {
+    return (await _usageCounts(id)).isUsed;
+  }
+
+  Future<
+      ({
+        bool isUsed,
+        int bankOperationsCount,
+        int incomeLinesCount,
+        int assignmentsCount,
+        List<RenterUsageDocument> documents,
+      })> _usageCounts(RenterId id) async {
     final db = ref.read(appDatabaseProvider);
+    final documents = <RenterUsageDocument>[];
 
-    final incomeLine = await (db.select(db.incomeLines)
-          ..where((table) => table.renterId.equals(id))
-          ..limit(1))
-        .getSingleOrNull();
-    if (incomeLine != null) return true;
+    final incomeRows = await (db.select(db.incomeLines).join([
+          innerJoin(
+            db.incomeDocuments,
+            db.incomeDocuments.id.equalsExp(db.incomeLines.documentId),
+          ),
+        ])
+          ..where(db.incomeLines.renterId.equals(id)))
+        .get();
+    for (final row in incomeRows) {
+      final line = row.readTable(db.incomeLines);
+      final header = row.readTable(db.incomeDocuments);
+      documents.add(
+        RenterUsageDocument(
+          date: header.date,
+          kindLabel: 'Приход',
+          accountLabel: header.accountType == 'cash'
+              ? 'Касса'
+              : header.accountRef,
+          amount: moneyFromMinor(line.amountMinor),
+        ),
+      );
+    }
 
-    final operation = await (db.select(db.bankStatementOperations)
-          ..where((table) => table.renterId.equals(id))
-          ..limit(1))
-        .getSingleOrNull();
-    if (operation != null) return true;
+    final operationRows = await (db.select(db.bankStatementOperations).join([
+          innerJoin(
+            db.bankStatements,
+            db.bankStatements.id.equalsExp(
+              db.bankStatementOperations.statementId,
+            ),
+          ),
+        ])
+          ..where(db.bankStatementOperations.renterId.equals(id)))
+        .get();
+    for (final row in operationRows) {
+      final operation = row.readTable(db.bankStatementOperations);
+      final statement = row.readTable(db.bankStatements);
+      final isIncome = operation.creditMinor != null;
+      documents.add(
+        RenterUsageDocument(
+          date: operation.date,
+          kindLabel: isIncome ? 'Приход (выписка)' : 'Расход (выписка)',
+          accountLabel: statement.accountNumber,
+          amount: moneyFromMinor(
+            operation.creditMinor ?? operation.debitMinor ?? 0,
+          ),
+        ),
+      );
+    }
 
-    final assignment = await (db.select(db.renterAssignments)
-          ..where((table) => table.renterId.equals(id))
-          ..limit(1))
-        .getSingleOrNull();
+    final assignmentRows = await (db.select(db.renterAssignments)
+          ..where((table) => table.renterId.equals(id)))
+        .get();
+    for (final row in assignmentRows) {
+      documents.add(
+        RenterUsageDocument(
+          date: row.date,
+          kindLabel: 'Начисление',
+          accountLabel: 'Аренда',
+          amount: moneyFromMinor(row.amountMinor),
+        ),
+      );
+    }
 
-    return assignment != null;
+    documents.sort((a, b) => b.date.compareTo(a.date));
+
+    return (
+      isUsed: documents.isNotEmpty,
+      bankOperationsCount: operationRows.length,
+      incomeLinesCount: incomeRows.length,
+      assignmentsCount: assignmentRows.length,
+      documents: documents,
+    );
   }
 
   @override

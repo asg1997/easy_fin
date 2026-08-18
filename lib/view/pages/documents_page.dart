@@ -117,8 +117,8 @@ class _DocumentTypeTabBar extends StatelessWidget {
     required this.onChanged,
   });
 
-  final DocumentType selectedType;
-  final ValueChanged<DocumentType> onChanged;
+  final DocumentType? selectedType;
+  final ValueChanged<DocumentType?> onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -132,6 +132,11 @@ class _DocumentTypeTabBar extends StatelessWidget {
       ),
       child: Row(
         children: [
+          _DocumentTypeTab(
+            label: 'Все',
+            isSelected: selectedType == null,
+            onTap: () => onChanged(null),
+          ),
           for (final type in DocumentType.tabOrder)
             _DocumentTypeTab(
               label: type.tabLabel,

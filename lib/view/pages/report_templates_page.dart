@@ -9,7 +9,7 @@ import 'package:easy_fin/view/widgets/template_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:lucide_flutter/lucide_flutter.dart';
 
 class ReportTemplatesPage extends ConsumerWidget {
   const ReportTemplatesPage({super.key});

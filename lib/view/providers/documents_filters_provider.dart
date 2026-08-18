@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class DocumentsFilters extends Equatable {
   const DocumentsFilters({
-    this.documentTypes = const {DocumentType.outcome},
+    this.documentTypes = const {},
     this.selectedBases = const {},
     this.accountFilters = const {},
     this.startDate,
@@ -20,8 +20,9 @@ class DocumentsFilters extends Equatable {
   final DateTime? startDate;
   final DateTime? endDate;
 
-  DocumentType get documentType =>
-      documentTypes.isEmpty ? DocumentType.outcome : documentTypes.first;
+  /// `null` means all document types.
+  DocumentType? get documentType =>
+      documentTypes.isEmpty ? null : documentTypes.first;
 
   DocumentsFilters copyWith({
     Set<DocumentType>? documentTypes,
@@ -43,8 +44,8 @@ class DocumentsFilters extends Equatable {
 
   GetStatementsFilters toGetStatementsFilters() {
     return GetStatementsFilters(
-      startDate: startDate,
-      endDate: endDate,
+      startDate: _startOfDay(startDate),
+      endDate: _endOfDay(endDate),
       accountFilterTypes: accountFilters.isEmpty
           ? null
           : accountFilters.toList(),
@@ -65,6 +66,16 @@ class DocumentsFilters extends Equatable {
   ];
 }
 
+DateTime? _startOfDay(DateTime? date) {
+  if (date == null) return null;
+  return DateTime(date.year, date.month, date.day);
+}
+
+DateTime? _endOfDay(DateTime? date) {
+  if (date == null) return null;
+  return DateTime(date.year, date.month, date.day, 23, 59, 59, 999);
+}
+
 final documentsFiltersProvider =
     NotifierProvider<DocumentsFiltersNotifier, DocumentsFilters>(
       DocumentsFiltersNotifier.new,
@@ -78,8 +89,10 @@ class DocumentsFiltersNotifier extends Notifier<DocumentsFilters> {
     state = state.copyWith(documentTypes: documentTypes);
   }
 
-  void setDocumentType(DocumentType documentType) {
-    state = state.copyWith(documentTypes: {documentType});
+  void setDocumentType(DocumentType? documentType) {
+    state = state.copyWith(
+      documentTypes: documentType == null ? {} : {documentType},
+    );
   }
 
   void setSelectedBases(Set<Base> selectedBases) {

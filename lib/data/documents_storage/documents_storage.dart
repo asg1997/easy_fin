@@ -109,6 +109,13 @@ class DocumentsStorageImpl implements DocumentsStorage {
           0,
           (sum, assignment) => sum + assignment.sum,
         );
+        final renterNames = group
+            .map(
+              (assignment) =>
+                  renterNameById[assignment.renterId] ?? 'Арендатор',
+            )
+            .toSet()
+            .join(', ');
 
         items.add(
           DocumentsTableItem(
@@ -118,7 +125,7 @@ class DocumentsStorageImpl implements DocumentsStorage {
             accountType: 'Аренда',
             baseName: baseNameById[first.baseId] ?? '',
             amount: totalAmount,
-            note: '',
+            note: renterNames,
           ),
         );
       }

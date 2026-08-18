@@ -21,7 +21,7 @@ import 'package:easy_fin/view/widgets/edit_bank_operation_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:lucide_flutter/lucide_flutter.dart';
 
 enum DocumentsTableColumn {
   date,
@@ -101,8 +101,12 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
         .toStringAsFixed(2)
         .replaceAll(RegExp(r'[\s,]'), '');
 
-    return formattedAmount.contains(normalizedQuery) ||
-        rawAmount.contains(normalizedQuery);
+    if (formattedAmount.contains(normalizedQuery) ||
+        rawAmount.contains(normalizedQuery)) {
+      return true;
+    }
+
+    return item.note.toLowerCase().contains(query.toLowerCase());
   }
 
   List<DocumentsTableItem> get _filteredItems {

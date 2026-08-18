@@ -95,6 +95,9 @@ class _EditBankOperationDialogState
     final baseId = details.baseId;
 
     final renters = await ref.read(rentersStorageProvider).getByBase(baseId);
+    final archivedRenters =
+        await ref.read(rentersStorageProvider).getArchivedByBase(baseId);
+    final rentersForPicker = [...renters];
     final incomeCategories =
         await ref.read(incomeCategoriesStorageProvider).getActive();
     final expenseCategories =
@@ -108,9 +111,17 @@ class _EditBankOperationDialogState
 
     if (operation.renterId != null) {
       incomeClassification = _IncomeClassification.renter;
-      selectedRenter = renters
+      selectedRenter = rentersForPicker
           .where((renter) => renter.id == operation.renterId)
           .firstOrNull;
+      if (selectedRenter == null) {
+        selectedRenter = archivedRenters
+            .where((renter) => renter.id == operation.renterId)
+            .firstOrNull;
+        if (selectedRenter != null) {
+          rentersForPicker.add(selectedRenter);
+        }
+      }
     } else if (operation.incomeCategoryId != null) {
       incomeClassification = _IncomeClassification.category;
       selectedIncomeCategory = incomeCategories
@@ -148,7 +159,7 @@ class _EditBankOperationDialogState
 
     setState(() {
       _operation = operation;
-      _renters = renters;
+      _renters = rentersForPicker;
       _incomeCategories = incomeCategories;
       _expenseCategories = expenseCategories;
       _incomeClassification = incomeClassification;

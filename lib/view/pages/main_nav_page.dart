@@ -15,7 +15,7 @@ import 'package:easy_fin/view/widgets/import_state_listener.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:lucide_flutter/lucide_flutter.dart';
 
 /// Главная страница навигации
 class MainNavPage extends ConsumerStatefulWidget {

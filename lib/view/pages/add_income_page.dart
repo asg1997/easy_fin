@@ -28,7 +28,7 @@ import 'package:easy_fin/view/widgets/template_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:lucide_flutter/lucide_flutter.dart';
 
 class _RenterRow {
   const _RenterRow({
@@ -216,7 +216,12 @@ class _AddIncomePageState extends ConsumerState<AddIncomePage> {
     final renters = base == null
         ? <Renter>[]
         : await ref.read(rentersStorageProvider).getByBase(base.id);
-    final renterById = {for (final renter in renters) renter.id: renter};
+    final archivedRenters = base == null
+        ? <Renter>[]
+        : await ref.read(rentersStorageProvider).getArchivedByBase(base.id);
+    final renterById = {
+      for (final renter in [...renters, ...archivedRenters]) renter.id: renter,
+    };
     final categories = await ref.read(incomeCategoriesStorageProvider).getAll();
     final categoryById = {
       for (final category in categories) category.id: category,

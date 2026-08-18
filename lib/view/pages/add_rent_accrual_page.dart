@@ -24,7 +24,7 @@ import 'package:easy_fin/view/widgets/template_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:lucide_flutter/lucide_flutter.dart';
 
 class _RenterRow {
   const _RenterRow({
@@ -190,7 +190,11 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
     }
 
     final renters = await ref.read(rentersStorageProvider).getByBase(baseId);
-    final renterById = {for (final renter in renters) renter.id: renter};
+    final archivedRenters =
+        await ref.read(rentersStorageProvider).getArchivedByBase(baseId);
+    final renterById = {
+      for (final renter in [...renters, ...archivedRenters]) renter.id: renter,
+    };
 
     _clearAccruals();
 
@@ -226,7 +230,11 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
     if (!mounted) return;
 
     final renters = await ref.read(rentersStorageProvider).getByBase(baseId);
-    final renterById = {for (final renter in renters) renter.id: renter};
+    final archivedRenters =
+        await ref.read(rentersStorageProvider).getArchivedByBase(baseId);
+    final renterById = {
+      for (final renter in [...renters, ...archivedRenters]) renter.id: renter,
+    };
 
     _clearAccruals();
 

@@ -9,3 +9,14 @@
   какой-то период, чтобы она висела. 
     То есть в коде ничего не надо делать.
 
+-------
+Обновление:
+1. Повысить версию 
+version: 0.1.0+1
+
+2. Собрать релиз
+cd "/Users/maksim/Desktop/разработка/easy_fin/easy_fin"
+flutter build macos --release
+
+3. Обновить (закрыв программу)
+cp -R "/Users/maksim/Desktop/разработка/easy_fin/easy_fin/build/macos/Build/Products/Release/Easy Fin.app" /Applications/

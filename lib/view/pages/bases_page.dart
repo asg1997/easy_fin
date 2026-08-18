@@ -11,7 +11,7 @@ import 'package:easy_fin/view/widgets/simple_table.dart';
 import 'package:easy_fin/view/widgets/template_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:lucide_flutter/lucide_flutter.dart';
 import 'package:easy_fin/utils/app_theme_colors.dart';
 
 class BasesPage extends ConsumerWidget {

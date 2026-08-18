@@ -6,7 +6,7 @@ import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/widgets/confirm_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:lucide_flutter/lucide_flutter.dart';
 
 sealed class EditRenterDialogOutcome {
   const EditRenterDialogOutcome();
