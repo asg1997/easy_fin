@@ -37,7 +37,7 @@ part 'app_database.g.dart';
   ],
 )
 class AppDatabase extends _$AppDatabase {
-  static const int currentSchemaVersion = 14;
+  static const int currentSchemaVersion = 15;
 
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
@@ -138,6 +138,9 @@ class AppDatabase extends _$AppDatabase {
       if (from < 14) {
         await migrator.createTable(expenseDocuments);
         await migrator.createTable(expenseLines);
+      }
+      if (from < 15) {
+        await _migrateToV15(migrator);
       }
     },
   );
@@ -306,6 +309,36 @@ Future<void> _migrateToV2(Migrator migrator) async {
       CREATE INDEX IF NOT EXISTS bank_statements_base_start_date
       ON bank_statements (base_id, start_date)
     ''');
+
+    await db.customStatement('PRAGMA foreign_keys = ON');
+  });
+}
+
+Future<void> _migrateToV15(Migrator migrator) async {
+  final db = migrator.database;
+
+  await db.transaction(() async {
+    await db.customStatement('PRAGMA foreign_keys = OFF');
+
+    await db.customStatement('''
+      CREATE TABLE renter_account_numbers_new (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        renter_id TEXT NOT NULL REFERENCES renters (id) ON DELETE CASCADE,
+        account_number TEXT NOT NULL,
+        UNIQUE (renter_id, account_number)
+      )
+    ''');
+
+    await db.customStatement('''
+      INSERT INTO renter_account_numbers_new (id, renter_id, account_number)
+      SELECT id, renter_id, account_number
+      FROM renter_account_numbers
+    ''');
+
+    await db.customStatement('DROP TABLE renter_account_numbers');
+    await db.customStatement(
+      'ALTER TABLE renter_account_numbers_new RENAME TO renter_account_numbers',
+    );
 
     await db.customStatement('PRAGMA foreign_keys = ON');
   });

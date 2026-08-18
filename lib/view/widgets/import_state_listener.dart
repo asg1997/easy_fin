@@ -299,9 +299,8 @@ class _ImportStateListenerState extends ConsumerState<ImportStateListener> {
     final renters = await ref
         .read(rentersStorageProvider)
         .getByBase(currentState.baseId);
-    final allRenters = await ref.read(rentersStorageProvider).getAll();
     final accountOwnerNames = <String, String>{
-      for (final renter in allRenters)
+      for (final renter in renters)
         for (final account in renter.accountNumbers) account: renter.name,
     };
     final categories = await ref.read(incomeCategoriesStorageProvider).getActive();

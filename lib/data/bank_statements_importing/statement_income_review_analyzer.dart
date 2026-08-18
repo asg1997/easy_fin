@@ -48,9 +48,12 @@ class StatementIncomeReviewAnalyzer {
     for (final entry in pendingByAccount.entries) {
       final accountNumber = entry.key;
       final operations = entry.value;
-      final renter = await _rentersStorage.findByAccount(accountNumber);
+      final renter = await _rentersStorage.findByAccount(
+        accountNumber,
+        baseId: baseId,
+      );
 
-      if (renter != null && renter.baseId == baseId) {
+      if (renter != null) {
         for (final pending in operations) {
           autoMatchedRenterIds[pending.index] = renter.id;
         }

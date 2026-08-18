@@ -2844,7 +2844,6 @@ class $RenterAccountNumbersTable extends RenterAccountNumbers
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
   );
   @override
   List<GeneratedColumn> get $columns => [id, renterId, accountNumber];
@@ -2887,6 +2886,10 @@ class $RenterAccountNumbersTable extends RenterAccountNumbers
 
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {renterId, accountNumber},
+  ];
   @override
   RenterAccountNumber map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';

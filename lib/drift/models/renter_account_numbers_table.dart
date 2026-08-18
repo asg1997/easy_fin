@@ -8,5 +8,10 @@ class RenterAccountNumbers extends Table {
   TextColumn get renterId =>
       text().references(Renters, #id, onDelete: KeyAction.cascade)();
 
-  TextColumn get accountNumber => text().unique()();
+  TextColumn get accountNumber => text()();
+
+  @override
+  List<Set<Column<Object>>>? get uniqueKeys => [
+    {renterId, accountNumber},
+  ];
 }

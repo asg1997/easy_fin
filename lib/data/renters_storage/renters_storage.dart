@@ -91,7 +91,10 @@ abstract class RentersStorage {
   Future<void> delete(RenterId id);
   Future<bool> isUsed(RenterId id);
   Future<Renter?> findById(RenterId id);
-  Future<Renter?> findByAccount(AccountNumber accountNumber);
+  Future<Renter?> findByAccount(
+    AccountNumber accountNumber, {
+    BaseId? baseId,
+  });
   Future<List<Renter>> getAll();
   Future<List<Renter>> getByBase(BaseId baseId);
   Future<List<Renter>> getArchivedByBase(BaseId baseId);
@@ -121,16 +124,26 @@ class RentersStorageImpl implements RentersStorage {
   }
 
   @override
-  Future<Renter?> findByAccount(AccountNumber accountNumber) async {
+  Future<Renter?> findByAccount(
+    AccountNumber accountNumber, {
+    BaseId? baseId,
+  }) async {
     final db = ref.read(appDatabaseProvider);
 
-    final accountRow =
+    final accountRows =
         await (db.select(db.renterAccountNumbers)
               ..where((table) => table.accountNumber.equals(accountNumber)))
-            .getSingleOrNull();
-    if (accountRow == null) return null;
+            .get();
 
-    return findById(accountRow.renterId);
+    for (final accountRow in accountRows) {
+      final renter = await findById(accountRow.renterId);
+      if (renter == null) continue;
+      if (baseId == null || renter.baseId == baseId) {
+        return renter;
+      }
+    }
+
+    return null;
   }
 
   @override
@@ -356,7 +369,10 @@ class RentersStorageImpl implements RentersStorage {
     }
 
     for (final accountNumber in uniqueAccountNumbers) {
-      final existingRenter = await findByAccount(accountNumber);
+      final existingRenter = await findByAccount(
+        accountNumber,
+        baseId: renter.baseId,
+      );
       if (existingRenter != null && existingRenter.id != renter.id) {
         throw AccountBelongsToAnotherRenterError(accountNumber);
       }

@@ -11,12 +11,31 @@
 
 -------
 Обновление:
-1. Повысить версию 
-version: 0.1.0+1
+1. Повысить версию в pubspec.yaml
+   version: 0.5.2+7   ← менять здесь (сейчас 0.5.2+7)
 
-2. Собрать релиз
-cd "/Users/maksim/Desktop/разработка/easy_fin/easy_fin"
-flutter build macos --release
+2. Полностью закрыть Easy Fin — и из /Applications, и из Cursor (flutter run).
+   Иначе macOS не запустит новую копию: тот же bundle id, откроется старое Debug-окно.
+   killall "Easy Fin" 2>/dev/null
 
-3. Обновить (закрыв программу)
-cp -R "/Users/maksim/Desktop/разработка/easy_fin/easy_fin/build/macos/Build/Products/Release/Easy Fin.app" /Applications/
+3. Собрать релиз
+   cd "/Users/maksim/Desktop/разработка/easy_fin/easy_fin"
+   flutter build macos --release
+
+4. Заменить приложение (cp -R поверх старого .app не удаляет старые файлы)
+   rm -rf "/Applications/Easy Fin.app"
+   cp -R "/Users/maksim/Desktop/разработка/easy_fin/easy_fin/build/macos/Build/Products/Release/Easy Fin.app" /Applications/
+
+5. Ярлык в Dock после flutter run указывает на Debug-сборку, а не на Программы:
+   .../build/macos/Build/Products/Debug/Easy Fin.app
+   Его нужно пересоздать, иначе клик откроет старую версию.
+   - перетащить иконку Easy Fin из Dock вниз, пока не появится «Удалить»
+   - открыть /Applications/Easy Fin.app
+   - правый клик по новой иконке в Dock → Параметры → Оставить в Dock
+   Проверка: правый клик по ярлыку → Параметры → Показать в Finder
+   Должна открыться папка «Программы», не папка build/.../Debug.
+
+6. Запустить именно из Программ, не через flutter run:
+   open "/Applications/Easy Fin.app"
+
+   В настройках должна быть версия из шага 1.
