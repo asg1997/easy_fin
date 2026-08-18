@@ -39,9 +39,9 @@ class _AccountField {
 }
 
 class EditBaseDialog extends StatefulWidget {
-  const EditBaseDialog({required this.base, super.key});
+  const EditBaseDialog({this.base, super.key});
 
-  final Base base;
+  final Base? base;
 
   @override
   State<EditBaseDialog> createState() => _EditBaseDialogState();
@@ -50,6 +50,8 @@ class EditBaseDialog extends StatefulWidget {
 class _EditBaseDialogState extends State<EditBaseDialog> {
   late final TextEditingController _nameController;
   late final List<_AccountField> _accountFields;
+
+  bool get _isEditing => widget.base != null;
 
   InputDecoration _fieldDecoration(BuildContext context) {
     final colors = context.appColors;
@@ -77,15 +79,16 @@ class _EditBaseDialogState extends State<EditBaseDialog> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.base.name);
-    _accountFields = widget.base.accounts.isEmpty
+    final base = widget.base;
+    _nameController = TextEditingController(text: base?.name ?? '');
+    _accountFields = (base == null || base.accounts.isEmpty)
         ? [
             _AccountField(
               accountController: TextEditingController(),
               bankName: BankName.sber,
             ),
           ]
-        : widget.base.accounts
+        : base.accounts
             .map(
               (account) => _AccountField(
                 accountController: TextEditingController(
@@ -171,12 +174,15 @@ class _EditBaseDialogState extends State<EditBaseDialog> {
   }
 
   Future<void> _onDelete() async {
+    final base = widget.base;
+    if (base == null) return;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => ConfirmDialog(
         title: 'Удалить базу?',
         message:
-            'База «${widget.base.name}» и все связанные данные '
+            'База «${base.name}» и все связанные данные '
             '(выписки, арендаторы, счета) будут удалены безвозвратно.',
         confirmLabel: 'Удалить',
       ),
@@ -202,8 +208,8 @@ class _EditBaseDialogState extends State<EditBaseDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Редактировать базу',
-                style: TextStyle(
+                _isEditing ? 'Редактировать базу' : 'Добавить базу',
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
@@ -380,24 +386,25 @@ class _EditBaseDialogState extends State<EditBaseDialog> {
               const Gap(24),
               Row(
                 children: [
-                  TextButton.icon(
-                    onPressed: _onDelete,
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.red.shade700,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 10,
+                  if (_isEditing)
+                    TextButton.icon(
+                      onPressed: _onDelete,
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.red.shade700,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 10,
+                        ),
+                      ),
+                      icon: const Icon(LucideIcons.trash2, size: 16),
+                      label: const Text(
+                        'Удалить',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
-                    icon: const Icon(LucideIcons.trash2, size: 16),
-                    label: const Text(
-                      'Удалить',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
                   const Spacer(),
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
@@ -429,7 +436,7 @@ class _EditBaseDialogState extends State<EditBaseDialog> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      'Сохранить',
+                      _isEditing ? 'Сохранить' : 'Добавить',
                       style: TextStyle(
                         color: context.appColors.onAccent,
                         fontSize: 14,

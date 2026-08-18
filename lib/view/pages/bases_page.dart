@@ -1,5 +1,8 @@
 import 'package:easy_fin/data/bases_storage/bases_storage.dart';
 import 'package:easy_fin/models/base.dart';
+import 'package:easy_fin/utils/app_colors.dart';
+import 'package:easy_fin/utils/app_sizes.dart';
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/providers/account_balances_provider.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/providers/documents_filters_provider.dart';
@@ -11,8 +14,8 @@ import 'package:easy_fin/view/widgets/simple_table.dart';
 import 'package:easy_fin/view/widgets/template_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gap/gap.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
-import 'package:easy_fin/utils/app_theme_colors.dart';
 
 class BasesPage extends ConsumerWidget {
   const BasesPage({super.key});
@@ -21,6 +24,20 @@ class BasesPage extends ConsumerWidget {
     await Navigator.push(
       context,
       MaterialPageRoute<void>(builder: (context) => const BasesPage()),
+    );
+  }
+
+  Future<void> _onAddBase(BuildContext context, WidgetRef ref) async {
+    final outcome = await showDialog<EditBaseDialogOutcome>(
+      context: context,
+      builder: (context) => const EditBaseDialog(),
+    );
+    if (outcome is! EditBaseDialogSaved) return;
+
+    await _saveBase(
+      context,
+      ref,
+      Base.create(outcome.name, outcome.accounts),
     );
   }
 
@@ -39,33 +56,43 @@ class BasesPage extends ConsumerWidget {
       case EditBaseDialogDeleted():
         await _deleteBase(ref, base);
       case EditBaseDialogSaved(:final name, :final accounts):
-        try {
-          await ref.read(basesStorageProvider).save(
-            Base(
-              id: base.id,
-              name: name,
-              accounts: accounts,
-            ),
-          );
-          ref.invalidate(basesListProvider);
-          ref.invalidate(accountBalancesProvider);
-          ref.invalidate(githubSyncDirtyProvider);
-        } on DuplicateAccountNumbersError {
-          if (!context.mounted) return;
-          await _showSaveError(context, 'Счета не должны повторяться');
-        } on AccountBelongsToAnotherBaseError catch (error) {
-          if (!context.mounted) return;
-          await _showSaveError(
-            context,
-            'Счёт ${error.accountNumber} уже привязан к другой базе',
-          );
-        } on AccountHasStatementsError catch (error) {
-          if (!context.mounted) return;
-          await _showSaveError(
-            context,
-            'Нельзя удалить счёт ${error.accountNumber}: по нему есть выписки',
-          );
-        }
+        await _saveBase(
+          context,
+          ref,
+          Base(
+            id: base.id,
+            name: name,
+            accounts: accounts,
+          ),
+        );
+    }
+  }
+
+  Future<void> _saveBase(
+    BuildContext context,
+    WidgetRef ref,
+    Base base,
+  ) async {
+    try {
+      await ref.read(basesStorageProvider).save(base);
+      ref.invalidate(basesListProvider);
+      ref.invalidate(accountBalancesProvider);
+      ref.invalidate(githubSyncDirtyProvider);
+    } on DuplicateAccountNumbersError {
+      if (!context.mounted) return;
+      await _showSaveError(context, 'Счета не должны повторяться');
+    } on AccountBelongsToAnotherBaseError catch (error) {
+      if (!context.mounted) return;
+      await _showSaveError(
+        context,
+        'Счёт ${error.accountNumber} уже привязан к другой базе',
+      );
+    } on AccountHasStatementsError catch (error) {
+      if (!context.mounted) return;
+      await _showSaveError(
+        context,
+        'Нельзя удалить счёт ${error.accountNumber}: по нему есть выписки',
+      );
     }
   }
 
@@ -110,43 +137,76 @@ class BasesPage extends ConsumerWidget {
       body: TemplatePage(
         hasBackButton: true,
         title: 'Базы',
-        child: basesAsync.when(
-          data: (bases) => SimpleTable(
-            columns: const ['Название', 'Счета'],
-            columnFlex: const [2, 3],
-            rows: bases
-                .map(
-                  (base) => [
-                    base.name,
-                    base.accounts
-                        .map(
-                          (account) =>
-                              '${account.displayName} (${account.accountNumber})',
-                        )
-                        .join(', '),
-                  ],
-                )
-                .toList(),
-            rowLeadingBuilder: (index) => IconButton(
-              tooltip: 'Редактировать',
-              onPressed: () => _onEditBase(context, ref, bases[index]),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(
-                minWidth: 32,
-                minHeight: 32,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            MaterialButton(
+              onPressed: () => _onAddBase(context, ref),
+              height: filterFieldHeight,
+              minWidth: 180,
+              color: AppColors.purple,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(25),
               ),
-              icon: Icon(
-                LucideIcons.pencil,
-                size: 16,
-                color: context.appColors.secondaryText,
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(LucideIcons.plus, size: 18, color: Colors.white),
+                  Gap(8),
+                  Text(
+                    'Добавить базу',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ),
-            emptyMessage: 'Нет баз',
-          ),
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, _) => const Center(
-            child: Text('Не удалось загрузить базы'),
-          ),
+            const Gap(12),
+            Expanded(
+              child: basesAsync.when(
+                data: (bases) => SimpleTable(
+                  columns: const ['Название', 'Счета'],
+                  columnFlex: const [2, 3],
+                  rows: bases
+                      .map(
+                        (base) => [
+                          base.name,
+                          base.accounts
+                              .map(
+                                (account) =>
+                                    '${account.displayName} (${account.accountNumber})',
+                              )
+                              .join(', '),
+                        ],
+                      )
+                      .toList(),
+                  rowLeadingBuilder: (index) => IconButton(
+                    tooltip: 'Редактировать',
+                    onPressed: () => _onEditBase(context, ref, bases[index]),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
+                    icon: Icon(
+                      LucideIcons.pencil,
+                      size: 16,
+                      color: context.appColors.secondaryText,
+                    ),
+                  ),
+                  emptyMessage: 'Нет баз',
+                ),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (_, _) => const Center(
+                  child: Text('Не удалось загрузить базы'),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
