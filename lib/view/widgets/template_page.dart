@@ -7,14 +7,17 @@ class TemplatePage extends StatelessWidget {
     required this.child,
     required this.title,
     this.hasBackButton = false,
+    this.titleSuffix,
     super.key,
   });
   final Widget child;
   final String title;
   final bool hasBackButton;
+  final Widget? titleSuffix;
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final suffix = titleSuffix;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -33,7 +36,7 @@ class TemplatePage extends StatelessWidget {
                 ),
                 const Gap(10),
               ],
-              Expanded(
+              Flexible(
                 child: Text(
                   title,
                   style: TextStyle(
@@ -43,6 +46,10 @@ class TemplatePage extends StatelessWidget {
                   ),
                 ),
               ),
+              if (suffix != null) ...[
+                const Gap(10),
+                suffix,
+              ],
             ],
           ),
         ),

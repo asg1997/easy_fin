@@ -7,6 +7,7 @@ import 'package:easy_fin/view/pages/github_sync_settings_page.dart';
 import 'package:easy_fin/view/pages/income_categories_page.dart';
 import 'package:easy_fin/view/pages/renters_page.dart';
 import 'package:easy_fin/view/pages/report_templates_page.dart';
+import 'package:easy_fin/view/providers/app_version_provider.dart';
 import 'package:easy_fin/view/widgets/template_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,8 +19,20 @@ class SettingsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final version = ref.watch(appVersionProvider).value;
+
     return TemplatePage(
       title: 'Настройки',
+      titleSuffix: version == null
+          ? null
+          : Text(
+              version,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w300,
+                color: context.appColors.secondaryText,
+              ),
+            ),
       child: ListView(
         children: [
           _SettingsTile(
