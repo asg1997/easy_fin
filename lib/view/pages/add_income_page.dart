@@ -853,7 +853,9 @@ class _IncomeLinesTable extends StatelessWidget {
                         };
                         final accountNumberLabel = switch (entry) {
                           _MutualSettlementIncomeLineEntry(:final renter) =>
-                            renter.accountNumber,
+                            renter.accountNumber.isEmpty
+                                ? '—'
+                                : renter.accountNumber,
                           _CategoryIncomeLineEntry() => '—',
                         };
 
@@ -1253,7 +1255,9 @@ class _IncomeSourcesPanelState extends State<_IncomeSourcesPanel> {
                               ),
                             _buildSourceRow(
                               name: filteredRenters[i].name,
-                              accountNumber: filteredRenters[i].accountNumber,
+                              accountNumber: filteredRenters[i].accountNumber.isEmpty
+                                  ? '—'
+                                  : filteredRenters[i].accountNumber,
                               onDoubleTap: () => widget.onRenterDoubleTap(
                                 filteredRenters[i],
                               ),

@@ -317,7 +317,9 @@ class _RentersPageState extends ConsumerState<RentersPage> {
                           .map(
                             (renter) => [
                               renter.name,
-                              renter.accountNumbers.join(', '),
+                              renter.accountNumbers.isEmpty
+                                  ? '—'
+                                  : renter.accountNumbers.join(', '),
                             ],
                           )
                           .toList(),

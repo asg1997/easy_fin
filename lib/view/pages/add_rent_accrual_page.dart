@@ -577,7 +577,7 @@ class _RentersTableState extends State<_RentersTable> {
           .map(
             (renter) => [
               renter.name,
-              renter.accountNumber,
+              renter.accountNumber.isEmpty ? '—' : renter.accountNumber,
             ],
           )
           .toList(),
@@ -785,7 +785,9 @@ class _RentAccrualsTable extends StatelessWidget {
                               Expanded(
                                 flex: 3,
                                 child: Text(
-                                  entry.renter.accountNumber,
+                                  entry.renter.accountNumber.isEmpty
+                                      ? '—'
+                                      : entry.renter.accountNumber,
                                   style: filterFieldTextStyle,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,

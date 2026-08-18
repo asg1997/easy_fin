@@ -98,9 +98,6 @@ class _EditRenterDialogState extends State<EditRenterDialog> {
 
   bool get _canSave {
     if (_nameController.text.trim().isEmpty) return false;
-    if (_accountControllers.any((controller) => controller.text.trim().isEmpty)) {
-      return false;
-    }
     if (_hasInvalidAccountNumbers) return false;
     return !_hasDuplicateAccounts;
   }
@@ -250,7 +247,7 @@ class _EditRenterDialogState extends State<EditRenterDialog> {
                                   style: filterFieldTextStyle,
                                   maxLength: accountNumberLength,
                                   decoration: _fieldDecoration(context).copyWith(
-                                    hintText: 'Введите номер счёта (20 символов)',
+                                    hintText: 'Необязательно, 20 символов',
                                     hintStyle: filterFieldHintTextStyleOf(context),
                                     counterText: '',
                                   ),
