@@ -8,6 +8,7 @@ import 'package:easy_fin/view/providers/github_sync_provider.dart';
 import 'package:easy_fin/view/providers/notes_provider.dart';
 import 'package:easy_fin/view/widgets/confirm_dialog.dart';
 import 'package:easy_fin/view/widgets/note_tag_chips.dart';
+import 'package:easy_fin/view/widgets/notes_search_field.dart';
 import 'package:easy_fin/view/widgets/notes_tag_filter_bar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -72,16 +73,29 @@ class NotesList extends ConsumerWidget {
     return '$created · изменено ${_dateFormat.format(note.updatedAt)}';
   }
 
+  String _emptyMessage({
+    required String? tagFilter,
+    required String searchQuery,
+  }) {
+    final hasSearch = searchQuery.trim().isNotEmpty;
+    final hasTag = tagFilter != null;
+    if (hasSearch || hasTag) return 'Ничего не найдено';
+    return 'Пока нет заметок';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notesAsync = ref.watch(notesListProvider);
     final tagFilter = ref.watch(notesTagFilterProvider);
+    final searchQuery = ref.watch(notesSearchQueryProvider);
     final colors = context.appColors;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const _NewNoteField(),
+        const Gap(12),
+        const NotesSearchField(),
         const NotesTagFilterBar(),
         const Gap(12),
         Expanded(
@@ -90,9 +104,10 @@ class NotesList extends ConsumerWidget {
               if (notes.isEmpty) {
                 return Center(
                   child: Text(
-                    tagFilter == null
-                        ? 'Пока нет заметок'
-                        : 'Нет заметок с этим тегом',
+                    _emptyMessage(
+                      tagFilter: tagFilter,
+                      searchQuery: searchQuery,
+                    ),
                     style: filterFieldHintTextStyleOf(context),
                   ),
                 );

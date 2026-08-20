@@ -37,7 +37,7 @@ class NoteTagInvalidError extends NotesStorageError {
 }
 
 abstract class NotesStorage {
-  Future<List<Note>> getAll({String? tagFilter});
+  Future<List<Note>> getAll({String? tagFilter, String? textQuery});
 
   Future<List<String>> getAllTags();
 
@@ -57,7 +57,7 @@ class NotesStorageImpl implements NotesStorage {
   final Ref ref;
 
   @override
-  Future<List<Note>> getAll({String? tagFilter}) async {
+  Future<List<Note>> getAll({String? tagFilter, String? textQuery}) async {
     final db = ref.read(appDatabaseProvider);
     final query = db.select(db.notes)
       ..orderBy([(table) => OrderingTerm.desc(table.updatedAt)]);
@@ -81,6 +81,14 @@ class NotesStorageImpl implements NotesStorage {
               (tag) => tag.toLowerCase() == filterLower,
             ),
           )
+          .toList();
+    }
+
+    final text = textQuery?.trim();
+    if (text != null && text.isNotEmpty) {
+      final textLower = text.toLowerCase();
+      notes = notes
+          .where((note) => note.text.toLowerCase().contains(textLower))
           .toList();
     }
 
