@@ -132,6 +132,46 @@ String truncateChartLabel(String label, {int maxLength = 10}) {
   return '${label.substring(0, maxLength - 1)}…';
 }
 
+/// Компактная сумма для подписей над узкими столбцами (без переносов).
+String formatCompactChartAmount(double value) {
+  final abs = value.abs();
+  if (abs >= 1000000) {
+    final millions = value / 1000000;
+    if (millions.abs() >= 10 || millions == millions.roundToDouble()) {
+      return '${millions.round()}M';
+    }
+    return '${millions.toStringAsFixed(1)}M';
+  }
+  if (abs >= 1000) {
+    final thousands = value / 1000;
+    if (thousands.abs() >= 100 || thousands == thousands.roundToDouble()) {
+      return '${thousands.round()}k';
+    }
+    return '${thousands.toStringAsFixed(1)}k';
+  }
+  return value.round().toString();
+}
+
+Size measureBarValueLabel(
+  String text, {
+  double fontSize = 11,
+  double? maxWidth,
+}) {
+  final label = TextPainter(
+    text: TextSpan(
+      text: text,
+      style: TextStyle(
+        fontSize: fontSize,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+    textDirection: ui.TextDirection.ltr,
+    maxLines: 1,
+    ellipsis: '…',
+  )..layout(maxWidth: maxWidth ?? double.infinity);
+  return label.size;
+}
+
 void paintBarValueLabel(
   Canvas canvas, {
   required String text,
@@ -141,6 +181,7 @@ void paintBarValueLabel(
   required Color textColor,
   double chartTop = 0,
   double fontSize = 11,
+  double verticalOffset = 0,
 }) {
   final label = TextPainter(
     text: TextSpan(
@@ -152,11 +193,15 @@ void paintBarValueLabel(
       ),
     ),
     textDirection: ui.TextDirection.ltr,
+    maxLines: 1,
+    ellipsis: '…',
   )..layout(maxWidth: maxWidth);
 
-  var labelY = barTop - label.height - 4;
+  var labelY = barTop - label.height - 4 + verticalOffset;
   if (labelY < chartTop) {
-    labelY = barTop + 4;
+    // Если подпись не помещается сверху из‑за высоты столбца — внутрь.
+    // При дополнительном сдвиге вверх (разведение наложений) просто прижимаем к краю.
+    labelY = verticalOffset < 0 ? chartTop : barTop + 4;
   }
 
   label.paint(

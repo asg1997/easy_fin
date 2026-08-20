@@ -509,7 +509,6 @@ class ExpenseCategoriesComparisonChart extends StatelessWidget {
             painter: _ComparisonChartPainter(
               items: items,
               axisMax: ExpenseChartAxis.resolveMax(maxAmount),
-              amountFormat: NumberFormat('#,##0', 'ru'),
               primaryTextColor: colors.primaryText,
               secondaryTextColor: colors.secondaryText,
               borderColor: colors.border,
@@ -553,7 +552,6 @@ class _ComparisonChartPainter extends CustomPainter {
   _ComparisonChartPainter({
     required this.items,
     required this.axisMax,
-    required this.amountFormat,
     required this.primaryTextColor,
     required this.secondaryTextColor,
     required this.borderColor,
@@ -561,7 +559,6 @@ class _ComparisonChartPainter extends CustomPainter {
 
   final List<ExpenseCategoryComparisonItem> items;
   final double axisMax;
-  final NumberFormat amountFormat;
   final Color primaryTextColor;
   final Color secondaryTextColor;
   final Color borderColor;
@@ -570,10 +567,12 @@ class _ComparisonChartPainter extends CustomPainter {
   static const _previousColor = Color(0xFFD1D5DB);
   static const _leftPadding = 44.0;
   static const _bottomPadding = 52.0;
-  static const _topPadding = 28.0;
+  static const _topPadding = 36.0;
   static const _rightPadding = 16.0;
   static const _gridLines = 4;
   static const _minBarHeight = 3.0;
+  static const _valueFontSize = 9.0;
+  static const _barGap = 4.0;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -583,7 +582,8 @@ class _ComparisonChartPainter extends CustomPainter {
 
     _drawGrid(canvas, origin, chartWidth, chartHeight);
     _drawBars(canvas, origin, chartWidth, chartHeight);
-    _drawLabels(canvas, origin, chartWidth, chartHeight);
+    _drawValueLabels(canvas, origin, chartWidth, chartHeight);
+    _drawCategoryLabels(canvas, origin, chartWidth, chartHeight);
   }
 
   void _drawGrid(Canvas canvas, Offset origin, double width, double height) {
@@ -621,7 +621,7 @@ class _ComparisonChartPainter extends CustomPainter {
 
     final slotWidth = width / items.length;
     final barWidth = math.min(slotWidth * 0.22, 20.0);
-    final groupWidth = barWidth * 2 + 4;
+    final groupWidth = barWidth * 2 + _barGap;
 
     for (var index = 0; index < items.length; index++) {
       final item = items[index];
@@ -639,7 +639,7 @@ class _ComparisonChartPainter extends CustomPainter {
       );
       _drawBar(
         canvas,
-        left: groupLeft + barWidth + 4,
+        left: groupLeft + barWidth + _barGap,
         amount: item.currentAmount,
         origin: origin,
         height: height,
@@ -664,7 +664,6 @@ class _ComparisonChartPainter extends CustomPainter {
     if (barHeight < _minBarHeight) barHeight = _minBarHeight;
 
     final barTop = origin.dy + height - barHeight;
-    final barCenterX = left + barWidth / 2;
 
     canvas.drawRRect(
       RRect.fromRectAndRadius(
@@ -673,20 +672,101 @@ class _ComparisonChartPainter extends CustomPainter {
       ),
       Paint()..color = color,
     );
-
-    paintBarValueLabel(
-      canvas,
-      text: amountFormat.format(amount),
-      centerX: barCenterX,
-      barTop: barTop,
-      maxWidth: barWidth + 8,
-      chartTop: origin.dy,
-      fontSize: 9,
-      textColor: primaryTextColor,
-    );
   }
 
-  void _drawLabels(
+  double _barTop(double amount, Offset origin, double height) {
+    var barHeight = (amount / axisMax) * height;
+    if (barHeight < _minBarHeight) barHeight = _minBarHeight;
+    return origin.dy + height - barHeight;
+  }
+
+  void _drawValueLabels(
+    Canvas canvas,
+    Offset origin,
+    double width,
+    double height,
+  ) {
+    if (items.isEmpty || axisMax <= 0) return;
+
+    final slotWidth = width / items.length;
+    final barWidth = math.min(slotWidth * 0.22, 20.0);
+    final groupWidth = barWidth * 2 + _barGap;
+    final labelMaxWidth = math.max(slotWidth * 0.48, 28.0);
+
+    for (var index = 0; index < items.length; index++) {
+      final item = items[index];
+      final slotCenterX = origin.dx + slotWidth * index + slotWidth / 2;
+      final groupLeft = slotCenterX - groupWidth / 2;
+
+      final previousCenterX = groupLeft + barWidth / 2;
+      final currentCenterX = groupLeft + barWidth + _barGap + barWidth / 2;
+
+      final hasPrevious = item.previousAmount > 0;
+      final hasCurrent = item.currentAmount > 0;
+
+      Size? previousSize;
+      Size? currentSize;
+      if (hasPrevious) {
+        previousSize = measureBarValueLabel(
+          formatCompactChartAmount(item.previousAmount),
+          fontSize: _valueFontSize,
+          maxWidth: labelMaxWidth,
+        );
+      }
+      if (hasCurrent) {
+        currentSize = measureBarValueLabel(
+          formatCompactChartAmount(item.currentAmount),
+          fontSize: _valueFontSize,
+          maxWidth: labelMaxWidth,
+        );
+      }
+
+      var previousOffset = 0.0;
+      if (hasPrevious && hasCurrent && previousSize != null && currentSize != null) {
+        final previousLeft = previousCenterX - previousSize.width / 2;
+        final previousRight = previousCenterX + previousSize.width / 2;
+        final currentLeft = currentCenterX - currentSize.width / 2;
+        final currentRight = currentCenterX + currentSize.width / 2;
+        final overlapsHorizontally =
+            previousRight > currentLeft && previousLeft < currentRight;
+        final previousTop = _barTop(item.previousAmount, origin, height);
+        final currentTop = _barTop(item.currentAmount, origin, height);
+        final closeInHeight = (previousTop - currentTop).abs() < 14;
+
+        if (overlapsHorizontally && closeInHeight) {
+          previousOffset = -(previousSize.height + 2);
+        }
+      }
+
+      if (hasPrevious) {
+        paintBarValueLabel(
+          canvas,
+          text: formatCompactChartAmount(item.previousAmount),
+          centerX: previousCenterX,
+          barTop: _barTop(item.previousAmount, origin, height),
+          maxWidth: labelMaxWidth,
+          chartTop: origin.dy,
+          fontSize: _valueFontSize,
+          textColor: primaryTextColor,
+          verticalOffset: previousOffset,
+        );
+      }
+      if (hasCurrent) {
+        paintBarValueLabel(
+          canvas,
+          text: formatCompactChartAmount(item.currentAmount),
+          centerX: currentCenterX,
+          barTop: _barTop(item.currentAmount, origin, height),
+          maxWidth: labelMaxWidth,
+          chartTop: origin.dy,
+          fontSize: _valueFontSize,
+          textColor: primaryTextColor,
+        );
+      }
+    }
+  }
+
+  void _drawCategoryLabels(
     Canvas canvas,
     Offset origin,
     double width,
