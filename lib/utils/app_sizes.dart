@@ -32,6 +32,50 @@ InputDecoration documentLineFieldDecorationOf(
   );
 }
 
+/// Фон поля ввода на странице: в тёмной теме чуть светлее scaffold.
+Color composerFieldFillColorOf(BuildContext context) {
+  final colors = context.appColors;
+  if (Theme.of(context).brightness != Brightness.dark) {
+    return colors.navActiveBackground;
+  }
+
+  return Color.alphaBlend(
+    Colors.white.withValues(alpha: 0.05),
+    Theme.of(context).scaffoldBackgroundColor,
+  );
+}
+
+InputDecoration composerFieldDecorationOf(
+  BuildContext context, {
+  String? hintText,
+  EdgeInsetsGeometry? contentPadding,
+}) {
+  final colors = context.appColors;
+  final radius = BorderRadius.circular(10);
+
+  return InputDecoration(
+    isDense: true,
+    hintText: hintText,
+    hintStyle: filterFieldHintTextStyleOf(context),
+    filled: true,
+    fillColor: composerFieldFillColorOf(context),
+    contentPadding: contentPadding ?? const EdgeInsets.all(14),
+    alignLabelWithHint: true,
+    border: OutlineInputBorder(
+      borderRadius: radius,
+      borderSide: BorderSide(color: colors.border),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: radius,
+      borderSide: BorderSide(color: colors.border),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: radius,
+      borderSide: BorderSide(color: colors.primaryText),
+    ),
+  );
+}
+
 const filterFieldTextStyle = TextStyle(
   fontSize: 14,
   fontWeight: FontWeight.w400,

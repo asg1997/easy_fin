@@ -4,6 +4,7 @@ import 'package:easy_fin/utils/app_snack_bar.dart';
 import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/pages/documents_page.dart';
 import 'package:easy_fin/view/pages/github_sync_settings_page.dart';
+import 'package:easy_fin/view/pages/notes_page.dart';
 import 'package:easy_fin/view/pages/reports_page.dart';
 import 'package:easy_fin/view/pages/settings_page.dart';
 import 'package:easy_fin/view/providers/github_sync_provider.dart';
@@ -151,11 +152,18 @@ class _MainNavPageState extends ConsumerState<MainNavPage> {
                               isActive: currentIndex == 1,
                             ),
                             NavItem(
-                              title: 'Настройки',
-                              icon: LucideIcons.settings,
+                              title: 'Заметки',
+                              icon: LucideIcons.stickyNote,
                               onPressed: () => onItemTapped(2),
                               isExpanded: isExpanded,
                               isActive: currentIndex == 2,
+                            ),
+                            NavItem(
+                              title: 'Настройки',
+                              icon: LucideIcons.settings,
+                              onPressed: () => onItemTapped(3),
+                              isExpanded: isExpanded,
+                              isActive: currentIndex == 3,
                             ),
                           ],
                         ),
@@ -178,7 +186,8 @@ class _MainNavPageState extends ConsumerState<MainNavPage> {
               child: switch (currentIndex) {
                 0 => const ReportsPage(),
                 1 => const DocumentsPage(),
-                2 => const SettingsPage(),
+                2 => const NotesPage(),
+                3 => const SettingsPage(),
                 _ => Container(),
               },
             ),

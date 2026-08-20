@@ -175,11 +175,13 @@ class AccountBalancesStorageImpl implements AccountBalancesStorage {
       AccountBalanceItem(
         name: AccountFilterType.cash.label,
         balance: cashBalancesByBaseId[base.id] ?? 0,
+        isCash: true,
       ),
       ...base.accounts.map(
         (account) => AccountBalanceItem(
           name: account.displayName,
           balance: balancesByAccountNumber[account.accountNumber] ?? 0,
+          isCash: false,
         ),
       ),
     ];

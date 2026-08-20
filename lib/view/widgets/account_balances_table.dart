@@ -15,18 +15,27 @@ class AccountBalancesTable extends StatelessWidget {
 
   final List<AccountBalanceReportItem> items;
 
-  static const maxHeight = 280.0;
-  static const maxWidth = ReportTableTheme.standardWidth;
+  static const double maxHeight = 320.0;
+  static const double maxWidth = ReportTableTheme.standardWidth;
 
-  static const _baseRowHeight = 40.0;
-  static const _accountRowHeight = 36.0;
-  static const _emptyHeight = 120.0;
+  static const double _baseRowHeight = 40.0;
+  static const double _accountRowHeight = 36.0;
+  static const double _emptyHeight = 120.0;
+  static const int _footerRows = 2;
 
   static final _amountFormat = NumberFormat('#,##0.00', 'ru');
 
   @override
   Widget build(BuildContext context) {
     final tableHeight = _resolveTableHeight();
+    final totalCash = items.fold<double>(
+      0,
+      (sum, item) => sum + item.cashBalance,
+    );
+    final totalBank = items.fold<double>(
+      0,
+      (sum, item) => sum + item.bankBalance,
+    );
 
     return Align(
       alignment: Alignment.topLeft,
@@ -36,35 +45,41 @@ class AccountBalancesTable extends StatelessWidget {
         child: ReportTableFrame(
           child: Column(
             children: [
-                const _AccountBalancesTableHeader(),
-                ReportTableTheme.sectionDivider(context),
-                Expanded(
-                  child: items.isEmpty
-                      ? Center(
-                          child: Text(
-                            'Нет данных',
-                            style: filterFieldHintTextStyleOf(context),
-                          ),
-                        )
-                      : ListView.separated(
-                          itemCount: _rowCount,
-                          separatorBuilder: (context, index) => Divider(
-                            height: 1,
-                            thickness: 1,
-                            color: _isLastAccountInBase(index)
-                                ? context.appColors.border
-                                : context.appColors.tableRowDivider,
-                          ),
-                          itemBuilder: (context, index) {
-                            final row = _rowAt(index);
-                            return _AccountBalancesTableRow(
-                              label: row.label,
-                              balance: row.balance,
-                              isBase: row.isBase,
-                              amountFormat: _amountFormat,
-                            );
-                          },
+              const _AccountBalancesTableHeader(),
+              ReportTableTheme.sectionDivider(context),
+              Expanded(
+                child: items.isEmpty
+                    ? Center(
+                        child: Text(
+                          'Нет данных',
+                          style: filterFieldHintTextStyleOf(context),
                         ),
+                      )
+                    : ListView.separated(
+                        itemCount: _rowCount,
+                        separatorBuilder: (context, index) => Divider(
+                          height: 1,
+                          thickness: 1,
+                          color: _isLastAccountInBase(index)
+                              ? context.appColors.border
+                              : context.appColors.tableRowDivider,
+                        ),
+                        itemBuilder: (context, index) {
+                          final row = _rowAt(index);
+                          return _AccountBalancesTableRow(
+                            label: row.label,
+                            balance: row.balance,
+                            isBase: row.isBase,
+                            amountFormat: _amountFormat,
+                          );
+                        },
+                      ),
+              ),
+              if (items.isNotEmpty)
+                _AccountBalancesTableFooter(
+                  totalCash: totalCash,
+                  totalBank: totalBank,
+                  amountFormat: _amountFormat,
                 ),
             ],
           ),
@@ -86,8 +101,11 @@ class AccountBalancesTable extends StatelessWidget {
       bodyHeight += _rowCount - 1;
     }
 
+    const footerHeight =
+        ReportTableTheme.footerHeight * _footerRows + _footerRows;
+
     return math.min(
-      ReportTableTheme.headerHeight + bodyHeight + 1,
+      ReportTableTheme.headerHeight + bodyHeight + footerHeight + 1,
       maxHeight,
     );
   }
@@ -189,13 +207,14 @@ class _AccountBalancesTableRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
-    final rowHeight =
-        isBase ? AccountBalancesTable._baseRowHeight : AccountBalancesTable._accountRowHeight;
+    final rowHeight = isBase
+        ? AccountBalancesTable._baseRowHeight
+        : AccountBalancesTable._accountRowHeight;
 
     return Container(
       height: rowHeight,
       color: colors.surface,
-      padding: EdgeInsets.fromLTRB(
+      padding: const EdgeInsets.fromLTRB(
         ReportTableTheme.horizontalPadding,
         0,
         ReportTableTheme.horizontalPadding,
@@ -229,6 +248,87 @@ class _AccountBalancesTableRow extends StatelessWidget {
                 fontSize: 13,
                 fontWeight: isBase ? FontWeight.w600 : FontWeight.w400,
                 color: colors.primaryText,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AccountBalancesTableFooter extends StatelessWidget {
+  const _AccountBalancesTableFooter({
+    required this.totalCash,
+    required this.totalBank,
+    required this.amountFormat,
+  });
+
+  final double totalCash;
+  final double totalBank;
+  final NumberFormat amountFormat;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        ReportTableTheme.sectionDivider(context),
+        _FooterRow(
+          label: 'Всего по кассе',
+          amount: totalCash,
+          amountFormat: amountFormat,
+        ),
+        ReportTableTheme.rowDivider(context),
+        _FooterRow(
+          label: 'Всего по банкам',
+          amount: totalBank,
+          amountFormat: amountFormat,
+        ),
+      ],
+    );
+  }
+}
+
+class _FooterRow extends StatelessWidget {
+  const _FooterRow({
+    required this.label,
+    required this.amount,
+    required this.amountFormat,
+  });
+
+  final String label;
+  final double amount;
+  final NumberFormat amountFormat;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: ReportTableTheme.footerHeight,
+      color: context.appColors.surface,
+      padding: const EdgeInsets.symmetric(
+        horizontal: ReportTableTheme.horizontalPadding,
+      ),
+      alignment: Alignment.center,
+      child: Row(
+        children: [
+          Expanded(
+            flex: 3,
+            child: Text(
+              label,
+              style: ReportTableTheme.cellTextStyle(context).copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              amountFormat.format(amount),
+              textAlign: TextAlign.right,
+              style: ReportTableTheme.cellTextStyle(context).copyWith(
+                fontWeight: FontWeight.w500,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

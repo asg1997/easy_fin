@@ -8,6 +8,7 @@ import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/providers/documents_list_provider.dart';
 import 'package:easy_fin/view/providers/expense_categories_charts_provider.dart';
 import 'package:easy_fin/view/providers/expense_categories_report_provider.dart';
+import 'package:easy_fin/view/providers/notes_provider.dart';
 import 'package:easy_fin/view/providers/renter_debts_by_base_provider.dart';
 import 'package:easy_fin/view/providers/renter_debts_monthly_provider.dart';
 import 'package:easy_fin/view/providers/renter_debts_provider.dart';
@@ -184,6 +185,7 @@ class GithubSyncNotifier extends Notifier<GithubSyncState> {
       ..invalidate(renterDebtsMonthlyProvider)
       ..invalidate(renterDebtsByBaseProvider)
       ..invalidate(reportTemplateResultsProvider)
+      ..invalidate(notesListProvider)
       ..invalidate(githubSyncDirtyProvider);
   }
 }

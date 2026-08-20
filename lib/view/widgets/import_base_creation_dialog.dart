@@ -1,6 +1,7 @@
 import 'package:easy_fin/models/base.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:easy_fin/utils/app_theme_colors.dart';
+import 'package:easy_fin/view/widgets/dropdown_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 
@@ -14,13 +15,26 @@ final class ImportBaseDialogCreateNew extends ImportBaseDialogResult {
   final String baseName;
 }
 
+final class ImportBaseDialogLinkExisting extends ImportBaseDialogResult {
+  const ImportBaseDialogLinkExisting(this.baseId);
+
+  final BaseId baseId;
+}
+
+enum _ImportBaseAction {
+  create,
+  link,
+}
+
 class ImportBaseCreationDialog extends StatefulWidget {
   const ImportBaseCreationDialog({
     required this.accountNumber,
+    required this.bases,
     super.key,
   });
 
   final AccountNumber accountNumber;
+  final List<Base> bases;
 
   @override
   State<ImportBaseCreationDialog> createState() =>
@@ -29,6 +43,23 @@ class ImportBaseCreationDialog extends StatefulWidget {
 
 class _ImportBaseCreationDialogState extends State<ImportBaseCreationDialog> {
   final _nameController = TextEditingController();
+  late _ImportBaseAction _action;
+  BaseId? _selectedBaseId;
+
+  @override
+  void initState() {
+    super.initState();
+    _action = _ImportBaseAction.create;
+  }
+
+  Base? get _selectedBase {
+    final selectedId = _selectedBaseId;
+    if (selectedId == null) return null;
+    for (final base in widget.bases) {
+      if (base.id == selectedId) return base;
+    }
+    return null;
+  }
 
   InputDecoration _fieldDecoration(BuildContext context) {
     final colors = context.appColors;
@@ -53,7 +84,12 @@ class _ImportBaseCreationDialogState extends State<ImportBaseCreationDialog> {
     );
   }
 
-  bool get _canContinue => _nameController.text.trim().isNotEmpty;
+  bool get _canLink => widget.bases.isNotEmpty;
+
+  bool get _canContinue => switch (_action) {
+        _ImportBaseAction.create => _nameController.text.trim().isNotEmpty,
+        _ImportBaseAction.link => _selectedBaseId != null && _selectedBase != null,
+      };
 
   @override
   void dispose() {
@@ -64,9 +100,14 @@ class _ImportBaseCreationDialogState extends State<ImportBaseCreationDialog> {
   void _onContinue() {
     if (!_canContinue) return;
 
-    Navigator.of(context).pop(
-      ImportBaseDialogCreateNew(_nameController.text.trim()),
-    );
+    final result = switch (_action) {
+      _ImportBaseAction.create =>
+        ImportBaseDialogCreateNew(_nameController.text.trim()),
+      _ImportBaseAction.link =>
+        ImportBaseDialogLinkExisting(_selectedBaseId!),
+    };
+
+    Navigator.of(context).pop(result);
   }
 
   @override
@@ -99,7 +140,8 @@ class _ImportBaseCreationDialogState extends State<ImportBaseCreationDialog> {
               ),
               const Gap(20),
               Text(
-                'Для этого расчётного счёта нужно создать отдельную базу. '
+                'Этот расчётный счёт ещё не привязан ни к одной базе. '
+                'Можно добавить его в существующую базу или создать новую. '
                 'Выписка будет сохранена только на указанный счёт.',
                 style: TextStyle(
                   fontSize: 14,
@@ -137,25 +179,65 @@ class _ImportBaseCreationDialogState extends State<ImportBaseCreationDialog> {
               ),
               const Gap(16),
               const Text(
-                'Название базы',
+                'Действие',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               const Gap(8),
-              SizedBox(
-                height: filterFieldHeight,
-                child: TextField(
-                  controller: _nameController,
-                  autofocus: true,
-                  style: filterFieldTextStyle,
-                  decoration: _fieldDecoration(context).copyWith(
-                    hintText: 'Введите название',
-                    hintStyle: filterFieldHintTextStyleOf(context),
-                  ),
-                  onChanged: (_) => setState(() {}),
-                  onSubmitted: _canContinue ? (_) => _onContinue() : null,
+              RadioGroup<_ImportBaseAction>(
+                groupValue: _action,
+                onChanged: (value) {
+                  if (value == null) return;
+                  if (value == _ImportBaseAction.link && !_canLink) return;
+                  setState(() => _action = value);
+                },
+                child: Column(
+                  children: [
+                    const _DialogRadioTile<_ImportBaseAction>(
+                      value: _ImportBaseAction.create,
+                      title: 'Создать новую базу',
+                    ),
+                    if (_action == _ImportBaseAction.create)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 28, bottom: 8),
+                        child: SizedBox(
+                          height: filterFieldHeight,
+                          child: TextField(
+                            controller: _nameController,
+                            autofocus: true,
+                            style: filterFieldTextStyle,
+                            decoration: _fieldDecoration(context).copyWith(
+                              hintText: 'Введите название',
+                              hintStyle: filterFieldHintTextStyleOf(context),
+                            ),
+                            onChanged: (_) => setState(() {}),
+                            onSubmitted:
+                                _canContinue ? (_) => _onContinue() : null,
+                          ),
+                        ),
+                      ),
+                    _DialogRadioTile<_ImportBaseAction>(
+                      value: _ImportBaseAction.link,
+                      title: 'Добавить счёт в существующую базу',
+                      enabled: _canLink,
+                    ),
+                    if (_action == _ImportBaseAction.link && _canLink)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 28, bottom: 8),
+                        child: DropdownWidget<Base>(
+                          items: widget.bases,
+                          selectedItem: _selectedBase,
+                          hint: 'Выберите базу',
+                          labelBuilder: (base) => base.name,
+                          expand: true,
+                          onChanged: (base) {
+                            setState(() => _selectedBaseId = base.id);
+                          },
+                        ),
+                      ),
+                  ],
                 ),
               ),
               const Gap(24),
@@ -206,6 +288,37 @@ class _ImportBaseCreationDialogState extends State<ImportBaseCreationDialog> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _DialogRadioTile<T> extends StatelessWidget {
+  const _DialogRadioTile({
+    required this.value,
+    required this.title,
+    this.enabled = true,
+  });
+
+  final T value;
+  final String title;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return RadioListTile<T>(
+      value: value,
+      enabled: enabled,
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 13,
+          color: enabled ? null : context.appColors.secondaryText,
+        ),
+      ),
+      contentPadding: EdgeInsets.zero,
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
   }
 }
