@@ -59,18 +59,73 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
   final TextEditingController _amountSearchController =
       TextEditingController();
   final FocusNode _amountSearchFocusNode = FocusNode();
+  final Set<String> _selectedKeys = {};
 
   bool _isAmountSearchVisible = false;
+  bool _isSelectionMode = false;
   String _amountSearchQuery = '';
 
   static final _dateFormat = DateFormat('dd.MM.yyyy', 'ru');
   static final _amountFormat = NumberFormat('#,##0.00', 'ru');
 
   @override
+  void didUpdateWidget(covariant DocumentsTable oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (identical(oldWidget.items, widget.items)) return;
+
+    final availableKeys = widget.items.map((item) => item.selectionKey).toSet();
+    _selectedKeys.removeWhere((key) => !availableKeys.contains(key));
+  }
+
+  @override
   void dispose() {
     _amountSearchController.dispose();
     _amountSearchFocusNode.dispose();
     super.dispose();
+  }
+
+  void _enterSelectionMode() {
+    setState(() {
+      _isSelectionMode = true;
+      _selectedKeys.clear();
+    });
+  }
+
+  void _exitSelectionMode() {
+    setState(() {
+      _isSelectionMode = false;
+      _selectedKeys.clear();
+    });
+  }
+
+  void _toggleItemSelection(DocumentsTableItem item) {
+    if (!item.canDelete) return;
+
+    setState(() {
+      final key = item.selectionKey;
+      if (_selectedKeys.contains(key)) {
+        _selectedKeys.remove(key);
+      } else {
+        _selectedKeys.add(key);
+      }
+    });
+  }
+
+  void _toggleSelectAll(List<DocumentsTableItem> items) {
+    final selectableKeys = items
+        .where((item) => item.canDelete)
+        .map((item) => item.selectionKey)
+        .toSet();
+    if (selectableKeys.isEmpty) return;
+
+    setState(() {
+      final allSelected = selectableKeys.every(_selectedKeys.contains);
+      if (allSelected) {
+        _selectedKeys.removeAll(selectableKeys);
+      } else {
+        _selectedKeys.addAll(selectableKeys);
+      }
+    });
   }
 
   void _toggleAmountSearch() {
@@ -127,36 +182,28 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
 
     if (confirmed != true || !mounted) return;
 
+    await _deleteItem(item);
+    if (!mounted) return;
+
+    _invalidateAfterDelete();
+  }
+
+  Future<void> _deleteItem(DocumentsTableItem item) async {
     final operationId = item.operationId;
     if (operationId != null) {
       await ref.read(bankStatementStorageProvider).deleteOperation(operationId);
-      ref.invalidate(documentsListProvider);
-      ref.invalidate(accountBalancesProvider);
-      ref.invalidate(renterDebtsProvider);
-      ref.invalidate(githubSyncDirtyProvider);
       return;
     }
 
     final incomeDocumentId = item.incomeDocumentId;
     if (incomeDocumentId != null) {
-      await ref
-          .read(incomesStorageProvider)
-          .deleteDocument(incomeDocumentId);
-      ref.invalidate(documentsListProvider);
-      ref.invalidate(accountBalancesProvider);
-      ref.invalidate(renterDebtsProvider);
-      ref.invalidate(githubSyncDirtyProvider);
+      await ref.read(incomesStorageProvider).deleteDocument(incomeDocumentId);
       return;
     }
 
     final expenseDocumentId = item.expenseDocumentId;
     if (expenseDocumentId != null) {
-      await ref
-          .read(expensesStorageProvider)
-          .deleteDocument(expenseDocumentId);
-      ref.invalidate(documentsListProvider);
-      ref.invalidate(accountBalancesProvider);
-      ref.invalidate(githubSyncDirtyProvider);
+      await ref.read(expensesStorageProvider).deleteDocument(expenseDocumentId);
       return;
     }
 
@@ -165,10 +212,49 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
         item.baseId!,
         item.date,
       );
-      ref.invalidate(documentsListProvider);
-      ref.invalidate(renterDebtsProvider);
-      ref.invalidate(githubSyncDirtyProvider);
     }
+  }
+
+  void _invalidateAfterDelete() {
+    ref
+      ..invalidate(documentsListProvider)
+      ..invalidate(accountBalancesProvider)
+      ..invalidate(renterDebtsProvider)
+      ..invalidate(githubSyncDirtyProvider);
+  }
+
+  Future<void> _confirmDeleteSelected(
+    List<DocumentsTableItem> visibleItems,
+  ) async {
+    final selectedItems = visibleItems
+        .where((item) => _selectedKeys.contains(item.selectionKey))
+        .toList();
+    if (selectedItems.isEmpty) return;
+
+    final count = selectedItems.length;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return ConfirmDialog(
+          title: count == 1 ? 'Удалить документ?' : 'Удалить документы?',
+          message: count == 1
+              ? 'Выбранный документ будет удалён безвозвратно.'
+              : 'Выбранные документы ($count) будут удалены безвозвратно.',
+          confirmLabel: 'Удалить',
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    for (final item in selectedItems) {
+      await _deleteItem(item);
+    }
+
+    if (!mounted) return;
+
+    _invalidateAfterDelete();
+    _exitSelectionMode();
   }
 
   String _deleteConfirmTitle(DocumentsTableItem item) {
@@ -296,21 +382,79 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
         .where(_visibleColumns.contains)
         .toList();
     final filteredItems = _filteredItems;
+    final selectableItems =
+        filteredItems.where((item) => item.canDelete).toList();
+    final selectedCount = selectableItems
+        .where((item) => _selectedKeys.contains(item.selectionKey))
+        .length;
+    final allSelectableSelected = selectableItems.isNotEmpty &&
+        selectableItems.every(
+          (item) => _selectedKeys.contains(item.selectionKey),
+        );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Align(
-          alignment: Alignment.centerRight,
-          child: IconButton(
-            tooltip: 'Столбцы',
-            onPressed: _showColumnSettings,
-            icon: Icon(
-              LucideIcons.columns3,
-              size: 18,
-              color: context.appColors.secondaryText,
-            ),
-          ),
+        Row(
+          children: [
+            if (_isSelectionMode) ...[
+              Text(
+                selectedCount == 0
+                    ? 'Выберите документы'
+                    : 'Выбрано: $selectedCount',
+                style: filterFieldTextStyle.copyWith(
+                  color: context.appColors.secondaryText,
+                ),
+              ),
+              const Spacer(),
+              TextButton(
+                onPressed: selectedCount == 0
+                    ? null
+                    : () => _confirmDeleteSelected(filteredItems),
+                child: Text(
+                  'Удалить',
+                  style: TextStyle(
+                    color: selectedCount == 0
+                        ? context.appColors.secondaryText
+                        : AppColors.red,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: _exitSelectionMode,
+                child: Text(
+                  'Отмена',
+                  style: TextStyle(
+                    color: context.appColors.secondaryText,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ] else ...[
+              const Spacer(),
+              IconButton(
+                tooltip: 'Выбрать',
+                onPressed: filteredItems.any((item) => item.canDelete)
+                    ? _enterSelectionMode
+                    : null,
+                icon: Icon(
+                  LucideIcons.checkCheck,
+                  size: 18,
+                  color: context.appColors.secondaryText,
+                ),
+              ),
+              IconButton(
+                tooltip: 'Столбцы',
+                onPressed: _showColumnSettings,
+                icon: Icon(
+                  LucideIcons.columns3,
+                  size: 18,
+                  color: context.appColors.secondaryText,
+                ),
+              ),
+            ],
+          ],
         ),
         Expanded(
           child: DecoratedBox(
@@ -324,7 +468,10 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
                 builder: (context, constraints) {
                   final tableWidth = math.max(
                     constraints.maxWidth,
-                    _DocumentsTableLayout.minWidthFor(visibleColumns),
+                    _DocumentsTableLayout.minWidthFor(
+                      visibleColumns,
+                      isSelectionMode: _isSelectionMode,
+                    ),
                   );
 
                   return SingleChildScrollView(
@@ -336,10 +483,15 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
                         children: [
                           _DocumentsTableHeader(
                             columns: visibleColumns,
+                            isSelectionMode: _isSelectionMode,
+                            allSelected: allSelectableSelected,
+                            hasSelectableItems: selectableItems.isNotEmpty,
                             isAmountSearchVisible: _isAmountSearchVisible,
                             amountSearchController: _amountSearchController,
                             amountSearchFocusNode: _amountSearchFocusNode,
                             onAmountSearchToggle: _toggleAmountSearch,
+                            onSelectAll: () =>
+                                _toggleSelectAll(filteredItems),
                             onAmountSearchChanged: (value) {
                               setState(() {
                                 _amountSearchQuery = value;
@@ -366,14 +518,26 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
                                     ),
                                     itemBuilder: (context, index) {
                                       final item = filteredItems[index];
+                                      final isSelected = _selectedKeys.contains(
+                                        item.selectionKey,
+                                      );
                                       return _DocumentsTableRow(
                                         item: item,
                                         columns: visibleColumns,
                                         dateFormat: _dateFormat,
                                         amountFormat: _amountFormat,
+                                        isSelectionMode: _isSelectionMode,
+                                        isSelected: isSelected,
+                                        onSelectionToggle: () =>
+                                            _toggleItemSelection(item),
                                         onDelete: () =>
                                             _confirmDeleteOperation(item),
-                                        onTap: item.isRenterAssignmentDocument
+                                        onTap: _isSelectionMode
+                                            ? (item.canDelete
+                                                  ? () =>
+                                                      _toggleItemSelection(item)
+                                                  : null)
+                                            : item.isRenterAssignmentDocument
                                             ? () => AddRentAccrualPage.navigate(
                                                 context,
                                                 baseId: item.baseId,
@@ -420,18 +584,26 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
 class _DocumentsTableHeader extends StatelessWidget {
   const _DocumentsTableHeader({
     required this.columns,
+    required this.isSelectionMode,
+    required this.allSelected,
+    required this.hasSelectableItems,
     required this.isAmountSearchVisible,
     required this.amountSearchController,
     required this.amountSearchFocusNode,
     required this.onAmountSearchToggle,
+    required this.onSelectAll,
     required this.onAmountSearchChanged,
   });
 
   final List<DocumentsTableColumn> columns;
+  final bool isSelectionMode;
+  final bool allSelected;
+  final bool hasSelectableItems;
   final bool isAmountSearchVisible;
   final TextEditingController amountSearchController;
   final FocusNode amountSearchFocusNode;
   final VoidCallback onAmountSearchToggle;
+  final VoidCallback onSelectAll;
   final ValueChanged<String> onAmountSearchChanged;
 
   @override
@@ -441,6 +613,21 @@ class _DocumentsTableHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
+          if (isSelectionMode)
+            SizedBox(
+              width: _DocumentsTableLayout.selectionColumnWidth,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Checkbox(
+                  value: allSelected,
+                  onChanged: hasSelectableItems
+                      ? (_) => onSelectAll()
+                      : null,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+            ),
           for (final column in columns)
             _DocumentsTableCell(
               column: column,
@@ -460,6 +647,8 @@ class _DocumentsTableHeader extends StatelessWidget {
                       ),
                     ),
             ),
+          if (!isSelectionMode)
+            const SizedBox(width: _DocumentsTableLayout.actionsColumnWidth),
         ],
       ),
     );
@@ -563,6 +752,9 @@ class _DocumentsTableRow extends StatelessWidget {
     required this.columns,
     required this.dateFormat,
     required this.amountFormat,
+    required this.isSelectionMode,
+    required this.isSelected,
+    required this.onSelectionToggle,
     required this.onDelete,
     this.onTap,
   });
@@ -571,17 +763,24 @@ class _DocumentsTableRow extends StatelessWidget {
   final List<DocumentsTableColumn> columns;
   final DateFormat dateFormat;
   final NumberFormat amountFormat;
+  final bool isSelectionMode;
+  final bool isSelected;
+  final VoidCallback onSelectionToggle;
   final VoidCallback onDelete;
   final VoidCallback? onTap;
 
-  Future<void> _showContextMenu(BuildContext context, Offset globalPosition) async {
-    final overlay = Overlay.of(context).context.findRenderObject()! as RenderBox;
+  Future<void> _showContextMenu(
+    BuildContext context,
+    Offset globalPosition,
+  ) async {
+    if (isSelectionMode || !item.canDelete) return;
+
+    final overlay =
+        Overlay.of(context).context.findRenderObject()! as RenderBox;
     final position = RelativeRect.fromRect(
       Rect.fromPoints(globalPosition, globalPosition),
       Offset.zero & overlay.size,
     );
-
-    if (!item.canDelete) return;
 
     final action = await showMenu<String>(
       context: context,
@@ -601,6 +800,8 @@ class _DocumentsTableRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
@@ -610,48 +811,74 @@ class _DocumentsTableRow extends StatelessWidget {
         cursor: onTap != null
             ? SystemMouseCursors.click
             : SystemMouseCursors.basic,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              for (final column in columns)
-                _DocumentsTableCell(
-                  column: column,
-                  child: column == DocumentsTableColumn.amount
-                      ? Text(
-                          amountFormat.format(item.amount),
-                          textAlign: TextAlign.right,
-                          style: filterFieldTextStyle.copyWith(
-                            color: _amountColor(item.documentType),
+        child: ColoredBox(
+          color: isSelected
+              ? colors.navActiveBackground.withValues(alpha: 0.55)
+              : Colors.transparent,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                if (isSelectionMode)
+                  SizedBox(
+                    width: _DocumentsTableLayout.selectionColumnWidth,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: item.canDelete
+                          ? Checkbox(
+                              value: isSelected,
+                              onChanged: (_) => onSelectionToggle(),
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                              visualDensity: VisualDensity.compact,
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                  ),
+                for (final column in columns)
+                  _DocumentsTableCell(
+                    column: column,
+                    child: column == DocumentsTableColumn.amount
+                        ? Text(
+                            amountFormat.format(item.amount),
+                            textAlign: TextAlign.right,
+                            style: filterFieldTextStyle.copyWith(
+                              color: _amountColor(item.documentType),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          )
+                        : Text(
+                            _valueForColumn(column),
+                            style: filterFieldTextStyle,
+                            maxLines: column == DocumentsTableColumn.description
+                                ? 2
+                                : 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        )
-                      : Text(
-                          _valueForColumn(column),
-                          style: filterFieldTextStyle,
-                          maxLines: column == DocumentsTableColumn.description
-                              ? 2
-                              : 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                ),
-              if (item.canDelete)
-                IconButton(
-                  tooltip: 'Удалить',
-                  onPressed: onDelete,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 32,
-                    minHeight: 32,
                   ),
-                  icon: Icon(
-                    LucideIcons.trash2,
-                    size: 16,
-                    color: context.appColors.secondaryText,
+                if (!isSelectionMode)
+                  SizedBox(
+                    width: _DocumentsTableLayout.actionsColumnWidth,
+                    child: item.canDelete
+                        ? IconButton(
+                            tooltip: 'Удалить',
+                            onPressed: onDelete,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 32,
+                              minHeight: 32,
+                            ),
+                            icon: Icon(
+                              LucideIcons.trash2,
+                              size: 16,
+                              color: colors.secondaryText,
+                            ),
+                          )
+                        : const SizedBox.shrink(),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -695,6 +922,8 @@ class _DocumentsTableLayout {
   };
 
   static const double horizontalPadding = 32;
+  static const double selectionColumnWidth = 40;
+  static const double actionsColumnWidth = 32;
 
   static EdgeInsets paddingForColumn(DocumentsTableColumn column) {
     return switch (column) {
@@ -704,8 +933,16 @@ class _DocumentsTableLayout {
     };
   }
 
-  static double minWidthFor(List<DocumentsTableColumn> columns) {
+  static double minWidthFor(
+    List<DocumentsTableColumn> columns, {
+    required bool isSelectionMode,
+  }) {
     var width = horizontalPadding;
+    if (isSelectionMode) {
+      width += selectionColumnWidth;
+    } else {
+      width += actionsColumnWidth;
+    }
     for (final column in columns) {
       width +=
           minWidthByColumn[column]! + paddingForColumn(column).horizontal;

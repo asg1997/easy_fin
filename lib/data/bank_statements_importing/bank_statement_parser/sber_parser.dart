@@ -45,34 +45,41 @@ class SberParser {
       throw StateError('Список файлов выписки Сбера пуст');
     }
 
-    final firstRows = await _parseTable(files.first);
-    final lastRows = files.length == 1
-        ? firstRows
-        : await _parseTable(files.last);
-
     final operations = <BankStatementOperation>[];
+    Table? firstRows;
+    double? initialBalance;
+    double? finalBalance;
+
     for (final file in files) {
       final rows = await _parseTable(file);
+      firstRows ??= rows;
       operations.addAll(_parseOperations(rows));
+      // Входящий — с первого листа, где он есть; исходящий — с последнего.
+      initialBalance ??= _parseBalanceFromLabeledRow(rows, 'Входящий остаток');
+      final closing = _parseBalanceFromLabeledRow(rows, 'Исходящий остаток');
+      if (closing != null) finalBalance = closing;
     }
 
-    final accountNumber = _parseAccountNumber(firstRows);
+    final accountNumber = _parseAccountNumber(firstRows!);
     final (startDate, endDate) = _parseStatementPeriod(firstRows);
-    final initialBalance =
-        _parseBalanceFromLabeledRow(firstRows, 'Входящий остаток') ?? 0;
-    final finalBalance =
-        _parseBalanceFromLabeledRow(lastRows, 'Исходящий остаток') ?? 0;
 
     return BankStatement(
       startDate: startDate,
       endDate: endDate,
       accountNumber: accountNumber,
       bankName: '',
-      initialBalance: initialBalance,
-      finalBalance: finalBalance,
+      initialBalance: initialBalance ?? 0,
+      finalBalance: finalBalance ?? 0,
       operations: operations,
     );
   }
+
+  static const _summaryRowMarkers = [
+    'Входящий остаток',
+    'Исходящий остаток',
+    'Итого оборотов',
+    'Количество операций',
+  ];
 
   List<BankStatementOperation> _parseOperations(List<OperationRow> rows) {
     var currentOperationIndex = _findOperationsStartIndex(rows);
@@ -80,12 +87,15 @@ class SberParser {
     final operations = <BankStatementOperation>[];
     while (currentOperationIndex < rows.length) {
       final operationRow = rows[currentOperationIndex];
-
-      if (!isOperationRow(operationRow)) break;
-
-      final operation = _parseOperation(operationRow);
-      operations.add(operation);
       currentOperationIndex++;
+
+      // Итоговый блок в конце выписки — дальше операций нет.
+      if (_isSummarySectionRow(operationRow)) break;
+
+      // Пустые строки и повторные заголовки между страницами — пропускаем.
+      if (!_isParsableOperationRow(operationRow)) continue;
+
+      operations.add(_parseOperation(operationRow));
     }
     return operations;
   }
@@ -94,34 +104,59 @@ class SberParser {
       file.openRead().transform(utf8.decoder).transform(csv.decoder).toList();
 
   int _findOperationsStartIndex(Table table) {
-    /// TODO: выбрасывать ошибку, если индекс не найден
     final debetIndex = table.indexWhere((row) => row.contains('Дебет'));
-    return debetIndex + 1;
+    if (debetIndex >= 0) return debetIndex + 1;
+
+    /// На продолжении многостраничной выписки заголовка «Дебет» может не быть.
+    final firstOp = table.indexWhere(_isParsableOperationRow);
+    return firstOp >= 0 ? firstOp : 0;
   }
 
   bool isOperationRow(OperationRow row) => row.any(
     (cell) => cell is String && DateFormat('dd.MM.yyyy').tryParse(cell) != null,
   );
 
+  bool _isSummarySectionRow(OperationRow row) => row.any(
+    (cell) =>
+        cell is String &&
+        _summaryRowMarkers.any((marker) => cell.trim().contains(marker)),
+  );
+
+  bool _hasOperationAmount(OperationRow row) {
+    final debit = _parseDouble(_cellAsString(row, 9));
+    final credit = _parseDouble(_cellAsString(row, 13));
+    return debit != null || credit != null;
+  }
+
+  bool _isParsableOperationRow(OperationRow row) =>
+      isOperationRow(row) && _hasOperationAmount(row);
+
   BankStatementOperation _parseOperation(OperationRow row) {
-    final debit = _parseDouble(row[9] as String);
-    final credit = _parseDouble(row[13] as String);
+    final debit = _parseDouble(_cellAsString(row, 9));
+    final credit = _parseDouble(_cellAsString(row, 13));
     final (debitInn, debitBankAccount, debitCounterpartyName) =
-        _parseCounterpartyCell(row[4] as String);
+        _parseCounterpartyCell(_cellAsString(row, 4));
     final (creditInn, creditBankAccount, creditCounterpartyName) =
-        _parseCounterpartyCell(row[8] as String);
+        _parseCounterpartyCell(_cellAsString(row, 8));
     return BankStatementOperation(
-      date: DateFormat('dd.MM.yyyy').parse(row[1] as String),
+      date: DateFormat('dd.MM.yyyy').parse(_cellAsString(row, 1)),
       debitInn: debitInn,
       debitBankAccount: debitBankAccount,
       creditInn: creditInn,
       creditBankAccount: creditBankAccount,
       debit: debit,
       credit: credit,
-      note: row[20] as String,
+      note: _cellAsString(row, 20),
       debitCounterpartyName: debitCounterpartyName,
       creditCounterpartyName: creditCounterpartyName,
     );
+  }
+
+  String _cellAsString(OperationRow row, int index) {
+    if (index < 0 || index >= row.length) return '';
+    final cell = row[index];
+    if (cell == null) return '';
+    return cell.toString();
   }
 
   double? _parseDouble(String value) {

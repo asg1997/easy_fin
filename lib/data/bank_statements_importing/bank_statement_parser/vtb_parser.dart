@@ -34,12 +34,17 @@ class VtbParser {
     final operations = <BankStatementOperation>[];
     while (currentOperationIndex < rows.length) {
       final operationRow = rows[currentOperationIndex];
-
-      if (!isOperationRow(operationRow)) break;
-
-      final operation = _parseOperation(operationRow);
-      operations.add(operation);
       currentOperationIndex++;
+
+      final first = operationRow.isEmpty
+          ? ''
+          : _cellAsString(operationRow[0]).trim();
+      if (first.startsWith('ИТОГО')) break;
+
+      // Пустые строки и служебные блоки между страницами — пропускаем.
+      if (!isOperationRow(operationRow)) continue;
+
+      operations.add(_parseOperation(operationRow));
     }
     return operations;
   }
@@ -51,9 +56,10 @@ class VtbParser {
     final headerIndex = table.indexWhere(
       (row) => row.isNotEmpty && _cellAsString(row[0]).trim() == 'Дата',
     );
+    if (headerIndex >= 0) return headerIndex + 1;
 
-    /// TODO: выбрасывать ошибку, если индекс не найден
-    return headerIndex + 1;
+    final firstOp = table.indexWhere(isOperationRow);
+    return firstOp >= 0 ? firstOp : 0;
   }
 
   bool isOperationRow(OperationRow row) {
@@ -68,7 +74,8 @@ class VtbParser {
     final credit = _parseDouble(_cellAsString(row[8]));
     final counterpartyInn = _cellAsString(row[4]).trim();
     final counterpartyAccount = _cellAsString(row[6]).trim();
-    final counterpartyName = _cellAsString(row[2]).trim();
+    // [2] = «Вид операции» (01, 02…), [3] = «Контрагент»
+    final counterpartyName = _cellAsString(row[3]).trim();
     final isOutgoing = (debit ?? 0) > 0;
 
     return BankStatementOperation(

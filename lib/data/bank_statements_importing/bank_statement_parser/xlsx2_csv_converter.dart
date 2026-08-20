@@ -86,10 +86,19 @@ class Xlsx2CsvConverter {
   }
 
   /// Excel date-time serials usually have a fractional time part.
+  ///
+  /// Суммы в рублях (≤2 знака после запятой) в диапазоне 20000–80000
+  /// нельзя принимать за даты: иначе 78067.51 становится «26.09.2113…».
   bool _looksLikeExcelDate(num value) {
     if (value < _excelDateMin || value >= _excelDateMax) return false;
     final fraction = (value - value.truncateToDouble()).abs();
-    return fraction > 1e-9;
+    if (fraction < 1e-9) return false;
+
+    // Денежные суммы — максимум копейки; serial даты/времени из Excel
+    // почти всегда имеет более длинную дробную часть.
+    final asKopeks = value * 100;
+    final looksLikeMoney = (asKopeks - asKopeks.roundToDouble()).abs() < 1e-6;
+    return !looksLikeMoney;
   }
 
   String _formatExcelDate(num serial) {

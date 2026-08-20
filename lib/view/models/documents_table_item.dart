@@ -52,4 +52,11 @@ class DocumentsTableItem {
       documentType == DocumentType.outcome && expenseDocumentId != null;
 
   bool get isBankOperation => operationId != null;
+
+  String get selectionKey {
+    if (operationId != null) return 'operation:$operationId';
+    if (incomeDocumentId != null) return 'income:$incomeDocumentId';
+    if (expenseDocumentId != null) return 'expense:$expenseDocumentId';
+    return 'renterAssignment:$baseId:${date.toIso8601String()}';
+  }
 }
