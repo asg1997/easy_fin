@@ -6032,6 +6032,221 @@ class NotesCompanion extends UpdateCompanion<NoteRow> {
   }
 }
 
+class $NoteTagsTable extends NoteTags
+    with TableInfo<$NoteTagsTable, NoteTagRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $NoteTagsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _noteIdMeta = const VerificationMeta('noteId');
+  @override
+  late final GeneratedColumn<String> noteId = GeneratedColumn<String>(
+    'note_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES notes (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _tagNameMeta = const VerificationMeta(
+    'tagName',
+  );
+  @override
+  late final GeneratedColumn<String> tagName = GeneratedColumn<String>(
+    'tag_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [noteId, tagName];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'note_tags';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<NoteTagRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('note_id')) {
+      context.handle(
+        _noteIdMeta,
+        noteId.isAcceptableOrUnknown(data['note_id']!, _noteIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_noteIdMeta);
+    }
+    if (data.containsKey('tag_name')) {
+      context.handle(
+        _tagNameMeta,
+        tagName.isAcceptableOrUnknown(data['tag_name']!, _tagNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tagNameMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {noteId, tagName};
+  @override
+  NoteTagRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return NoteTagRow(
+      noteId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note_id'],
+      )!,
+      tagName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tag_name'],
+      )!,
+    );
+  }
+
+  @override
+  $NoteTagsTable createAlias(String alias) {
+    return $NoteTagsTable(attachedDatabase, alias);
+  }
+}
+
+class NoteTagRow extends DataClass implements Insertable<NoteTagRow> {
+  final String noteId;
+  final String tagName;
+  const NoteTagRow({required this.noteId, required this.tagName});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['note_id'] = Variable<String>(noteId);
+    map['tag_name'] = Variable<String>(tagName);
+    return map;
+  }
+
+  NoteTagsCompanion toCompanion(bool nullToAbsent) {
+    return NoteTagsCompanion(noteId: Value(noteId), tagName: Value(tagName));
+  }
+
+  factory NoteTagRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return NoteTagRow(
+      noteId: serializer.fromJson<String>(json['noteId']),
+      tagName: serializer.fromJson<String>(json['tagName']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'noteId': serializer.toJson<String>(noteId),
+      'tagName': serializer.toJson<String>(tagName),
+    };
+  }
+
+  NoteTagRow copyWith({String? noteId, String? tagName}) => NoteTagRow(
+    noteId: noteId ?? this.noteId,
+    tagName: tagName ?? this.tagName,
+  );
+  NoteTagRow copyWithCompanion(NoteTagsCompanion data) {
+    return NoteTagRow(
+      noteId: data.noteId.present ? data.noteId.value : this.noteId,
+      tagName: data.tagName.present ? data.tagName.value : this.tagName,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NoteTagRow(')
+          ..write('noteId: $noteId, ')
+          ..write('tagName: $tagName')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(noteId, tagName);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is NoteTagRow &&
+          other.noteId == this.noteId &&
+          other.tagName == this.tagName);
+}
+
+class NoteTagsCompanion extends UpdateCompanion<NoteTagRow> {
+  final Value<String> noteId;
+  final Value<String> tagName;
+  final Value<int> rowid;
+  const NoteTagsCompanion({
+    this.noteId = const Value.absent(),
+    this.tagName = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  NoteTagsCompanion.insert({
+    required String noteId,
+    required String tagName,
+    this.rowid = const Value.absent(),
+  }) : noteId = Value(noteId),
+       tagName = Value(tagName);
+  static Insertable<NoteTagRow> custom({
+    Expression<String>? noteId,
+    Expression<String>? tagName,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (noteId != null) 'note_id': noteId,
+      if (tagName != null) 'tag_name': tagName,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  NoteTagsCompanion copyWith({
+    Value<String>? noteId,
+    Value<String>? tagName,
+    Value<int>? rowid,
+  }) {
+    return NoteTagsCompanion(
+      noteId: noteId ?? this.noteId,
+      tagName: tagName ?? this.tagName,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (noteId.present) {
+      map['note_id'] = Variable<String>(noteId.value);
+    }
+    if (tagName.present) {
+      map['tag_name'] = Variable<String>(tagName.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NoteTagsCompanion(')
+          ..write('noteId: $noteId, ')
+          ..write('tagName: $tagName, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -6062,6 +6277,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $ExpenseLinesTable expenseLines = $ExpenseLinesTable(this);
   late final $NotesTable notes = $NotesTable(this);
+  late final $NoteTagsTable noteTags = $NoteTagsTable(this);
   late final Index bankStatementsAccountPeriod = Index(
     'bank_statements_account_period',
     'CREATE UNIQUE INDEX bank_statements_account_period ON bank_statements (account_number, start_date, end_date)',
@@ -6090,6 +6306,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     expenseDocuments,
     expenseLines,
     notes,
+    noteTags,
     bankStatementsAccountPeriod,
     bankStatementsBaseStartDate,
   ];
@@ -6224,6 +6441,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('expense_lines', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'notes',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('note_tags', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -13632,6 +13856,29 @@ typedef $$NotesTableUpdateCompanionBuilder =
       Value<int> rowid,
     });
 
+final class $$NotesTableReferences
+    extends BaseReferences<_$AppDatabase, $NotesTable, NoteRow> {
+  $$NotesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$NoteTagsTable, List<NoteTagRow>>
+  _noteTagsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.noteTags,
+    aliasName: $_aliasNameGenerator(db.notes.id, db.noteTags.noteId),
+  );
+
+  $$NoteTagsTableProcessedTableManager get noteTagsRefs {
+    final manager = $$NoteTagsTableTableManager(
+      $_db,
+      $_db.noteTags,
+    ).filter((f) => f.noteId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_noteTagsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
 class $$NotesTableFilterComposer extends Composer<_$AppDatabase, $NotesTable> {
   $$NotesTableFilterComposer({
     required super.$db,
@@ -13659,6 +13906,31 @@ class $$NotesTableFilterComposer extends Composer<_$AppDatabase, $NotesTable> {
     column: $table.updatedAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> noteTagsRefs(
+    Expression<bool> Function($$NoteTagsTableFilterComposer f) f,
+  ) {
+    final $$NoteTagsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.noteTags,
+      getReferencedColumn: (t) => t.noteId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$NoteTagsTableFilterComposer(
+            $db: $db,
+            $table: $db.noteTags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$NotesTableOrderingComposer
@@ -13711,6 +13983,31 @@ class $$NotesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  Expression<T> noteTagsRefs<T extends Object>(
+    Expression<T> Function($$NoteTagsTableAnnotationComposer a) f,
+  ) {
+    final $$NoteTagsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.noteTags,
+      getReferencedColumn: (t) => t.noteId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$NoteTagsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.noteTags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$NotesTableTableManager
@@ -13724,9 +14021,9 @@ class $$NotesTableTableManager
           $$NotesTableAnnotationComposer,
           $$NotesTableCreateCompanionBuilder,
           $$NotesTableUpdateCompanionBuilder,
-          (NoteRow, BaseReferences<_$AppDatabase, $NotesTable, NoteRow>),
+          (NoteRow, $$NotesTableReferences),
           NoteRow,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool noteTagsRefs})
         > {
   $$NotesTableTableManager(_$AppDatabase db, $NotesTable table)
     : super(
@@ -13768,9 +14065,33 @@ class $$NotesTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) =>
+                    (e.readTable(table), $$NotesTableReferences(db, table, e)),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({noteTagsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (noteTagsRefs) db.noteTags],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (noteTagsRefs)
+                    await $_getPrefetchedData<NoteRow, $NotesTable, NoteTagRow>(
+                      currentTable: table,
+                      referencedTable: $$NotesTableReferences
+                          ._noteTagsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$NotesTableReferences(db, table, p0).noteTagsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.noteId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
         ),
       );
 }
@@ -13785,9 +14106,270 @@ typedef $$NotesTableProcessedTableManager =
       $$NotesTableAnnotationComposer,
       $$NotesTableCreateCompanionBuilder,
       $$NotesTableUpdateCompanionBuilder,
-      (NoteRow, BaseReferences<_$AppDatabase, $NotesTable, NoteRow>),
+      (NoteRow, $$NotesTableReferences),
       NoteRow,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool noteTagsRefs})
+    >;
+typedef $$NoteTagsTableCreateCompanionBuilder =
+    NoteTagsCompanion Function({
+      required String noteId,
+      required String tagName,
+      Value<int> rowid,
+    });
+typedef $$NoteTagsTableUpdateCompanionBuilder =
+    NoteTagsCompanion Function({
+      Value<String> noteId,
+      Value<String> tagName,
+      Value<int> rowid,
+    });
+
+final class $$NoteTagsTableReferences
+    extends BaseReferences<_$AppDatabase, $NoteTagsTable, NoteTagRow> {
+  $$NoteTagsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $NotesTable _noteIdTable(_$AppDatabase db) => db.notes.createAlias(
+    $_aliasNameGenerator(db.noteTags.noteId, db.notes.id),
+  );
+
+  $$NotesTableProcessedTableManager get noteId {
+    final $_column = $_itemColumn<String>('note_id')!;
+
+    final manager = $$NotesTableTableManager(
+      $_db,
+      $_db.notes,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_noteIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$NoteTagsTableFilterComposer
+    extends Composer<_$AppDatabase, $NoteTagsTable> {
+  $$NoteTagsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get tagName => $composableBuilder(
+    column: $table.tagName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$NotesTableFilterComposer get noteId {
+    final $$NotesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.noteId,
+      referencedTable: $db.notes,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$NotesTableFilterComposer(
+            $db: $db,
+            $table: $db.notes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$NoteTagsTableOrderingComposer
+    extends Composer<_$AppDatabase, $NoteTagsTable> {
+  $$NoteTagsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get tagName => $composableBuilder(
+    column: $table.tagName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$NotesTableOrderingComposer get noteId {
+    final $$NotesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.noteId,
+      referencedTable: $db.notes,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$NotesTableOrderingComposer(
+            $db: $db,
+            $table: $db.notes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$NoteTagsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $NoteTagsTable> {
+  $$NoteTagsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get tagName =>
+      $composableBuilder(column: $table.tagName, builder: (column) => column);
+
+  $$NotesTableAnnotationComposer get noteId {
+    final $$NotesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.noteId,
+      referencedTable: $db.notes,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$NotesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.notes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$NoteTagsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $NoteTagsTable,
+          NoteTagRow,
+          $$NoteTagsTableFilterComposer,
+          $$NoteTagsTableOrderingComposer,
+          $$NoteTagsTableAnnotationComposer,
+          $$NoteTagsTableCreateCompanionBuilder,
+          $$NoteTagsTableUpdateCompanionBuilder,
+          (NoteTagRow, $$NoteTagsTableReferences),
+          NoteTagRow,
+          PrefetchHooks Function({bool noteId})
+        > {
+  $$NoteTagsTableTableManager(_$AppDatabase db, $NoteTagsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$NoteTagsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$NoteTagsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$NoteTagsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> noteId = const Value.absent(),
+                Value<String> tagName = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => NoteTagsCompanion(
+                noteId: noteId,
+                tagName: tagName,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String noteId,
+                required String tagName,
+                Value<int> rowid = const Value.absent(),
+              }) => NoteTagsCompanion.insert(
+                noteId: noteId,
+                tagName: tagName,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$NoteTagsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({noteId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (noteId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.noteId,
+                                referencedTable: $$NoteTagsTableReferences
+                                    ._noteIdTable(db),
+                                referencedColumn: $$NoteTagsTableReferences
+                                    ._noteIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$NoteTagsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $NoteTagsTable,
+      NoteTagRow,
+      $$NoteTagsTableFilterComposer,
+      $$NoteTagsTableOrderingComposer,
+      $$NoteTagsTableAnnotationComposer,
+      $$NoteTagsTableCreateCompanionBuilder,
+      $$NoteTagsTableUpdateCompanionBuilder,
+      (NoteTagRow, $$NoteTagsTableReferences),
+      NoteTagRow,
+      PrefetchHooks Function({bool noteId})
     >;
 
 class $AppDatabaseManager {
@@ -13830,4 +14412,6 @@ class $AppDatabaseManager {
       $$ExpenseLinesTableTableManager(_db, _db.expenseLines);
   $$NotesTableTableManager get notes =>
       $$NotesTableTableManager(_db, _db.notes);
+  $$NoteTagsTableTableManager get noteTags =>
+      $$NoteTagsTableTableManager(_db, _db.noteTags);
 }

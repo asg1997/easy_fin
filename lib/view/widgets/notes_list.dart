@@ -7,6 +7,8 @@ import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/providers/github_sync_provider.dart';
 import 'package:easy_fin/view/providers/notes_provider.dart';
 import 'package:easy_fin/view/widgets/confirm_dialog.dart';
+import 'package:easy_fin/view/widgets/note_tag_chips.dart';
+import 'package:easy_fin/view/widgets/notes_tag_filter_bar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -42,7 +44,19 @@ class NotesList extends ConsumerWidget {
       await ref.read(notesStorageProvider).delete(note.id);
       ref
         ..invalidate(notesListProvider)
+        ..invalidate(allNoteTagsProvider)
         ..invalidate(githubSyncDirtyProvider);
+
+      final selected = ref.read(notesTagFilterProvider);
+      if (selected != null) {
+        final remaining = await ref.read(notesStorageProvider).getAllTags();
+        final stillExists = remaining.any(
+          (tag) => tag.toLowerCase() == selected.toLowerCase(),
+        );
+        if (!stillExists) {
+          ref.read(notesTagFilterProvider.notifier).selectAll();
+        }
+      }
     } on NoteNotFoundError {
       // Уже удалена — просто обновим список.
       ref.invalidate(notesListProvider);
@@ -61,20 +75,24 @@ class NotesList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notesAsync = ref.watch(notesListProvider);
+    final tagFilter = ref.watch(notesTagFilterProvider);
     final colors = context.appColors;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const _NewNoteField(),
-        const Gap(16),
+        const NotesTagFilterBar(),
+        const Gap(12),
         Expanded(
           child: notesAsync.when(
             data: (notes) {
               if (notes.isEmpty) {
                 return Center(
                   child: Text(
-                    'Пока нет заметок',
+                    tagFilter == null
+                        ? 'Пока нет заметок'
+                        : 'Нет заметок с этим тегом',
                     style: filterFieldHintTextStyleOf(context),
                   ),
                 );
@@ -92,7 +110,7 @@ class NotesList extends ConsumerWidget {
                     color: colors.surface,
                     borderRadius: BorderRadius.circular(10),
                     child: Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.fromLTRB(16, 12, 12, 8),
                       decoration: BoxDecoration(
                         border: Border.all(color: colors.border),
                         borderRadius: BorderRadius.circular(10),
@@ -100,14 +118,13 @@ class NotesList extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _NoteTextField(note: note),
-                          const Gap(2),
                           Row(
                             children: [
                               Expanded(
                                 child: Text(
                                   _metaLabel(note),
-                                  style: filterFieldHintTextStyleOf(context),
+                                  style: filterFieldHintTextStyleOf(context)
+                                      .copyWith(fontSize: 12),
                                 ),
                               ),
                               IconButton(
@@ -115,13 +132,21 @@ class NotesList extends ConsumerWidget {
                                     _onDelete(context, ref, note),
                                 icon: Icon(
                                   LucideIcons.trash2,
-                                  size: 18,
+                                  size: 16,
                                   color: colors.secondaryText,
                                 ),
                                 tooltip: 'Удалить',
+                                visualDensity: VisualDensity.compact,
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(
+                                  minWidth: 28,
+                                  minHeight: 28,
+                                ),
                               ),
                             ],
                           ),
+                          NoteTagChips(note: note),
+                          _NoteTextField(note: note),
                         ],
                       ),
                     ),
@@ -311,7 +336,7 @@ class _NoteTextFieldState extends ConsumerState<_NoteTextField> {
     return TextField(
       controller: _controller,
       focusNode: _focusNode,
-      minLines: 2,
+      minLines: 1,
       maxLines: null,
       style: filterFieldTextStyle.copyWith(
         color: colors.primaryText,
@@ -325,7 +350,7 @@ class _NoteTextFieldState extends ConsumerState<_NoteTextField> {
         disabledBorder: InputBorder.none,
         errorBorder: InputBorder.none,
         focusedErrorBorder: InputBorder.none,
-        contentPadding: EdgeInsets.fromLTRB(8, 8, 4, 0),
+        contentPadding: EdgeInsets.only(top: 4),
       ),
     );
   }

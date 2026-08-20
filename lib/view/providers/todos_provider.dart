@@ -4,13 +4,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 final todosProvider =
-    AsyncNotifierProvider<TodosNotifier, List<TodoItem>>(TodosNotifier.new);
+    AsyncNotifierProvider.autoDispose<TodosNotifier, List<TodoItem>>(
+  TodosNotifier.new,
+);
 
 class TodosNotifier extends AsyncNotifier<List<TodoItem>> {
   @override
-  Future<List<TodoItem>> build() {
-    return ref.read(todosStorageProvider).getAll();
+  Future<List<TodoItem>> build() async {
+    final items = await ref.read(todosStorageProvider).getAll();
+    return _sortedForScreen(items);
   }
+
+  /// Сортировка только при загрузке экрана: сначала несделанные.
+  List<TodoItem> _sortedForScreen(List<TodoItem> items) {
+    return [...items]..sort((a, b) {
+        final byDone = (a.isDone ? 1 : 0).compareTo(b.isDone ? 1 : 0);
+        if (byDone != 0) return byDone;
+        return a.sortOrder.compareTo(b.sortOrder);
+      });
+  }
+
+  List<TodoItem> get _current => state.value ?? [];
 
   Future<void> add(String text) async {
     final trimmed = text.trim();
@@ -18,21 +32,25 @@ class TodosNotifier extends AsyncNotifier<List<TodoItem>> {
       throw const TodoEmptyTextError();
     }
 
-    final items = await ref.read(todosStorageProvider).getAll();
+    final current = _current;
     final item = TodoItem(
       id: const Uuid().v4(),
       text: trimmed,
       isDone: false,
       createdAt: DateTime.now(),
-      sortOrder: items.length,
+      sortOrder: current.length,
     );
     await ref.read(todosStorageProvider).save(item);
-    state = AsyncData(await ref.read(todosStorageProvider).getAll());
+    // Новая задача сверху, без пересортировки всего списка.
+    state = AsyncData([item, ...current]);
   }
 
   Future<void> save(TodoItem item) async {
     await ref.read(todosStorageProvider).save(item);
-    state = AsyncData(await ref.read(todosStorageProvider).getAll());
+    state = AsyncData([
+      for (final todo in _current)
+        if (todo.id == item.id) item else todo,
+    ]);
   }
 
   Future<void> toggleDone(TodoItem item) async {
@@ -41,6 +59,9 @@ class TodosNotifier extends AsyncNotifier<List<TodoItem>> {
 
   Future<void> delete(TodoItemId id) async {
     await ref.read(todosStorageProvider).delete(id);
-    state = AsyncData(await ref.read(todosStorageProvider).getAll());
+    state = AsyncData([
+      for (final todo in _current)
+        if (todo.id != id) todo,
+    ]);
   }
 }

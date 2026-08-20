@@ -12,6 +12,7 @@ import 'package:easy_fin/drift/models/expense_documents_table.dart';
 import 'package:easy_fin/drift/models/expense_lines_table.dart';
 import 'package:easy_fin/drift/models/income_documents_table.dart';
 import 'package:easy_fin/drift/models/income_lines_table.dart';
+import 'package:easy_fin/drift/models/note_tags_table.dart';
 import 'package:easy_fin/drift/models/notes_table.dart';
 import 'package:easy_fin/drift/models/renter_assignments_table.dart';
 import 'package:easy_fin/drift/models/renters_table.dart';
@@ -36,10 +37,11 @@ part 'app_database.g.dart';
     ExpenseDocuments,
     ExpenseLines,
     Notes,
+    NoteTags,
   ],
 )
 class AppDatabase extends _$AppDatabase {
-  static const int currentSchemaVersion = 16;
+  static const int currentSchemaVersion = 17;
 
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
@@ -146,6 +148,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 16) {
         await migrator.createTable(notes);
+      }
+      if (from < 17) {
+        await migrator.createTable(noteTags);
       }
     },
   );

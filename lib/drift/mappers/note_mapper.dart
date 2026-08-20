@@ -14,12 +14,13 @@ extension NoteMapper on domain.Note {
 }
 
 extension NoteRowMapper on NoteRow {
-  domain.Note toDomain() {
+  domain.Note toDomain({List<String> tags = const []}) {
     return domain.Note(
       id: id,
       text: content,
       createdAt: createdAt,
       updatedAt: updatedAt,
+      tags: tags,
     );
   }
 }

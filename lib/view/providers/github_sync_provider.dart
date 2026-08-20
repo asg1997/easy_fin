@@ -186,6 +186,7 @@ class GithubSyncNotifier extends Notifier<GithubSyncState> {
       ..invalidate(renterDebtsByBaseProvider)
       ..invalidate(reportTemplateResultsProvider)
       ..invalidate(notesListProvider)
+      ..invalidate(allNoteTagsProvider)
       ..invalidate(githubSyncDirtyProvider);
   }
 }

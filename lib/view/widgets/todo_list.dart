@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:easy_fin/data/todos_storage/todos_storage.dart';
 import 'package:easy_fin/models/todo_item.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/providers/todos_provider.dart';
 import 'package:easy_fin/view/widgets/confirm_dialog.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
@@ -71,13 +75,27 @@ class TodoList extends ConsumerWidget {
                       ),
                       child: Row(
                         children: [
-                          Checkbox(
-                            value: item.isDone,
-                            onChanged: (_) async {
+                          IconButton(
+                            onPressed: () async {
                               await ref
                                   .read(todosProvider.notifier)
                                   .toggleDone(item);
                             },
+                            icon: Icon(
+                              item.isDone
+                                  ? LucideIcons.checkSquare
+                                  : LucideIcons.square,
+                              size: 18,
+                              color: colors.secondaryText,
+                            ),
+                            tooltip: item.isDone
+                                ? 'Отметить невыполненной'
+                                : 'Отметить выполненной',
+                            visualDensity: VisualDensity.compact,
+                            constraints: const BoxConstraints(
+                              minWidth: 36,
+                              minHeight: 36,
+                            ),
                           ),
                           Expanded(
                             child: _TodoTextField(item: item),
@@ -125,7 +143,8 @@ class _NewTodoFieldState extends ConsumerState<_NewTodoField> {
   void initState() {
     super.initState();
     _controller = TextEditingController();
-    _focusNode = FocusNode()..addListener(_onFocusChange);
+    _focusNode = FocusNode(onKeyEvent: _onKeyEvent)
+      ..addListener(_onFocusChange);
   }
 
   @override
@@ -135,6 +154,22 @@ class _NewTodoFieldState extends ConsumerState<_NewTodoField> {
       ..dispose();
     _controller.dispose();
     super.dispose();
+  }
+
+  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey != LogicalKeyboardKey.enter) {
+      return KeyEventResult.ignored;
+    }
+
+    final isMac = defaultTargetPlatform == TargetPlatform.macOS;
+    final hasShortcutModifier = isMac
+        ? HardwareKeyboard.instance.isMetaPressed
+        : HardwareKeyboard.instance.isControlPressed;
+    if (!hasShortcutModifier) return KeyEventResult.ignored;
+
+    unawaited(_commitFromShortcut());
+    return KeyEventResult.handled;
   }
 
   Future<void> _onFocusChange() async {
@@ -158,6 +193,11 @@ class _NewTodoFieldState extends ConsumerState<_NewTodoField> {
     }
   }
 
+  Future<void> _commitFromShortcut() async {
+    await _commit();
+    if (mounted) _focusNode.requestFocus();
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
@@ -178,8 +218,7 @@ class _NewTodoFieldState extends ConsumerState<_NewTodoField> {
         ),
       ),
       onSubmitted: (_) async {
-        await _commit();
-        if (mounted) _focusNode.requestFocus();
+        await _commitFromShortcut();
       },
     );
   }
@@ -203,7 +242,8 @@ class _TodoTextFieldState extends ConsumerState<_TodoTextField> {
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.item.text);
-    _focusNode = FocusNode()..addListener(_onFocusChange);
+    _focusNode = FocusNode(onKeyEvent: _onKeyEvent)
+      ..addListener(_onFocusChange);
   }
 
   @override
@@ -223,6 +263,22 @@ class _TodoTextFieldState extends ConsumerState<_TodoTextField> {
       ..dispose();
     _controller.dispose();
     super.dispose();
+  }
+
+  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey != LogicalKeyboardKey.enter) {
+      return KeyEventResult.ignored;
+    }
+
+    final isMac = defaultTargetPlatform == TargetPlatform.macOS;
+    final hasShortcutModifier = isMac
+        ? HardwareKeyboard.instance.isMetaPressed
+        : HardwareKeyboard.instance.isControlPressed;
+    if (!hasShortcutModifier) return KeyEventResult.ignored;
+
+    unawaited(_commitFromShortcut());
+    return KeyEventResult.handled;
   }
 
   Future<void> _onFocusChange() async {
@@ -251,6 +307,11 @@ class _TodoTextFieldState extends ConsumerState<_TodoTextField> {
     }
   }
 
+  Future<void> _commitFromShortcut() async {
+    await _commit();
+    if (mounted) _focusNode.unfocus();
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
@@ -270,6 +331,11 @@ class _TodoTextFieldState extends ConsumerState<_TodoTextField> {
       decoration: const InputDecoration(
         isDense: true,
         border: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        disabledBorder: InputBorder.none,
+        errorBorder: InputBorder.none,
+        focusedErrorBorder: InputBorder.none,
         contentPadding: EdgeInsets.symmetric(vertical: 10),
       ),
     );

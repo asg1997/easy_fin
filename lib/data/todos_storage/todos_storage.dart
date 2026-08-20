@@ -21,21 +21,16 @@ class TodoEmptyTextError extends TodosStorageError {
 class TodosStorage {
   const TodosStorage();
 
+  /// Порядок как в хранилище, без сортировки по статусу.
   Future<List<TodoItem>> getAll() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_todosKey);
     if (raw == null || raw.isEmpty) return [];
 
     final decoded = jsonDecode(raw) as List<dynamic>;
-    final items = decoded
+    return decoded
         .map((item) => TodoItem.fromJson(item as Map<String, dynamic>))
-        .toList()
-      ..sort((a, b) {
-        final byDone = (a.isDone ? 1 : 0).compareTo(b.isDone ? 1 : 0);
-        if (byDone != 0) return byDone;
-        return a.sortOrder.compareTo(b.sortOrder);
-      });
-    return items;
+        .toList();
   }
 
   Future<void> save(TodoItem item) async {
