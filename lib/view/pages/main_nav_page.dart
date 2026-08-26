@@ -7,6 +7,7 @@ import 'package:easy_fin/view/pages/github_sync_settings_page.dart';
 import 'package:easy_fin/view/pages/notes_page.dart';
 import 'package:easy_fin/view/pages/reports_page.dart';
 import 'package:easy_fin/view/pages/settings_page.dart';
+import 'package:easy_fin/view/providers/connectivity_provider.dart';
 import 'package:easy_fin/view/providers/github_sync_provider.dart';
 import 'package:easy_fin/view/providers/theme_mode_provider.dart';
 import 'package:easy_fin/view/widgets/add_action_speed_dial.dart';
@@ -62,7 +63,9 @@ class _MainNavPageState extends ConsumerState<MainNavPage> {
           AppSnackBar.showMessage(context, 'Данные скачаны с GitHub');
         case SyncStartupShouldDownload():
           break;
-        case SyncStartupSkipped() || SyncStartupUpToDate():
+        case SyncStartupSkipped() ||
+              SyncStartupUpToDate() ||
+              SyncStartupOffline():
           break;
       }
     } finally {
@@ -234,15 +237,32 @@ class _SyncButton extends ConsumerWidget {
     final isBusy = syncState is GithubSyncInProgress;
     final config = ref.watch(githubSyncConfigProvider).value;
     final dirtyAsync = ref.watch(githubSyncDirtyProvider);
+    final connectivityAsync = ref.watch(connectivityProvider);
+    final isOnline = connectivityAsync.value ?? true;
     final isDirty = dirtyAsync.value ?? false;
     final isDirtyLoaded = dirtyAsync.hasValue;
     final isSyncConfigured = config?.isConfigured == true;
-    final showDirtyMessage =
-        isSyncConfigured && isDirtyLoaded && isDirty && !isBusy;
-    final showSyncedMessage =
-        isSyncConfigured && isDirtyLoaded && !isDirty && !isBusy;
+    final showOfflineMessage = isSyncConfigured && !isBusy && !isOnline;
+    final showDirtyMessage = isSyncConfigured &&
+        isDirtyLoaded &&
+        isDirty &&
+        !isBusy &&
+        isOnline;
+    final showSyncedMessage = isSyncConfigured &&
+        isDirtyLoaded &&
+        !isDirty &&
+        !isBusy &&
+        isOnline;
 
     Future<void> onSync() async {
+      await ref.read(connectivityProvider.notifier).refresh();
+      final online = ref.read(connectivityProvider).value ?? false;
+      if (!online) {
+        if (!context.mounted) return;
+        AppSnackBar.showError(context, 'Подключение отсутствует');
+        return;
+      }
+
       final config = ref.read(githubSyncConfigProvider).value;
       if (config == null || !config.isConfigured) {
         if (!context.mounted) return;
@@ -306,11 +326,24 @@ class _SyncButton extends ConsumerWidget {
               color: Colors.white,
             ),
           )
-        : const Icon(
-            LucideIcons.cloudUpload,
+        : Icon(
+            showOfflineMessage ? LucideIcons.cloudOff : LucideIcons.cloudUpload,
             size: 20,
             color: Colors.white,
           );
+
+    String collapsedTooltip() {
+      if (showOfflineMessage) {
+        return 'Синхронизировать — подключение отсутствует';
+      }
+      if (showDirtyMessage) {
+        return 'Синхронизировать — необходима синхронизация';
+      }
+      if (showSyncedMessage) {
+        return 'Синхронизировать — всё синхронизировано';
+      }
+      return 'Синхронизировать';
+    }
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: isExpanded ? 20 : 0),
@@ -319,13 +352,7 @@ class _SyncButton extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Tooltip(
-            message: !isExpanded
-                ? showDirtyMessage
-                    ? 'Синхронизировать — необходима синхронизация'
-                    : showSyncedMessage
-                        ? 'Синхронизировать — всё синхронизировано'
-                        : 'Синхронизировать'
-                : '',
+            message: !isExpanded ? collapsedTooltip() : '',
             child: Stack(
               clipBehavior: Clip.none,
               children: [
@@ -359,7 +386,7 @@ class _SyncButton extends ConsumerWidget {
                     ),
                   ),
                 ),
-                if (!isExpanded && showDirtyMessage)
+                if (!isExpanded && (showDirtyMessage || showOfflineMessage))
                   Positioned(
                     right: 10,
                     top: 10,
@@ -367,7 +394,9 @@ class _SyncButton extends ConsumerWidget {
                       width: 8,
                       height: 8,
                       decoration: BoxDecoration(
-                        color: Colors.orange,
+                        color: showOfflineMessage
+                            ? Colors.redAccent
+                            : Colors.orange,
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: AppColors.purple,
@@ -379,17 +408,39 @@ class _SyncButton extends ConsumerWidget {
               ],
             ),
           ),
-          if (isExpanded && showDirtyMessage) ...[
+          if (isExpanded && showOfflineMessage) ...[
             const Gap(6),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
+                Icon(
+                  LucideIcons.cloudOff,
+                  size: 14,
+                  color: colorsForOffline(context),
+                ),
+                const Gap(6),
+                Text(
+                  'Подключение отсутствует',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colorsForOffline(context),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (isExpanded && showDirtyMessage) ...[
+            const Gap(6),
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
                   LucideIcons.circleAlert,
                   size: 14,
                   color: Colors.orange,
                 ),
-                const Gap(6),
+                Gap(6),
                 Text(
                   'Необходима синхронизация',
                   style: TextStyle(
@@ -403,7 +454,7 @@ class _SyncButton extends ConsumerWidget {
           ],
           if (isExpanded && showSyncedMessage) ...[
             const Gap(6),
-            Row(
+            const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
@@ -411,7 +462,7 @@ class _SyncButton extends ConsumerWidget {
                   size: 14,
                   color: AppColors.green,
                 ),
-                const Gap(6),
+                Gap(6),
                 Text(
                   'Все синхронизировано',
                   style: TextStyle(
@@ -426,6 +477,12 @@ class _SyncButton extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Color colorsForOffline(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? Colors.redAccent.shade100
+        : Colors.redAccent.shade700;
   }
 }
 

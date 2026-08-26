@@ -7,6 +7,7 @@ import 'package:easy_fin/data/github_sync/github_sync_config_storage.dart';
 import 'package:easy_fin/data/github_sync/models/github_sync_config.dart';
 import 'package:easy_fin/data/github_sync/models/sync_manifest.dart';
 import 'package:easy_fin/drift/db/app_database.dart';
+import 'package:easy_fin/utils/connectivity_checker.dart';
 import 'package:easy_fin/utils/database_path.dart';
 import 'package:sqlite3/sqlite3.dart';
 
@@ -44,6 +45,9 @@ class SyncStartupError extends SyncStartupResult {
 
   final String message;
 }
+
+/// Сети нет — синхронизацию при старте пропускаем без ошибки.
+class SyncStartupOffline extends SyncStartupResult {}
 
 class RemoteNewerOnUploadException implements Exception {
   RemoteNewerOnUploadException(this.remoteManifest);
@@ -100,6 +104,10 @@ class GithubSyncService {
       return SyncStartupSkipped();
     }
 
+    if (!await ConnectivityChecker.hasInternet()) {
+      return SyncStartupOffline();
+    }
+
     try {
       final localManifest = await _configStorage.loadLocalManifest();
       final isDirty = await _isDirty(localManifest);
@@ -133,7 +141,7 @@ class GithubSyncService {
 
       return SyncStartupUpToDate();
     } on SocketException {
-      return SyncStartupError('Нет подключения к интернету');
+      return SyncStartupOffline();
     } on GitHubApiException catch (e) {
       final config = await _configStorage.loadConfig();
       return SyncStartupError(_mapApiError(e, branch: config.branch));

@@ -5,6 +5,7 @@ import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:easy_fin/utils/app_snack_bar.dart';
 import 'package:easy_fin/utils/app_theme_colors.dart';
+import 'package:easy_fin/view/providers/connectivity_provider.dart';
 import 'package:easy_fin/view/providers/github_sync_provider.dart';
 import 'package:easy_fin/view/widgets/template_page.dart';
 import 'package:flutter/material.dart';
@@ -156,6 +157,14 @@ class _GithubSyncSettingsPageState extends ConsumerState<GithubSyncSettingsPage>
   }
 
   Future<void> _testConnection() async {
+    await ref.read(connectivityProvider.notifier).refresh();
+    final online = ref.read(connectivityProvider).value ?? false;
+    if (!online) {
+      if (!mounted) return;
+      AppSnackBar.showError(context, 'Подключение отсутствует');
+      return;
+    }
+
     final config = _buildConfig();
     final validationError = _validateConfig(config);
     if (validationError != null) {
@@ -188,6 +197,14 @@ class _GithubSyncSettingsPageState extends ConsumerState<GithubSyncSettingsPage>
   }
 
   Future<void> _upload({bool force = false}) async {
+    await ref.read(connectivityProvider.notifier).refresh();
+    final online = ref.read(connectivityProvider).value ?? false;
+    if (!online) {
+      if (!mounted) return;
+      AppSnackBar.showError(context, 'Подключение отсутствует');
+      return;
+    }
+
     if (!force) {
       final confirmed = await showDialog<bool>(
         context: context,

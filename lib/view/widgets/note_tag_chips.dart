@@ -25,11 +25,14 @@ class _NoteTagChipsState extends ConsumerState<NoteTagChips> {
   late final FocusNode _focusNode;
   var _isAdding = false;
   var _isBusy = false;
+  var _query = '';
+  /// Не закрывать поле при клике по подсказке (фокус уходит раньше onTap).
+  var _ignoreNextBlur = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController();
+    _controller = TextEditingController()..addListener(_onQueryChanged);
     _focusNode = FocusNode()..addListener(_onFocusChange);
   }
 
@@ -38,12 +41,24 @@ class _NoteTagChipsState extends ConsumerState<NoteTagChips> {
     _focusNode
       ..removeListener(_onFocusChange)
       ..dispose();
-    _controller.dispose();
+    _controller
+      ..removeListener(_onQueryChanged)
+      ..dispose();
     super.dispose();
+  }
+
+  void _onQueryChanged() {
+    final next = _controller.text.trim();
+    if (next == _query) return;
+    setState(() => _query = next);
   }
 
   void _onFocusChange() {
     if (_focusNode.hasFocus || _isBusy) return;
+    if (_ignoreNextBlur) {
+      _ignoreNextBlur = false;
+      return;
+    }
     if (_controller.text.trim().isEmpty) {
       setState(() => _isAdding = false);
       return;
@@ -51,8 +66,25 @@ class _NoteTagChipsState extends ConsumerState<NoteTagChips> {
     unawaited(_commit());
   }
 
-  Future<void> _commit() async {
-    final raw = _controller.text.trim();
+  void _onSuggestionPointerDown() {
+    _ignoreNextBlur = true;
+  }
+
+  List<String> _availableSuggestions(List<String> allTags) {
+    final noteTagLowers =
+        widget.note.tags.map((tag) => tag.toLowerCase()).toSet();
+    final queryLower = _query.toLowerCase();
+
+    return allTags.where((tag) {
+      final lower = tag.toLowerCase();
+      if (noteTagLowers.contains(lower)) return false;
+      if (queryLower.isEmpty) return true;
+      return lower.contains(queryLower);
+    }).toList();
+  }
+
+  Future<void> _commit([String? rawOverride]) async {
+    final raw = (rawOverride ?? _controller.text).trim();
     if (raw.isEmpty) {
       if (mounted) setState(() => _isAdding = false);
       return;
@@ -67,11 +99,19 @@ class _NoteTagChipsState extends ConsumerState<NoteTagChips> {
         ..invalidate(githubSyncDirtyProvider);
       if (!mounted) return;
       _controller.clear();
-      setState(() => _isAdding = false);
+      setState(() {
+        _query = '';
+        // Остаёмся в режиме добавления, чтобы можно было выбрать ещё теги.
+        _isAdding = true;
+      });
+      _focusNode.requestFocus();
     } on NoteTagEmptyError {
       if (!mounted) return;
       _controller.clear();
-      setState(() => _isAdding = false);
+      setState(() {
+        _query = '';
+        _isAdding = false;
+      });
     } on NoteTagTooLongError {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -123,89 +163,117 @@ class _NoteTagChipsState extends ConsumerState<NoteTagChips> {
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final tags = widget.note.tags;
+    final allTags = ref.watch(allNoteTagsProvider).value ?? const <String>[];
+    final suggestions =
+        _isAdding ? _availableSuggestions(allTags) : const <String>[];
 
     return Padding(
       padding: const EdgeInsets.only(top: 4, bottom: 2),
-      child: Wrap(
-        spacing: 6,
-        runSpacing: 6,
-        crossAxisAlignment: WrapCrossAlignment.center,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (final tag in tags)
-            _TagChip(
-              label: tag,
-              onRemove: () => unawaited(_removeTag(tag)),
-            ),
-          if (_isAdding)
-            SizedBox(
-              width: 120,
-              child: TextField(
-                controller: _controller,
-                focusNode: _focusNode,
-                autofocus: true,
-                style: filterFieldTextStyle.copyWith(
-                  fontSize: 12,
-                  color: colors.primaryText,
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              for (final tag in tags)
+                _TagChip(
+                  label: tag,
+                  onRemove: () => unawaited(_removeTag(tag)),
                 ),
-                decoration: InputDecoration(
-                  isDense: true,
-                  hintText: 'тег',
-                  hintStyle: filterFieldHintTextStyleOf(context).copyWith(
-                    fontSize: 12,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 6,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: BorderSide(color: colors.border),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: BorderSide(color: colors.border),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: BorderSide(color: colors.primaryText),
-                  ),
-                ),
-                onSubmitted: (_) => unawaited(_commit()),
-                maxLength: noteTagMaxLength + 1,
-                buildCounter: (
-                  context, {
-                  required currentLength,
-                  required isFocused,
-                  maxLength,
-                }) =>
-                    null,
-              ),
-            )
-          else
-            InkWell(
-              onTap: () => setState(() => _isAdding = true),
-              borderRadius: BorderRadius.circular(6),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      LucideIcons.plus,
-                      size: 12,
-                      color: colors.secondaryText,
+              if (_isAdding)
+                SizedBox(
+                  width: 120,
+                  child: TextField(
+                    controller: _controller,
+                    focusNode: _focusNode,
+                    autofocus: true,
+                    style: filterFieldTextStyle.copyWith(
+                      fontSize: 12,
+                      color: colors.primaryText,
                     ),
-                    const Gap(2),
-                    Text(
-                      'тег',
-                      style: filterFieldHintTextStyleOf(context).copyWith(
+                    decoration: InputDecoration(
+                      isDense: true,
+                      hintText: 'тег',
+                      hintStyle: filterFieldHintTextStyleOf(context).copyWith(
                         fontSize: 12,
                       ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 6,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide(color: colors.border),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide(color: colors.border),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide(color: colors.primaryText),
+                      ),
                     ),
-                  ],
+                    onSubmitted: (_) => unawaited(_commit()),
+                    maxLength: noteTagMaxLength + 1,
+                    buildCounter: (
+                      context, {
+                      required currentLength,
+                      required isFocused,
+                      maxLength,
+                    }) =>
+                        null,
+                  ),
+                )
+              else
+                InkWell(
+                  onTap: () => setState(() => _isAdding = true),
+                  borderRadius: BorderRadius.circular(6),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 4,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          LucideIcons.plus,
+                          size: 12,
+                          color: colors.secondaryText,
+                        ),
+                        const Gap(2),
+                        Text(
+                          'тег',
+                          style: filterFieldHintTextStyleOf(context).copyWith(
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
+            ],
+          ),
+          if (suggestions.isNotEmpty) ...[
+            const Gap(6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final tag in suggestions)
+                  Listener(
+                    onPointerDown: (_) => _onSuggestionPointerDown(),
+                    child: _SuggestionChip(
+                      label: tag,
+                      onTap: () => unawaited(_commit(tag)),
+                    ),
+                  ),
+              ],
             ),
+          ],
         ],
       ),
     );
@@ -254,6 +322,43 @@ class _TagChip extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SuggestionChip extends StatelessWidget {
+  const _SuggestionChip({
+    required this.label,
+    required this.onTap,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: colors.border),
+          ),
+          child: Text(
+            '#$label',
+            style: filterFieldTextStyle.copyWith(
+              fontSize: 12,
+              color: colors.secondaryText,
+            ),
+          ),
+        ),
       ),
     );
   }

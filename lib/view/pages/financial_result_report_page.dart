@@ -99,11 +99,24 @@ class FinancialResultReportPage extends ConsumerWidget {
               if (monthPeriod != null) ...[
                 const Gap(_sectionGap),
                 monthlyAsync.when(
-                  data: (items) => ExpenseChartSection(
-                    title: 'Динамика финансового результата',
-                    subtitle: '${monthPeriod.month.year} год',
-                    child: FinancialResultMonthlyLineChart(items: items),
-                  ),
+                  data: (items) {
+                    final yearLabel = '${monthPeriod.month.year} год';
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ExpenseChartSection(
+                          title: 'Динамика финансового результата',
+                          subtitle: yearLabel,
+                          child: FinancialResultMonthlyLineChart(items: items),
+                        ),
+                        const Gap(_sectionGap),
+                        FinancialResultMonthlyPieCharts(
+                          items: items,
+                          subtitle: yearLabel,
+                        ),
+                      ],
+                    );
+                  },
                   loading: () => const _ChartLoading(),
                   error: (_, _) => const _ChartError(),
                 ),

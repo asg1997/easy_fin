@@ -6,6 +6,22 @@ import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/models/financial_result_monthly_report_item.dart';
 import 'package:easy_fin/view/widgets/expense_chart_common.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
+const _financialResultMonthNames = [
+  'Янв',
+  'Фев',
+  'Мар',
+  'Апр',
+  'Май',
+  'Июн',
+  'Июл',
+  'Авг',
+  'Сен',
+  'Окт',
+  'Ноя',
+  'Дек',
+];
 
 class FinancialResultMonthlyLineChart extends StatelessWidget {
   const FinancialResultMonthlyLineChart({
@@ -16,21 +32,6 @@ class FinancialResultMonthlyLineChart extends StatelessWidget {
   final List<FinancialResultMonthlyReportItem> items;
 
   static const chartHeight = 320.0;
-
-  static const _monthNames = [
-    'Янв',
-    'Фев',
-    'Мар',
-    'Апр',
-    'Май',
-    'Июн',
-    'Июл',
-    'Авг',
-    'Сен',
-    'Окт',
-    'Ноя',
-    'Дек',
-  ];
 
   bool get _isEmpty {
     if (items.isEmpty) return true;
@@ -80,7 +81,7 @@ class FinancialResultMonthlyLineChart extends StatelessWidget {
               items: items,
               axisMax: axisMax,
               axisMin: axisMin,
-              monthNames: _monthNames,
+              monthNames: _financialResultMonthNames,
               primaryTextColor: colors.primaryText,
               secondaryTextColor: colors.secondaryText,
               borderColor: colors.border,
@@ -88,14 +89,255 @@ class FinancialResultMonthlyLineChart extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        const _Legend(),
+        const _LineLegend(),
       ],
     );
   }
 }
 
-class _Legend extends StatelessWidget {
-  const _Legend();
+class FinancialResultMonthlyPieCharts extends StatelessWidget {
+  const FinancialResultMonthlyPieCharts({
+    required this.items,
+    this.subtitle,
+    super.key,
+  });
+
+  final List<FinancialResultMonthlyReportItem> items;
+  final String? subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        FinancialResultMonthlyPieChart(
+          title: 'Структура выручки по месяцам',
+          subtitle: subtitle,
+          items: items,
+          valueOf: (item) => item.revenue,
+        ),
+        const SizedBox(height: 32),
+        FinancialResultMonthlyPieChart(
+          title: 'Структура расходов по месяцам',
+          subtitle: subtitle,
+          items: items,
+          valueOf: (item) => item.expenses,
+        ),
+        const SizedBox(height: 32),
+        FinancialResultMonthlyPieChart(
+          title: 'Структура прибыли по месяцам',
+          subtitle: subtitle,
+          items: items,
+          valueOf: (item) => item.profit,
+        ),
+      ],
+    );
+  }
+}
+
+class FinancialResultMonthlyPieChart extends StatelessWidget {
+  const FinancialResultMonthlyPieChart({
+    required this.title,
+    required this.items,
+    required this.valueOf,
+    this.subtitle,
+    super.key,
+  });
+
+  final String title;
+  final String? subtitle;
+  final List<FinancialResultMonthlyReportItem> items;
+  final double Function(FinancialResultMonthlyReportItem item) valueOf;
+
+  static const chartSize = 180.0;
+
+  static final _percentFormat = NumberFormat('#,##0.0', 'ru');
+
+  List<_PieSlice> get _slices {
+    final amounts = <String, double>{};
+    for (final item in items) {
+      if (item.isFutureMonth) continue;
+      final value = valueOf(item);
+      if (value <= 0) continue;
+      final label = _financialResultMonthNames[item.month.month - 1];
+      amounts[label] = (amounts[label] ?? 0) + value;
+    }
+
+    final total = amounts.values.fold<double>(0, (sum, value) => sum + value);
+    if (total <= 0) return const [];
+
+    return [
+      for (final entry in amounts.entries)
+        _PieSlice(
+          label: entry.key,
+          amount: entry.value,
+          percentage: entry.value / total * 100,
+        ),
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final slices = _slices;
+
+    return ExpenseChartSection(
+      title: title,
+      subtitle: subtitle,
+      child: slices.isEmpty
+          ? const ExpenseChartEmpty(height: chartSize)
+          : SizedBox(
+              width: double.infinity,
+              height: chartSize,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: chartSize,
+                    height: chartSize,
+                    child: CustomPaint(
+                      painter: _PieChartPainter(
+                        slices: slices,
+                        colors: List.generate(
+                          slices.length,
+                          ExpenseChartColors.at,
+                        ),
+                        holeColor: context.appColors.surface,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 24),
+                  Expanded(
+                    child: SizedBox(
+                      height: chartSize,
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            for (var index = 0; index < slices.length; index++)
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 3),
+                                child: _PieLegendItem(
+                                  color: ExpenseChartColors.at(index),
+                                  label: slices[index].label,
+                                  percentage: _percentFormat
+                                      .format(slices[index].percentage),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+    );
+  }
+}
+
+class _PieSlice {
+  const _PieSlice({
+    required this.label,
+    required this.amount,
+    required this.percentage,
+  });
+
+  final String label;
+  final double amount;
+  final double percentage;
+}
+
+class _PieLegendItem extends StatelessWidget {
+  const _PieLegendItem({
+    required this.color,
+    required this.label,
+    required this.percentage,
+  });
+
+  final Color color;
+  final String label;
+  final String percentage;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+
+    return Row(
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(fontSize: 12, color: colors.primaryText),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          '$percentage%',
+          style: TextStyle(
+            fontSize: 12,
+            color: colors.secondaryText,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PieChartPainter extends CustomPainter {
+  _PieChartPainter({
+    required this.slices,
+    required this.colors,
+    required this.holeColor,
+  });
+
+  final List<_PieSlice> slices;
+  final List<Color> colors;
+  final Color holeColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = math.min(size.width, size.height) / 2;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+
+    var startAngle = -math.pi / 2;
+
+    for (var index = 0; index < slices.length; index++) {
+      final sweepAngle = slices[index].percentage / 100 * 2 * math.pi;
+      final paint = Paint()
+        ..color = colors[index]
+        ..style = PaintingStyle.fill;
+
+      canvas.drawArc(rect, startAngle, sweepAngle, true, paint);
+      startAngle += sweepAngle;
+    }
+
+    final holePaint = Paint()..color = holeColor;
+    canvas.drawCircle(center, radius * 0.55, holePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _PieChartPainter oldDelegate) {
+    return oldDelegate.slices != slices ||
+        oldDelegate.colors != colors ||
+        oldDelegate.holeColor != holeColor;
+  }
+}
+
+class _LineLegend extends StatelessWidget {
+  const _LineLegend();
 
   @override
   Widget build(BuildContext context) {
@@ -103,16 +345,16 @@ class _Legend extends StatelessWidget {
       spacing: 16,
       runSpacing: 8,
       children: [
-        _LegendItem(color: AppColors.green, label: 'Выручка'),
-        _LegendItem(color: AppColors.red, label: 'Расходы'),
-        _LegendItem(color: AppColors.blue, label: 'Прибыль'),
+        _LineLegendItem(color: AppColors.green, label: 'Выручка'),
+        _LineLegendItem(color: AppColors.red, label: 'Расходы'),
+        _LineLegendItem(color: AppColors.blue, label: 'Прибыль'),
       ],
     );
   }
 }
 
-class _LegendItem extends StatelessWidget {
-  const _LegendItem({
+class _LineLegendItem extends StatelessWidget {
+  const _LineLegendItem({
     required this.color,
     required this.label,
   });
