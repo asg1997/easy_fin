@@ -1,7 +1,9 @@
+import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
-import 'package:easy_fin/utils/app_theme_colors.dart';
+
+enum ImportPeriodOverlapDialogResult { skip, importWithoutOverlap }
 
 class ImportPeriodOverlapDialog extends StatelessWidget {
   const ImportPeriodOverlapDialog({
@@ -9,6 +11,9 @@ class ImportPeriodOverlapDialog extends StatelessWidget {
     required this.existingEndDate,
     required this.newStartDate,
     required this.newEndDate,
+    required this.canImportWithoutOverlap,
+    this.trimmedStartDate,
+    this.trimmedEndDate,
     super.key,
   });
 
@@ -16,6 +21,9 @@ class ImportPeriodOverlapDialog extends StatelessWidget {
   final DateTime existingEndDate;
   final DateTime newStartDate;
   final DateTime newEndDate;
+  final bool canImportWithoutOverlap;
+  final DateTime? trimmedStartDate;
+  final DateTime? trimmedEndDate;
 
   static final _dateFormat = DateFormat('dd.MM.yyyy', 'ru');
 
@@ -52,8 +60,14 @@ class ImportPeriodOverlapDialog extends StatelessWidget {
               ),
               const Gap(20),
               Text(
-                'Период новой выписки пересекается с уже загруженной. '
-                'Операции за пересекающиеся даты будут дублироваться в документах.',
+                canImportWithoutOverlap
+                    ? 'Период новой выписки пересекается с уже загруженной. '
+                        'Можно загрузить только ранний фрагмент без '
+                        'пересекающихся дат — тогда дублирования операций '
+                        'не будет.'
+                    : 'Период новой выписки пересекается с уже загруженной. '
+                        'Операции за пересекающиеся даты будут дублироваться '
+                        'в документах.',
                 style: TextStyle(
                   fontSize: 14,
                   height: 1.4,
@@ -71,28 +85,61 @@ class ImportPeriodOverlapDialog extends StatelessWidget {
                 value: _formatPeriod(newStartDate, newEndDate),
                 highlight: true,
               ),
+              if (canImportWithoutOverlap &&
+                  trimmedStartDate != null &&
+                  trimmedEndDate != null) ...[
+                const Gap(8),
+                _InfoRow(
+                  label: 'Будет загружено',
+                  value: _formatPeriod(trimmedStartDate!, trimmedEndDate!),
+                ),
+              ],
               const Gap(24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  MaterialButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    height: 40,
-                    minWidth: 110,
-                    color: context.appColors.border,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(
+                      ImportPeriodOverlapDialogResult.skip,
                     ),
-                    child: Text(
+                    style: TextButton.styleFrom(
+                      foregroundColor: context.appColors.secondaryText,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                    ),
+                    child: const Text(
                       'Пропустить',
                       style: TextStyle(
-                        color: context.appColors.secondaryText,
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
+                  if (canImportWithoutOverlap) ...[
+                    const Gap(8),
+                    MaterialButton(
+                      onPressed: () => Navigator.of(context).pop(
+                        ImportPeriodOverlapDialogResult.importWithoutOverlap,
+                      ),
+                      height: 40,
+                      color: context.appColors.accent,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        'Загрузить без пересечений',
+                        style: TextStyle(
+                          color: context.appColors.onAccent,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ],
@@ -135,7 +182,9 @@ class _InfoRow extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: highlight ? Colors.orange.shade800 : context.appColors.primaryText,
+              color: highlight
+                  ? Colors.orange.shade800
+                  : context.appColors.primaryText,
             ),
           ),
         ),

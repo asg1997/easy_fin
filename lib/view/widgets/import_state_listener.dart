@@ -236,7 +236,7 @@ class _ImportStateListenerState extends ConsumerState<ImportStateListener> {
     final currentState = ref.read(importControllerProvider);
     if (currentState is! ImportPeriodOverlapBlocked) return;
 
-    await showDialog<void>(
+    final result = await showDialog<ImportPeriodOverlapDialogResult>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
@@ -245,6 +245,9 @@ class _ImportStateListenerState extends ConsumerState<ImportStateListener> {
           existingEndDate: currentState.existingEndDate,
           newStartDate: currentState.newStartDate,
           newEndDate: currentState.newEndDate,
+          canImportWithoutOverlap: currentState.canImportWithoutOverlap,
+          trimmedStartDate: currentState.trimmedStartDate,
+          trimmedEndDate: currentState.trimmedEndDate,
         );
       },
     );
@@ -256,7 +259,13 @@ class _ImportStateListenerState extends ConsumerState<ImportStateListener> {
       return;
     }
 
-    await notifier.dismissPeriodOverlapAndContinue();
+    switch (result) {
+      case ImportPeriodOverlapDialogResult.importWithoutOverlap:
+        await notifier.confirmImportWithoutOverlap();
+      case ImportPeriodOverlapDialogResult.skip:
+      case null:
+        await notifier.dismissPeriodOverlapAndContinue();
+    }
   }
 
   Future<void> _handleAwaitingBalanceConfirmation() async {

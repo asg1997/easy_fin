@@ -137,6 +137,9 @@ final class ImportPeriodOverlapBlocked extends ImportState {
     required this.existingEndDate,
     required this.newStartDate,
     required this.newEndDate,
+    required this.canImportWithoutOverlap,
+    this.trimmedStartDate,
+    this.trimmedEndDate,
   });
 
   final DateTime existingStartDate;
@@ -144,12 +147,22 @@ final class ImportPeriodOverlapBlocked extends ImportState {
   final DateTime newStartDate;
   final DateTime newEndDate;
 
+  /// Можно ли загрузить только ранний фрагмент без пересечения.
+  final bool canImportWithoutOverlap;
+
+  /// Период, который будет загружен при импорте без пересечений.
+  final DateTime? trimmedStartDate;
+  final DateTime? trimmedEndDate;
+
   @override
   List<Object?> get props => [
     existingStartDate,
     existingEndDate,
     newStartDate,
     newEndDate,
+    canImportWithoutOverlap,
+    trimmedStartDate,
+    trimmedEndDate,
   ];
 }
 

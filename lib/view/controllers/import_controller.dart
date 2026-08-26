@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:easy_fin/data/bank_statements_importing/bank_statement_import_validator.dart';
+import 'package:easy_fin/data/bank_statements_importing/bank_statement_overlap_trimmer.dart';
 import 'package:easy_fin/data/bank_statements_importing/bank_statement_parser/xls2_cvs_converter.dart';
 import 'package:easy_fin/data/bank_statements_importing/bank_statement_parser/xlsx2_csv_converter.dart';
 import 'package:easy_fin/data/bank_statements_importing/bank_statemenets_importer.dart';
@@ -38,6 +39,7 @@ class ImportController extends Notifier<ImportState> {
   static const _allowedExtensions = ['xls', 'xlsx'];
 
   static const _importValidator = BankStatementImportValidator();
+  static const _overlapTrimmer = BankStatementOverlapTrimmer();
 
   final List<BankStatement> _pendingStatements = [];
   var _savedCount = 0;
@@ -176,6 +178,26 @@ class ImportController extends Notifier<ImportState> {
 
     _pendingStatements.removeAt(0);
     _markStatementCompleted();
+    await _processQueue();
+  }
+
+  Future<void> confirmImportWithoutOverlap() async {
+    final currentState = state;
+    if (currentState is! ImportPeriodOverlapBlocked) return;
+    if (!currentState.canImportWithoutOverlap) return;
+    if (_pendingStatements.isEmpty) return;
+
+    final trimmed = _overlapTrimmer.trimToEarlyNonOverlapping(
+      statement: _pendingStatements[0],
+      overlappingStartDate: currentState.existingStartDate,
+    );
+    if (trimmed == null) {
+      await dismissPeriodOverlapAndContinue();
+      return;
+    }
+
+    _pendingStatements[0] = trimmed;
+    _setLoading(phase: ImportLoadingPhase.processing);
     await _processQueue();
   }
 
@@ -484,11 +506,18 @@ class ImportController extends Notifier<ImportState> {
     final overlapIssue = await _findPeriodOverlapIssue(normalizedStatement);
     if (overlapIssue != null) {
       final existing = overlapIssue.overlappingStatement!;
+      final trimmed = _overlapTrimmer.trimToEarlyNonOverlapping(
+        statement: normalizedStatement,
+        overlappingStartDate: existing.startDate,
+      );
       state = ImportPeriodOverlapBlocked(
         existingStartDate: existing.startDate,
         existingEndDate: existing.endDate,
         newStartDate: normalizedStatement.startDate,
         newEndDate: normalizedStatement.endDate,
+        canImportWithoutOverlap: trimmed != null,
+        trimmedStartDate: trimmed?.startDate,
+        trimmedEndDate: trimmed?.endDate,
       );
       return false;
     }
