@@ -1,13 +1,16 @@
 import 'dart:async';
 
 import 'package:easy_fin/data/bank_statements_storage/bank_statement_storage.dart';
+import 'package:easy_fin/data/bases_storage/bases_storage.dart';
 import 'package:easy_fin/data/expense_categories_storage/expense_categories_storage.dart';
+import 'package:easy_fin/data/expense_category_accounts_storage/expense_category_accounts_storage.dart';
 import 'package:easy_fin/data/income_categories_storage/income_categories_storage.dart';
 import 'package:easy_fin/data/models/bank_statement_operation.dart';
 import 'package:easy_fin/data/renters_storage/renters_storage.dart';
 import 'package:easy_fin/models/expense_category.dart';
 import 'package:easy_fin/models/income_category.dart';
 import 'package:easy_fin/models/renter.dart';
+import 'package:easy_fin/utils/account_number_validator.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/providers/account_balances_provider.dart';
@@ -55,6 +58,7 @@ class _EditBankOperationDialogState
   String? _loadError;
 
   BankStatementOperation? _operation;
+  String? _baseId;
 
   _IncomeClassification _incomeClassification =
       _IncomeClassification.unclassified;
@@ -159,6 +163,7 @@ class _EditBankOperationDialogState
 
     setState(() {
       _operation = operation;
+      _baseId = baseId;
       _renters = rentersForPicker;
       _incomeCategories = incomeCategories;
       _expenseCategories = expenseCategories;
@@ -191,7 +196,8 @@ class _EditBankOperationDialogState
 
   Future<void> _onSave() async {
     final operation = _operation;
-    if (operation == null || !_canSave) return;
+    final baseId = _baseId;
+    if (operation == null || baseId == null || !_canSave) return;
 
     setState(() => _isSaving = true);
 
@@ -209,34 +215,91 @@ class _EditBankOperationDialogState
           case _IncomeClassification.unclassified:
             break;
         }
+
+        await ref
+            .read(bankStatementStorageProvider)
+            .updateOperationClassification(
+              operationId: widget.operationId,
+              renterId: renterId,
+              incomeCategoryId: incomeCategoryId,
+              expenseCategoryId: expenseCategoryId,
+            );
       } else {
         switch (_expenseClassification) {
           case _ExpenseClassification.category:
             expenseCategoryId = _selectedExpenseCategory!.id;
+            await _saveExpenseCategory(
+              operation: operation,
+              baseId: baseId,
+              expenseCategoryId: expenseCategoryId,
+            );
           case _ExpenseClassification.unclassified:
-            break;
+            await ref
+                .read(bankStatementStorageProvider)
+                .updateOperationClassification(
+                  operationId: widget.operationId,
+                );
         }
       }
 
-      await ref.read(bankStatementStorageProvider).updateOperationClassification(
-            operationId: widget.operationId,
-            renterId: renterId,
-            incomeCategoryId: incomeCategoryId,
-            expenseCategoryId: expenseCategoryId,
-          );
-
-      ref.invalidate(documentsListProvider);
-      ref.invalidate(accountBalancesProvider);
-      ref.invalidate(renterDebtsProvider);
-      ref.invalidate(githubSyncDirtyProvider);
+      ref
+        ..invalidate(documentsListProvider)
+        ..invalidate(accountBalancesProvider)
+        ..invalidate(renterDebtsProvider)
+        ..invalidate(githubSyncDirtyProvider);
 
       if (!mounted) return;
       Navigator.of(context).pop(true);
-    } catch (error) {
+    } on Object catch (error) {
       if (!mounted) return;
       setState(() => _isSaving = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Не удалось сохранить\n$error')),
+      );
+    }
+  }
+
+  Future<void> _saveExpenseCategory({
+    required BankStatementOperation operation,
+    required String baseId,
+    required int expenseCategoryId,
+  }) async {
+    final storage = ref.read(bankStatementStorageProvider);
+    final counterpartyAccount = operation.creditBankAccount;
+    final trimmedAccount = counterpartyAccount.trim();
+    final base = await ref.read(basesStorageProvider).findById(baseId);
+    final ownAccounts = base?.accountNumbers.toSet() ?? {};
+    final canLinkByAccount = isValidAccountNumber(trimmedAccount) &&
+        !ownAccounts.contains(trimmedAccount) &&
+        !ownAccounts.contains(counterpartyAccount);
+
+    if (!canLinkByAccount) {
+      await storage.updateOperationClassification(
+        operationId: widget.operationId,
+        expenseCategoryId: expenseCategoryId,
+      );
+      return;
+    }
+
+    await ref.read(expenseCategoryAccountsStorageProvider).saveLink(
+          baseId: baseId,
+          categoryId: expenseCategoryId,
+          accountNumber: trimmedAccount,
+        );
+
+    final updatedCount =
+        await storage.applyExpenseCategoryByCounterpartyAccount(
+      baseId: baseId,
+      counterpartyAccountNumber: counterpartyAccount,
+      expenseCategoryId: expenseCategoryId,
+    );
+
+    // На случай отличающегося формата счёта у текущей операции
+    // всё равно гарантируем обновление открытого документа.
+    if (updatedCount == 0) {
+      await storage.updateOperationClassification(
+        operationId: widget.operationId,
+        expenseCategoryId: expenseCategoryId,
       );
     }
   }

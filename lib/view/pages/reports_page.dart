@@ -14,17 +14,15 @@ import 'package:easy_fin/view/providers/report_templates_provider.dart';
 import 'package:easy_fin/view/widgets/account_balances_table.dart';
 import 'package:easy_fin/view/widgets/dropdown_widget.dart';
 import 'package:easy_fin/view/widgets/expense_categories_table.dart';
-import 'package:easy_fin/view/widgets/month_navigator_field.dart';
 import 'package:easy_fin/view/widgets/renter_debts_base_filter_dropdown.dart';
 import 'package:easy_fin/view/widgets/renter_debts_table.dart';
+import 'package:easy_fin/view/widgets/report_period_selector.dart';
 import 'package:easy_fin/view/widgets/report_table_theme.dart';
 import 'package:easy_fin/view/widgets/report_template_section.dart';
 import 'package:easy_fin/view/widgets/template_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
-
-const _expenseFiltersGap = 12.0;
 
 class ReportsPage extends ConsumerWidget {
   const ReportsPage({super.key});
@@ -183,43 +181,29 @@ class ReportsPage extends ConsumerWidget {
                     ],
                   ),
                   const Gap(12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _ReportFilterField(
-                          child: basesAsync.when(
-                            data: (bases) => DropdownWidget<Base>(
-                              expand: true,
-                              items: bases,
-                              hint: 'Выбор базы',
-                              selectedItem: expenseFilters.selectedBase,
-                              labelBuilder: (item) => item.name,
-                              onChanged:
-                                  expenseFiltersNotifier.setSelectedBase,
-                            ),
-                            loading: () => const _FilterPlaceholder(
-                              label: 'Выбор базы',
-                            ),
-                            error: (_, _) => const _FilterPlaceholder(
-                              label: 'Выбор базы',
-                            ),
-                          ),
-                        ),
+                  _ReportFilterField(
+                    child: basesAsync.when(
+                      data: (bases) => DropdownWidget<Base>(
+                        expand: true,
+                        items: bases,
+                        hint: 'Выбор базы',
+                        selectedItem: expenseFilters.selectedBase,
+                        labelBuilder: (item) => item.name,
+                        onChanged: expenseFiltersNotifier.setSelectedBase,
                       ),
-                      const Gap(_expenseFiltersGap),
-                      Expanded(
-                        child: _ReportFilterField(
-                          child: MonthNavigatorField(
-                            expand: true,
-                            selectedMonth: expenseFilters.selectedMonth,
-                            canGoForward: expenseFilters.canGoForward,
-                            onPrevious:
-                                expenseFiltersNotifier.goToPreviousMonth,
-                            onNext: expenseFiltersNotifier.goToNextMonth,
-                          ),
-                        ),
+                      loading: () => const _FilterPlaceholder(
+                        label: 'Выбор базы',
                       ),
-                    ],
+                      error: (_, _) => const _FilterPlaceholder(
+                        label: 'Выбор базы',
+                      ),
+                    ),
+                  ),
+                  const Gap(12),
+                  ReportPeriodSelector(
+                    period: expenseFilters.period,
+                    onChanged: expenseFiltersNotifier.setPeriod,
+                    fieldWidth: 220,
                   ),
                   const Gap(12),
                   expenseReportAsync.when(

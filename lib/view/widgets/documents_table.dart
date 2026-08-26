@@ -59,11 +59,16 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
   final TextEditingController _amountSearchController =
       TextEditingController();
   final FocusNode _amountSearchFocusNode = FocusNode();
+  final TextEditingController _descriptionSearchController =
+      TextEditingController();
+  final FocusNode _descriptionSearchFocusNode = FocusNode();
   final Set<String> _selectedKeys = {};
 
   bool _isAmountSearchVisible = false;
+  bool _isDescriptionSearchVisible = false;
   bool _isSelectionMode = false;
   String _amountSearchQuery = '';
+  String _descriptionSearchQuery = '';
 
   static final _dateFormat = DateFormat('dd.MM.yyyy', 'ru');
   static final _amountFormat = NumberFormat('#,##0.00', 'ru');
@@ -81,6 +86,8 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
   void dispose() {
     _amountSearchController.dispose();
     _amountSearchFocusNode.dispose();
+    _descriptionSearchController.dispose();
+    _descriptionSearchFocusNode.dispose();
     super.dispose();
   }
 
@@ -144,6 +151,22 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
     }
   }
 
+  void _toggleDescriptionSearch() {
+    setState(() {
+      _isDescriptionSearchVisible = !_isDescriptionSearchVisible;
+      if (!_isDescriptionSearchVisible) {
+        _descriptionSearchController.clear();
+        _descriptionSearchQuery = '';
+      }
+    });
+
+    if (_isDescriptionSearchVisible) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _descriptionSearchFocusNode.requestFocus();
+      });
+    }
+  }
+
   bool _matchesAmountSearch(DocumentsTableItem item) {
     final query = _amountSearchQuery.trim();
     if (query.isEmpty) return true;
@@ -156,16 +179,22 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
         .toStringAsFixed(2)
         .replaceAll(RegExp(r'[\s,]'), '');
 
-    if (formattedAmount.contains(normalizedQuery) ||
-        rawAmount.contains(normalizedQuery)) {
-      return true;
-    }
+    return formattedAmount.contains(normalizedQuery) ||
+        rawAmount.contains(normalizedQuery);
+  }
+
+  bool _matchesDescriptionSearch(DocumentsTableItem item) {
+    final query = _descriptionSearchQuery.trim();
+    if (query.isEmpty) return true;
 
     return item.note.toLowerCase().contains(query.toLowerCase());
   }
 
   List<DocumentsTableItem> get _filteredItems {
-    return widget.items.where(_matchesAmountSearch).toList();
+    return widget.items
+        .where(_matchesAmountSearch)
+        .where(_matchesDescriptionSearch)
+        .toList();
   }
 
   Future<void> _confirmDeleteOperation(DocumentsTableItem item) async {
@@ -490,11 +519,23 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
                             amountSearchController: _amountSearchController,
                             amountSearchFocusNode: _amountSearchFocusNode,
                             onAmountSearchToggle: _toggleAmountSearch,
+                            isDescriptionSearchVisible:
+                                _isDescriptionSearchVisible,
+                            descriptionSearchController:
+                                _descriptionSearchController,
+                            descriptionSearchFocusNode:
+                                _descriptionSearchFocusNode,
+                            onDescriptionSearchToggle: _toggleDescriptionSearch,
                             onSelectAll: () =>
                                 _toggleSelectAll(filteredItems),
                             onAmountSearchChanged: (value) {
                               setState(() {
                                 _amountSearchQuery = value;
+                              });
+                            },
+                            onDescriptionSearchChanged: (value) {
+                              setState(() {
+                                _descriptionSearchQuery = value;
                               });
                             },
                           ),
@@ -591,8 +632,13 @@ class _DocumentsTableHeader extends StatelessWidget {
     required this.amountSearchController,
     required this.amountSearchFocusNode,
     required this.onAmountSearchToggle,
+    required this.isDescriptionSearchVisible,
+    required this.descriptionSearchController,
+    required this.descriptionSearchFocusNode,
+    required this.onDescriptionSearchToggle,
     required this.onSelectAll,
     required this.onAmountSearchChanged,
+    required this.onDescriptionSearchChanged,
   });
 
   final List<DocumentsTableColumn> columns;
@@ -603,8 +649,13 @@ class _DocumentsTableHeader extends StatelessWidget {
   final TextEditingController amountSearchController;
   final FocusNode amountSearchFocusNode;
   final VoidCallback onAmountSearchToggle;
+  final bool isDescriptionSearchVisible;
+  final TextEditingController descriptionSearchController;
+  final FocusNode descriptionSearchFocusNode;
+  final VoidCallback onDescriptionSearchToggle;
   final VoidCallback onSelectAll;
   final ValueChanged<String> onAmountSearchChanged;
+  final ValueChanged<String> onDescriptionSearchChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -631,21 +682,34 @@ class _DocumentsTableHeader extends StatelessWidget {
           for (final column in columns)
             _DocumentsTableCell(
               column: column,
-              child: column == DocumentsTableColumn.amount
-                  ? _AmountColumnHeader(
-                      isSearchVisible: isAmountSearchVisible,
-                      searchController: amountSearchController,
-                      searchFocusNode: amountSearchFocusNode,
-                      onSearchToggle: onAmountSearchToggle,
-                      onSearchChanged: onAmountSearchChanged,
-                    )
-                  : Text(
-                      column.label,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
+              child: switch (column) {
+                DocumentsTableColumn.amount => _SearchableColumnHeader(
+                    label: column.label,
+                    searchHint: 'Поиск по сумме',
+                    isSearchVisible: isAmountSearchVisible,
+                    searchController: amountSearchController,
+                    searchFocusNode: amountSearchFocusNode,
+                    onSearchToggle: onAmountSearchToggle,
+                    onSearchChanged: onAmountSearchChanged,
+                    alignEnd: true,
+                  ),
+                DocumentsTableColumn.description => _SearchableColumnHeader(
+                    label: column.label,
+                    searchHint: 'Поиск по описанию',
+                    isSearchVisible: isDescriptionSearchVisible,
+                    searchController: descriptionSearchController,
+                    searchFocusNode: descriptionSearchFocusNode,
+                    onSearchToggle: onDescriptionSearchToggle,
+                    onSearchChanged: onDescriptionSearchChanged,
+                  ),
+                _ => Text(
+                    column.label,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
+                  ),
+              },
             ),
           if (!isSelectionMode)
             const SizedBox(width: _DocumentsTableLayout.actionsColumnWidth),
@@ -655,20 +719,26 @@ class _DocumentsTableHeader extends StatelessWidget {
   }
 }
 
-class _AmountColumnHeader extends StatelessWidget {
-  const _AmountColumnHeader({
+class _SearchableColumnHeader extends StatelessWidget {
+  const _SearchableColumnHeader({
+    required this.label,
+    required this.searchHint,
     required this.isSearchVisible,
     required this.searchController,
     required this.searchFocusNode,
     required this.onSearchToggle,
     required this.onSearchChanged,
+    this.alignEnd = false,
   });
 
+  final String label;
+  final String searchHint;
   final bool isSearchVisible;
   final TextEditingController searchController;
   final FocusNode searchFocusNode;
   final VoidCallback onSearchToggle;
   final ValueChanged<String> onSearchChanged;
+  final bool alignEnd;
 
   @override
   Widget build(BuildContext context) {
@@ -680,7 +750,7 @@ class _AmountColumnHeader extends StatelessWidget {
         style: filterFieldTextStyle,
         decoration: InputDecoration(
           isDense: true,
-          hintText: 'Поиск по сумме',
+          hintText: searchHint,
           hintStyle: filterFieldHintTextStyleOf(context),
           filled: true,
           fillColor: context.appColors.surface,
@@ -715,10 +785,11 @@ class _AmountColumnHeader extends StatelessWidget {
     }
 
     return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
+      mainAxisAlignment:
+          alignEnd ? MainAxisAlignment.end : MainAxisAlignment.start,
       children: [
         IconButton(
-          tooltip: 'Поиск по сумме',
+          tooltip: searchHint,
           onPressed: onSearchToggle,
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(
@@ -731,11 +802,11 @@ class _AmountColumnHeader extends StatelessWidget {
             color: context.appColors.secondaryText,
           ),
         ),
-        const Flexible(
+        Flexible(
           child: Text(
-            'Сумма',
+            label,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
@@ -838,24 +909,25 @@ class _DocumentsTableRow extends StatelessWidget {
                 for (final column in columns)
                   _DocumentsTableCell(
                     column: column,
-                    child: column == DocumentsTableColumn.amount
-                        ? Text(
-                            amountFormat.format(item.amount),
-                            textAlign: TextAlign.right,
-                            style: filterFieldTextStyle.copyWith(
-                              color: _amountColor(item.documentType),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          )
-                        : Text(
-                            _valueForColumn(column),
-                            style: filterFieldTextStyle,
-                            maxLines: column == DocumentsTableColumn.description
-                                ? 2
-                                : 1,
-                            overflow: TextOverflow.ellipsis,
+                    child: switch (column) {
+                      DocumentsTableColumn.amount => Text(
+                          amountFormat.format(item.amount),
+                          textAlign: TextAlign.right,
+                          style: filterFieldTextStyle.copyWith(
+                            color: _amountColor(item.documentType),
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      DocumentsTableColumn.description =>
+                        _DescriptionText(note: item.note),
+                      _ => Text(
+                          _valueForColumn(column),
+                          style: filterFieldTextStyle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    },
                   ),
                 if (!isSelectionMode)
                   SizedBox(
@@ -901,6 +973,48 @@ class _DocumentsTableRow extends StatelessWidget {
       DocumentType.outcome => AppColors.red,
       DocumentType.renterAssignment => AppColors.primary,
     };
+  }
+}
+
+class _DescriptionText extends StatelessWidget {
+  const _DescriptionText({required this.note});
+
+  final String note;
+
+  @override
+  Widget build(BuildContext context) {
+    final separatorIndex = note.indexOf(':');
+    if (separatorIndex < 0 || separatorIndex == note.length - 1) {
+      return Text(
+        note,
+        style: filterFieldTextStyle,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      );
+    }
+
+    final prefix = note.substring(0, separatorIndex + 1);
+    final suffix = note.substring(separatorIndex + 1);
+
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(
+            text: prefix,
+            style: filterFieldTextStyle,
+          ),
+          TextSpan(
+            text: suffix,
+            style: filterFieldTextStyle.copyWith(
+              fontWeight: FontWeight.w300,
+              color: context.appColors.secondaryText,
+            ),
+          ),
+        ],
+      ),
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+    );
   }
 }
 

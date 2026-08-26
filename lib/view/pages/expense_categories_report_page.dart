@@ -1,6 +1,7 @@
 import 'package:easy_fin/models/base.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:easy_fin/utils/app_theme_colors.dart';
+import 'package:easy_fin/view/models/report_period.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/providers/expense_categories_charts_provider.dart';
 import 'package:easy_fin/view/providers/expense_categories_report_filters_provider.dart';
@@ -10,13 +11,12 @@ import 'package:easy_fin/view/widgets/expense_categories_pie_chart.dart';
 import 'package:easy_fin/view/widgets/expense_categories_report_charts.dart';
 import 'package:easy_fin/view/widgets/expense_categories_table.dart';
 import 'package:easy_fin/view/widgets/expense_chart_common.dart';
-import 'package:easy_fin/view/widgets/month_navigator_field.dart';
+import 'package:easy_fin/view/widgets/report_period_selector.dart';
 import 'package:easy_fin/view/widgets/report_table_theme.dart';
 import 'package:easy_fin/view/widgets/template_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
-import 'package:intl/intl.dart';
 
 const _filtersGap = 12.0;
 const _sectionGap = 32.0;
@@ -43,6 +43,8 @@ class ExpenseCategoriesReportPage extends ConsumerWidget {
     final monthlyAsync = ref.watch(expenseCategoriesMonthlyProvider);
     final comparisonAsync = ref.watch(expenseCategoriesComparisonProvider);
     final basesReportAsync = ref.watch(expenseBasesReportProvider);
+    final period = filters.period;
+    final monthPeriod = period is MonthReportPeriod ? period : null;
 
     void ensureBaseSelected(List<Base> bases) {
       if (bases.isEmpty) return;
@@ -62,14 +64,8 @@ class ExpenseCategoriesReportPage extends ConsumerWidget {
       });
     });
 
-    final monthLabel = _formatMonth(filters.selectedMonth);
-    final previousMonth = filters.selectedMonth.month == 1
-        ? DateTime(filters.selectedMonth.year - 1, 12)
-        : DateTime(
-            filters.selectedMonth.year,
-            filters.selectedMonth.month - 1,
-          );
-    final previousMonthLabel = _formatMonth(previousMonth);
+    final periodLabel = period.label;
+    final previousMonthLabel = monthPeriod?.previousMonth().label;
 
     return Scaffold(
       body: TemplatePage(
@@ -98,14 +94,9 @@ class ExpenseCategoriesReportPage extends ConsumerWidget {
                     ),
                   ),
                   const Gap(_filtersGap),
-                  _FilterField(
-                    child: MonthNavigatorField(
-                      expand: true,
-                      selectedMonth: filters.selectedMonth,
-                      canGoForward: filters.canGoForward,
-                      onPrevious: filtersNotifier.goToPreviousMonth,
-                      onNext: filtersNotifier.goToNextMonth,
-                    ),
+                  ReportPeriodSelector(
+                    period: period,
+                    onChanged: filtersNotifier.setPeriod,
                   ),
                 ],
               ),
@@ -121,25 +112,25 @@ class ExpenseCategoriesReportPage extends ConsumerWidget {
                     const Gap(_sectionGap),
                     ExpenseChartSection(
                       title: 'Структура расходов',
-                      subtitle: monthLabel,
+                      subtitle: periodLabel,
                       child: ExpenseCategoriesPieChart(items: items),
                     ),
                     const Gap(_sectionGap),
                     ExpenseChartSection(
                       title: 'Расходы по категориям',
-                      subtitle: monthLabel,
+                      subtitle: periodLabel,
                       child: ExpenseCategoriesVerticalBarChart(items: items),
                     ),
                     const Gap(_sectionGap),
                     ExpenseChartSection(
                       title: 'Топ-5 категорий',
-                      subtitle: monthLabel,
+                      subtitle: periodLabel,
                       child: ExpenseCategoriesTop5Chart(items: items),
                     ),
                     const Gap(_sectionGap),
                     ExpenseChartSection(
                       title: 'Диаграмма Парето',
-                      subtitle: monthLabel,
+                      subtitle: periodLabel,
                       child: ExpenseCategoriesParetoChart(items: items),
                     ),
                   ],
@@ -153,34 +144,36 @@ class ExpenseCategoriesReportPage extends ConsumerWidget {
                   child: Text('Не удалось загрузить расходы'),
                 ),
               ),
-              const Gap(_sectionGap),
-              monthlyAsync.when(
-                data: (items) => ExpenseChartSection(
-                  title: 'Динамика расходов по месяцам',
-                  subtitle: '${filters.selectedMonth.year} год',
-                  child: ExpenseCategoriesMonthlyChart(items: items),
-                ),
-                loading: () => const _ChartLoading(),
-                error: (_, _) => const _ChartError(),
-              ),
-              const Gap(_sectionGap),
-              comparisonAsync.when(
-                data: (items) => ExpenseChartSection(
-                  title: 'Сравнение с прошлым месяцем',
-                  child: ExpenseCategoriesComparisonChart(
-                    items: items,
-                    currentMonthLabel: monthLabel,
-                    previousMonthLabel: previousMonthLabel,
+              if (monthPeriod != null) ...[
+                const Gap(_sectionGap),
+                monthlyAsync.when(
+                  data: (items) => ExpenseChartSection(
+                    title: 'Динамика расходов по месяцам',
+                    subtitle: '${monthPeriod.month.year} год',
+                    child: ExpenseCategoriesMonthlyChart(items: items),
                   ),
+                  loading: () => const _ChartLoading(),
+                  error: (_, _) => const _ChartError(),
                 ),
-                loading: () => const _ChartLoading(),
-                error: (_, _) => const _ChartError(),
-              ),
+                const Gap(_sectionGap),
+                comparisonAsync.when(
+                  data: (items) => ExpenseChartSection(
+                    title: 'Сравнение с прошлым месяцем',
+                    child: ExpenseCategoriesComparisonChart(
+                      items: items,
+                      currentMonthLabel: periodLabel,
+                      previousMonthLabel: previousMonthLabel!,
+                    ),
+                  ),
+                  loading: () => const _ChartLoading(),
+                  error: (_, _) => const _ChartError(),
+                ),
+              ],
               const Gap(_sectionGap),
               basesReportAsync.when(
                 data: (items) => ExpenseChartSection(
                   title: 'Структура расходов по базам',
-                  subtitle: monthLabel,
+                  subtitle: periodLabel,
                   child: ExpenseBasesStructureChart(items: items),
                 ),
                 loading: () => const _ChartLoading(),
@@ -192,12 +185,6 @@ class ExpenseCategoriesReportPage extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  static String _formatMonth(DateTime month) {
-    final formatted = DateFormat('LLLL yyyy', 'ru').format(month);
-    if (formatted.isEmpty) return formatted;
-    return '${formatted[0].toUpperCase()}${formatted.substring(1)}';
   }
 }
 

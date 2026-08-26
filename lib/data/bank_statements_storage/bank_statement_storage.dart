@@ -47,6 +47,14 @@ abstract class BankStatementStorage {
     int? incomeCategoryId,
     int? expenseCategoryId,
   });
+
+  /// Проставляет [expenseCategoryId] всем расходным операциям базы
+  /// с тем же расчётным счётом контрагента.
+  Future<int> applyExpenseCategoryByCounterpartyAccount({
+    required String baseId,
+    required String counterpartyAccountNumber,
+    required int expenseCategoryId,
+  });
 }
 
 class BankStatementStorageImpl implements BankStatementStorage {
@@ -300,5 +308,39 @@ class BankStatementStorageImpl implements BankStatementStorage {
     if (updated == 0) {
       throw StateError('Operation $operationId not found');
     }
+  }
+
+  @override
+  Future<int> applyExpenseCategoryByCounterpartyAccount({
+    required String baseId,
+    required String counterpartyAccountNumber,
+    required int expenseCategoryId,
+  }) async {
+    final accounts = {
+      counterpartyAccountNumber,
+      counterpartyAccountNumber.trim(),
+    }.where((account) => account.isNotEmpty).toSet();
+    if (accounts.isEmpty) return 0;
+
+    final db = ref.read(appDatabaseProvider);
+    final statementIds = await (db.selectOnly(db.bankStatements)
+          ..addColumns([db.bankStatements.id])
+          ..where(db.bankStatements.baseId.equals(baseId)))
+        .map((row) => row.read(db.bankStatements.id)!)
+        .get();
+    if (statementIds.isEmpty) return 0;
+
+    return (db.update(db.bankStatementOperations)
+          ..where(
+            (table) =>
+                table.statementId.isIn(statementIds) &
+                table.creditBankAccount.isIn(accounts.toList()) &
+                table.debitMinor.isNotNull(),
+          ))
+        .write(
+          BankStatementOperationsCompanion(
+            expenseCategoryId: Value(expenseCategoryId),
+          ),
+        );
   }
 }

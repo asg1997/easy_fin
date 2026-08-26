@@ -2,6 +2,7 @@ import 'package:easy_fin/data/expense_categories_report_storage/expense_categori
 import 'package:easy_fin/view/models/expense_base_report_item.dart';
 import 'package:easy_fin/view/models/expense_category_comparison_item.dart';
 import 'package:easy_fin/view/models/expense_monthly_report_item.dart';
+import 'package:easy_fin/view/models/report_period.dart';
 import 'package:easy_fin/view/providers/expense_categories_report_filters_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,9 +12,12 @@ final expenseCategoriesMonthlyProvider =
   final base = filters.selectedBase;
   if (base == null) return [];
 
+  final period = filters.period;
+  if (period is! MonthReportPeriod) return [];
+
   return ref.read(expenseCategoriesReportStorageProvider).getMonthlyReport(
         baseId: base.id,
-        year: filters.selectedMonth.year,
+        year: period.month.year,
       );
 });
 
@@ -23,17 +27,22 @@ final expenseCategoriesComparisonProvider =
   final base = filters.selectedBase;
   if (base == null) return [];
 
+  final period = filters.period;
+  if (period is! MonthReportPeriod) return [];
+
   return ref.read(expenseCategoriesReportStorageProvider).getComparisonReport(
         baseId: base.id,
-        month: filters.selectedMonth,
+        month: period.month,
       );
 });
 
 final expenseBasesReportProvider =
     FutureProvider<List<ExpenseBaseReportItem>>((ref) async {
   final filters = ref.watch(expenseCategoriesReportFiltersProvider);
+  final period = filters.period;
 
   return ref.read(expenseCategoriesReportStorageProvider).getBasesReport(
-        month: filters.selectedMonth,
+        startDate: period.startDate,
+        endDate: period.endDate,
       );
 });

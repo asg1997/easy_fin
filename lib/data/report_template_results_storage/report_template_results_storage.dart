@@ -24,7 +24,8 @@ final reportTemplateResultsStorageProvider =
 abstract class ReportTemplateResultsStorage {
   Future<List<ReportTemplateResultItem>> getResults({
     required ReportTemplate template,
-    required DateTime month,
+    DateTime? startDate,
+    DateTime? endDate,
   });
 }
 
@@ -37,29 +38,27 @@ class ReportTemplateResultsStorageImpl
   @override
   Future<List<ReportTemplateResultItem>> getResults({
     required ReportTemplate template,
-    required DateTime month,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
-    final monthStart = DateTime(month.year, month.month);
-    final monthEnd = DateTime(month.year, month.month + 1, 0);
-
     return switch (template.kind) {
       ReportTemplateKind.income => _getIncomeResults(
           template: template,
-          startDate: monthStart,
-          endDate: monthEnd,
+          startDate: startDate,
+          endDate: endDate,
         ),
       ReportTemplateKind.expense => _getExpenseResults(
           template: template,
-          startDate: monthStart,
-          endDate: monthEnd,
+          startDate: startDate,
+          endDate: endDate,
         ),
     };
   }
 
   Future<List<ReportTemplateResultItem>> _getIncomeResults({
     required ReportTemplate template,
-    required DateTime startDate,
-    required DateTime endDate,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     final income = template.income;
     if (income == null) return [];
@@ -83,8 +82,8 @@ class ReportTemplateResultsStorageImpl
   Future<List<ReportTemplateResultItem>> _getRenterIncomeResults({
     required ReportTemplate template,
     required ReportIncomeConfig income,
-    required DateTime startDate,
-    required DateTime endDate,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     final sumsByRenterId = await _aggregateRenterIncome(
       template: template,
@@ -124,8 +123,8 @@ class ReportTemplateResultsStorageImpl
   Future<List<ReportTemplateResultItem>> _getOtherIncomeResults({
     required ReportTemplate template,
     required ReportIncomeConfig income,
-    required DateTime startDate,
-    required DateTime endDate,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     final sumsByCategoryId = await _aggregateOtherIncome(
       template: template,
@@ -152,8 +151,8 @@ class ReportTemplateResultsStorageImpl
 
   Future<List<ReportTemplateResultItem>> _getExpenseResults({
     required ReportTemplate template,
-    required DateTime startDate,
-    required DateTime endDate,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     final expense = template.expense;
     if (expense == null) return [];
@@ -183,8 +182,8 @@ class ReportTemplateResultsStorageImpl
 
   Future<Map<RenterId, double>> _aggregateRenterIncome({
     required ReportTemplate template,
-    required DateTime startDate,
-    required DateTime endDate,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     final filters = _buildFilters(
       template: template,
@@ -223,8 +222,8 @@ class ReportTemplateResultsStorageImpl
 
   Future<Map<IncomeCategoryId, double>> _aggregateOtherIncome({
     required ReportTemplate template,
-    required DateTime startDate,
-    required DateTime endDate,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     final filters = _buildFilters(
       template: template,
@@ -263,8 +262,8 @@ class ReportTemplateResultsStorageImpl
 
   Future<Map<ExpenseCategoryId, double>> _aggregateExpenses({
     required ReportTemplate template,
-    required DateTime startDate,
-    required DateTime endDate,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     final filters = _buildFilters(
       template: template,
@@ -301,9 +300,9 @@ class ReportTemplateResultsStorageImpl
 
   GetStatementsFilters _buildFilters({
     required ReportTemplate template,
-    required DateTime startDate,
-    required DateTime endDate,
     required DocumentType documentType,
+    DateTime? startDate,
+    DateTime? endDate,
   }) {
     final baseId = template.baseId;
     final accountType = template.accountType;

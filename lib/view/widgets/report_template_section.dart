@@ -1,8 +1,7 @@
 import 'package:easy_fin/models/report_template.dart';
-import 'package:easy_fin/utils/app_sizes.dart';
-import 'package:easy_fin/view/providers/report_template_month_provider.dart';
+import 'package:easy_fin/view/providers/report_template_period_provider.dart';
 import 'package:easy_fin/view/providers/report_template_results_provider.dart';
-import 'package:easy_fin/view/widgets/month_navigator_field.dart';
+import 'package:easy_fin/view/widgets/report_period_selector.dart';
 import 'package:easy_fin/view/widgets/report_table_theme.dart';
 import 'package:easy_fin/view/widgets/report_template_results_table.dart';
 import 'package:flutter/material.dart';
@@ -19,9 +18,9 @@ class ReportTemplateSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final month = ref.watch(reportTemplateMonthProvider(template.id));
-    final monthNotifier =
-        ref.read(reportTemplateMonthProvider(template.id).notifier);
+    final period = ref.watch(reportTemplatePeriodProvider(template.id));
+    final periodNotifier =
+        ref.read(reportTemplatePeriodProvider(template.id).notifier);
     final resultsAsync = ref.watch(reportTemplateResultsProvider(template.id));
 
     return SizedBox(
@@ -31,16 +30,10 @@ class ReportTemplateSection extends ConsumerWidget {
         children: [
           ReportTableTitle(template.name),
           const Gap(12),
-          SizedBox(
-            height: filterFieldHeight,
-            width: 220,
-            child: MonthNavigatorField(
-              expand: true,
-              selectedMonth: month,
-              canGoForward: monthNotifier.canGoForward,
-              onPrevious: monthNotifier.goToPreviousMonth,
-              onNext: monthNotifier.goToNextMonth,
-            ),
+          ReportPeriodSelector(
+            period: period,
+            onChanged: periodNotifier.setPeriod,
+            fieldWidth: 220,
           ),
           const Gap(12),
           resultsAsync.when(

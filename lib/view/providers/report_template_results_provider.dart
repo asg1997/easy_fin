@@ -1,10 +1,12 @@
 import 'package:easy_fin/data/report_template_results_storage/report_template_results_storage.dart';
 import 'package:easy_fin/models/report_template.dart';
+import 'package:easy_fin/view/models/report_period.dart';
 import 'package:easy_fin/view/models/report_template_result_item.dart';
-import 'package:easy_fin/view/providers/report_template_month_provider.dart';
+import 'package:easy_fin/view/providers/report_template_period_provider.dart';
 import 'package:easy_fin/view/providers/report_templates_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+// ignore: specify_nonobvious_property_types
 final reportTemplateResultsProvider = FutureProvider.family<
     List<ReportTemplateResultItem>, ReportTemplateId>((ref, templateId) async {
   final templates = await ref.watch(reportTemplatesProvider.future);
@@ -17,9 +19,11 @@ final reportTemplateResultsProvider = FutureProvider.family<
   }
   if (template == null) return [];
 
-  final month = ref.watch(reportTemplateMonthProvider(templateId));
+  final ReportPeriod period =
+      ref.watch(reportTemplatePeriodProvider(templateId));
   return ref.read(reportTemplateResultsStorageProvider).getResults(
         template: template,
-        month: month,
+        startDate: period.startDate,
+        endDate: period.endDate,
       );
 });

@@ -9,8 +9,10 @@ final expenseCategoriesReportProvider =
   final base = filters.selectedBase;
   if (base == null) return [];
 
+  final period = filters.period;
   return ref.read(expenseCategoriesReportStorageProvider).getReport(
         baseId: base.id,
-        month: filters.selectedMonth,
+        startDate: period.startDate,
+        endDate: period.endDate,
       );
 });

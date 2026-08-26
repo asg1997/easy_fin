@@ -22,7 +22,8 @@ final expenseCategoriesReportStorageProvider =
 abstract class ExpenseCategoriesReportStorage {
   Future<List<ExpenseCategoryReportItem>> getReport({
     required BaseId baseId,
-    required DateTime month,
+    DateTime? startDate,
+    DateTime? endDate,
   });
 
   Future<List<ExpenseMonthlyReportItem>> getMonthlyReport({
@@ -36,7 +37,8 @@ abstract class ExpenseCategoriesReportStorage {
   });
 
   Future<List<ExpenseBaseReportItem>> getBasesReport({
-    required DateTime month,
+    DateTime? startDate,
+    DateTime? endDate,
   });
 }
 
@@ -49,15 +51,13 @@ class ExpenseCategoriesReportStorageImpl
   @override
   Future<List<ExpenseCategoryReportItem>> getReport({
     required BaseId baseId,
-    required DateTime month,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
-    final monthStart = DateTime(month.year, month.month);
-    final monthEnd = DateTime(month.year, month.month + 1, 0);
-
     final sumsByCategoryId = await _aggregateByCategory(
       baseId: baseId,
-      startDate: monthStart,
-      endDate: monthEnd,
+      startDate: startDate,
+      endDate: endDate,
     );
 
     return _buildCategoryItems(sumsByCategoryId);
@@ -118,9 +118,16 @@ class ExpenseCategoriesReportStorageImpl
         ? DateTime(currentMonth.year - 1, 12)
         : DateTime(currentMonth.year, currentMonth.month - 1);
 
-    final currentItems = await getReport(baseId: baseId, month: currentMonth);
-    final previousItems =
-        await getReport(baseId: baseId, month: previousMonth);
+    final currentItems = await getReport(
+      baseId: baseId,
+      startDate: DateTime(currentMonth.year, currentMonth.month),
+      endDate: DateTime(currentMonth.year, currentMonth.month + 1, 0),
+    );
+    final previousItems = await getReport(
+      baseId: baseId,
+      startDate: DateTime(previousMonth.year, previousMonth.month),
+      endDate: DateTime(previousMonth.year, previousMonth.month + 1, 0),
+    );
 
     final currentByName = {
       for (final item in currentItems) item.categoryName: item.amount,
@@ -151,20 +158,18 @@ class ExpenseCategoriesReportStorageImpl
 
   @override
   Future<List<ExpenseBaseReportItem>> getBasesReport({
-    required DateTime month,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     final bases = await ref.read(basesStorageProvider).getAll();
     if (bases.isEmpty) return [];
-
-    final monthStart = DateTime(month.year, month.month);
-    final monthEnd = DateTime(month.year, month.month + 1, 0);
 
     final amountByBaseId = <BaseId, double>{};
     for (final base in bases) {
       final sums = await _aggregateByCategory(
         baseId: base.id,
-        startDate: monthStart,
-        endDate: monthEnd,
+        startDate: startDate,
+        endDate: endDate,
       );
       final total = sums.values.fold<double>(0, (sum, amount) => sum + amount);
       if (total > 0) {
@@ -196,8 +201,8 @@ class ExpenseCategoriesReportStorageImpl
 
   Future<Map<ExpenseCategoryId, double>> _aggregateByCategory({
     required BaseId baseId,
-    required DateTime startDate,
-    required DateTime endDate,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     final filters = GetStatementsFilters(
       startDate: startDate,
