@@ -43,7 +43,8 @@ abstract class ExpenseChartAxis {
   }
 
   static String formatLabel(double value) {
-    if (value >= 1000) {
+    final abs = value.abs();
+    if (abs >= 1000) {
       final thousands = value / 1000;
       if (thousands == thousands.roundToDouble()) {
         return '${thousands.toInt()}k';

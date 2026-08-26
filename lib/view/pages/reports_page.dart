@@ -3,17 +3,21 @@ import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:easy_fin/utils/app_theme_colors.dart';
 import 'package:easy_fin/view/pages/expense_categories_report_page.dart';
+import 'package:easy_fin/view/pages/financial_result_report_page.dart';
 import 'package:easy_fin/view/pages/renter_debts_report_page.dart';
 import 'package:easy_fin/view/providers/account_balances_provider.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/providers/expense_categories_report_filters_provider.dart';
 import 'package:easy_fin/view/providers/expense_categories_report_provider.dart';
+import 'package:easy_fin/view/providers/financial_result_report_filters_provider.dart';
+import 'package:easy_fin/view/providers/financial_result_report_provider.dart';
 import 'package:easy_fin/view/providers/renter_debts_provider.dart';
 import 'package:easy_fin/view/providers/renter_debts_summary_filters_provider.dart';
 import 'package:easy_fin/view/providers/report_templates_provider.dart';
 import 'package:easy_fin/view/widgets/account_balances_table.dart';
 import 'package:easy_fin/view/widgets/dropdown_widget.dart';
 import 'package:easy_fin/view/widgets/expense_categories_table.dart';
+import 'package:easy_fin/view/widgets/financial_result_table.dart';
 import 'package:easy_fin/view/widgets/renter_debts_base_filter_dropdown.dart';
 import 'package:easy_fin/view/widgets/renter_debts_table.dart';
 import 'package:easy_fin/view/widgets/report_period_selector.dart';
@@ -39,6 +43,10 @@ class ReportsPage extends ConsumerWidget {
     final expenseReportAsync = ref.watch(expenseCategoriesReportProvider);
     final expenseFiltersNotifier =
         ref.read(expenseCategoriesReportFiltersProvider.notifier);
+    final financialFilters = ref.watch(financialResultReportFiltersProvider);
+    final financialReportAsync = ref.watch(financialResultReportProvider);
+    final financialFiltersNotifier =
+        ref.read(financialResultReportFiltersProvider.notifier);
     final templatesAsync = ref.watch(reportTemplatesProvider);
 
     void ensureBaseSelected(List<Base> bases) {
@@ -215,6 +223,84 @@ class ReportsPage extends ConsumerWidget {
                     error: (_, _) => const Padding(
                       padding: EdgeInsets.only(top: 24),
                       child: Text('Не удалось загрузить расходы'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const ReportTableSectionDivider(),
+            SizedBox(
+              width: ReportTableTheme.standardWidth,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Expanded(
+                        child: ReportTableTitle('Финансовый результат'),
+                      ),
+                      TextButton(
+                        onPressed: () =>
+                            FinancialResultReportPage.navigate(context),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          foregroundColor: AppColors.purple,
+                        ),
+                        child: const Text(
+                          'Показать все',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Gap(12),
+                  _ReportFilterField(
+                    child: basesAsync.when(
+                      data: (bases) =>
+                          DropdownWidget<FinancialResultBaseFilter>(
+                        expand: true,
+                        items: [
+                          const AllBasesFinancialResultFilter(),
+                          ...bases.map(SingleBaseFinancialResultFilter.new),
+                        ],
+                        hint: 'Выбор базы',
+                        selectedItem: financialFilters.selectedBaseFilter,
+                        labelBuilder: (item) => item.label,
+                        onChanged:
+                            financialFiltersNotifier.setSelectedBaseFilter,
+                      ),
+                      loading: () => const _FilterPlaceholder(
+                        label: 'Выбор базы',
+                      ),
+                      error: (_, _) => const _FilterPlaceholder(
+                        label: 'Выбор базы',
+                      ),
+                    ),
+                  ),
+                  const Gap(12),
+                  ReportPeriodSelector(
+                    period: financialFilters.period,
+                    onChanged: financialFiltersNotifier.setPeriod,
+                    fieldWidth: 220,
+                  ),
+                  const Gap(12),
+                  financialReportAsync.when(
+                    data: (report) => FinancialResultTable(report: report),
+                    loading: () => const Padding(
+                      padding: EdgeInsets.only(top: 24),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                    error: (_, _) => const Padding(
+                      padding: EdgeInsets.only(top: 24),
+                      child: Text(
+                        'Не удалось загрузить финансовый результат',
+                      ),
                     ),
                   ),
                 ],
