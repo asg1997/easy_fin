@@ -1,4 +1,5 @@
 import 'package:easy_fin/data/financial_result_report_storage/financial_result_report_storage.dart';
+import 'package:easy_fin/view/models/financial_result_base_report_item.dart';
 import 'package:easy_fin/view/models/financial_result_monthly_report_item.dart';
 import 'package:easy_fin/view/models/financial_result_report.dart';
 import 'package:easy_fin/view/models/report_period.dart';
@@ -37,6 +38,23 @@ final financialResultMonthlyProvider =
   return ref.read(financialResultReportStorageProvider).getMonthlyReport(
         baseId: filters.selectedBaseFilter.baseId,
         year: period.month.year,
+        excludedExpenseCategoryIds: excluded,
+      );
+});
+
+final financialResultBasesProvider =
+    FutureProvider<List<FinancialResultBaseReportItem>>((ref) async {
+  final filters = ref.watch(financialResultReportFiltersProvider);
+  final period = filters.period;
+  if (!period.isComplete) return [];
+
+  final excluded = await ref.watch(
+    financialResultExcludedExpenseCategoryIdsProvider.future,
+  );
+
+  return ref.read(financialResultReportStorageProvider).getBasesReport(
+        startDate: period.startDate,
+        endDate: period.endDate,
         excludedExpenseCategoryIds: excluded,
       );
 });

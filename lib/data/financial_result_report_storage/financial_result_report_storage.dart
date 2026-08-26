@@ -1,10 +1,12 @@
 import 'package:easy_fin/data/bank_statements_storage/bank_statement_storage.dart';
+import 'package:easy_fin/data/bases_storage/bases_storage.dart';
 import 'package:easy_fin/data/expenses_storage/expenses_storage.dart';
 import 'package:easy_fin/data/incomes_storage/incomes_storage.dart';
 import 'package:easy_fin/data/models/get_statements_filters.dart';
 import 'package:easy_fin/models/base.dart';
 import 'package:easy_fin/models/document_type.dart';
 import 'package:easy_fin/models/expense_category.dart';
+import 'package:easy_fin/view/models/financial_result_base_report_item.dart';
 import 'package:easy_fin/view/models/financial_result_monthly_report_item.dart';
 import 'package:easy_fin/view/models/financial_result_report.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,6 +27,12 @@ abstract class FinancialResultReportStorage {
   Future<List<FinancialResultMonthlyReportItem>> getMonthlyReport({
     required int year,
     BaseId? baseId,
+    Set<ExpenseCategoryId> excludedExpenseCategoryIds = const {},
+  });
+
+  Future<List<FinancialResultBaseReportItem>> getBasesReport({
+    DateTime? startDate,
+    DateTime? endDate,
     Set<ExpenseCategoryId> excludedExpenseCategoryIds = const {},
   });
 }
@@ -103,6 +111,38 @@ class FinancialResultReportStorageImpl implements FinancialResultReportStorage {
       );
     }
 
+    return items;
+  }
+
+  @override
+  Future<List<FinancialResultBaseReportItem>> getBasesReport({
+    DateTime? startDate,
+    DateTime? endDate,
+    Set<ExpenseCategoryId> excludedExpenseCategoryIds = const {},
+  }) async {
+    final bases = await ref.read(basesStorageProvider).getAll();
+    if (bases.isEmpty) return [];
+
+    final items = <FinancialResultBaseReportItem>[];
+    for (final base in bases) {
+      final report = await getReport(
+        baseId: base.id,
+        startDate: startDate,
+        endDate: endDate,
+        excludedExpenseCategoryIds: excludedExpenseCategoryIds,
+      );
+      if (report.revenue == 0 && report.expenses == 0) continue;
+
+      items.add(
+        FinancialResultBaseReportItem(
+          baseName: base.name,
+          revenue: report.revenue,
+          expenses: report.expenses,
+        ),
+      );
+    }
+
+    items.sort((a, b) => b.revenue.compareTo(a.revenue));
     return items;
   }
 

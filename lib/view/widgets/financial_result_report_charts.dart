@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_theme_colors.dart';
+import 'package:easy_fin/view/models/financial_result_base_report_item.dart';
 import 'package:easy_fin/view/models/financial_result_monthly_report_item.dart';
 import 'package:easy_fin/view/widgets/expense_chart_common.dart';
 import 'package:flutter/material.dart';
@@ -95,14 +96,14 @@ class FinancialResultMonthlyLineChart extends StatelessWidget {
   }
 }
 
-class FinancialResultMonthlyPieCharts extends StatelessWidget {
-  const FinancialResultMonthlyPieCharts({
+class FinancialResultBasesPieCharts extends StatelessWidget {
+  const FinancialResultBasesPieCharts({
     required this.items,
     this.subtitle,
     super.key,
   });
 
-  final List<FinancialResultMonthlyReportItem> items;
+  final List<FinancialResultBaseReportItem> items;
   final String? subtitle;
 
   @override
@@ -110,22 +111,22 @@ class FinancialResultMonthlyPieCharts extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        FinancialResultMonthlyPieChart(
-          title: 'Структура выручки по месяцам',
+        FinancialResultBasesPieChart(
+          title: 'Структура выручки по базам',
           subtitle: subtitle,
           items: items,
           valueOf: (item) => item.revenue,
         ),
         const SizedBox(height: 32),
-        FinancialResultMonthlyPieChart(
-          title: 'Структура расходов по месяцам',
+        FinancialResultBasesPieChart(
+          title: 'Структура расходов по базам',
           subtitle: subtitle,
           items: items,
           valueOf: (item) => item.expenses,
         ),
         const SizedBox(height: 32),
-        FinancialResultMonthlyPieChart(
-          title: 'Структура прибыли по месяцам',
+        FinancialResultBasesPieChart(
+          title: 'Структура прибыли по базам',
           subtitle: subtitle,
           items: items,
           valueOf: (item) => item.profit,
@@ -135,8 +136,8 @@ class FinancialResultMonthlyPieCharts extends StatelessWidget {
   }
 }
 
-class FinancialResultMonthlyPieChart extends StatelessWidget {
-  const FinancialResultMonthlyPieChart({
+class FinancialResultBasesPieChart extends StatelessWidget {
+  const FinancialResultBasesPieChart({
     required this.title,
     required this.items,
     required this.valueOf,
@@ -146,34 +147,32 @@ class FinancialResultMonthlyPieChart extends StatelessWidget {
 
   final String title;
   final String? subtitle;
-  final List<FinancialResultMonthlyReportItem> items;
-  final double Function(FinancialResultMonthlyReportItem item) valueOf;
+  final List<FinancialResultBaseReportItem> items;
+  final double Function(FinancialResultBaseReportItem item) valueOf;
 
   static const chartSize = 180.0;
 
   static final _percentFormat = NumberFormat('#,##0.0', 'ru');
 
   List<_PieSlice> get _slices {
-    final amounts = <String, double>{};
-    for (final item in items) {
-      if (item.isFutureMonth) continue;
-      final value = valueOf(item);
-      if (value <= 0) continue;
-      final label = _financialResultMonthNames[item.month.month - 1];
-      amounts[label] = (amounts[label] ?? 0) + value;
-    }
+    final positive = [
+      for (final item in items)
+        if (valueOf(item) > 0)
+          (label: item.baseName, amount: valueOf(item)),
+    ];
 
-    final total = amounts.values.fold<double>(0, (sum, value) => sum + value);
+    final total =
+        positive.fold<double>(0, (sum, entry) => sum + entry.amount);
     if (total <= 0) return const [];
 
     return [
-      for (final entry in amounts.entries)
+      for (final entry in positive)
         _PieSlice(
-          label: entry.key,
-          amount: entry.value,
-          percentage: entry.value / total * 100,
+          label: entry.label,
+          amount: entry.amount,
+          percentage: entry.amount / total * 100,
         ),
-    ];
+    ]..sort((a, b) => b.amount.compareTo(a.amount));
   }
 
   @override

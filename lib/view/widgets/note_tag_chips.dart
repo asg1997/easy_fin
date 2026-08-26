@@ -26,7 +26,8 @@ class _NoteTagChipsState extends ConsumerState<NoteTagChips> {
   var _isAdding = false;
   var _isBusy = false;
   var _query = '';
-  /// Не закрывать поле при клике по подсказке (фокус уходит раньше onTap).
+
+  /// Не закрывать/коммитить поле, если клик ушёл на подсказку или крестик.
   var _ignoreNextBlur = false;
 
   @override
@@ -66,7 +67,7 @@ class _NoteTagChipsState extends ConsumerState<NoteTagChips> {
     unawaited(_commit());
   }
 
-  void _onSuggestionPointerDown() {
+  void _suppressBlur() {
     _ignoreNextBlur = true;
   }
 
@@ -101,10 +102,8 @@ class _NoteTagChipsState extends ConsumerState<NoteTagChips> {
       _controller.clear();
       setState(() {
         _query = '';
-        // Остаёмся в режиме добавления, чтобы можно было выбрать ещё теги.
-        _isAdding = true;
+        _isAdding = false;
       });
-      _focusNode.requestFocus();
     } on NoteTagEmptyError {
       if (!mounted) return;
       _controller.clear();
@@ -133,7 +132,15 @@ class _NoteTagChipsState extends ConsumerState<NoteTagChips> {
 
   Future<void> _removeTag(String tagName) async {
     if (_isBusy) return;
+    // Сначала _isBusy: unfocus не должен запускать commit/закрытие по blur.
     _isBusy = true;
+    _controller.clear();
+    _query = '';
+    if (_isAdding) {
+      setState(() => _isAdding = false);
+    }
+    _focusNode.unfocus();
+
     try {
       await ref.read(notesStorageProvider).removeTag(widget.note.id, tagName);
       ref
@@ -180,7 +187,8 @@ class _NoteTagChipsState extends ConsumerState<NoteTagChips> {
               for (final tag in tags)
                 _TagChip(
                   label: tag,
-                  onRemove: () => unawaited(_removeTag(tag)),
+                  // pointerDown: успевает сработать до потери фокуса TextField.
+                  onRemovePointerDown: () => unawaited(_removeTag(tag)),
                 ),
               if (_isAdding)
                 SizedBox(
@@ -265,7 +273,7 @@ class _NoteTagChipsState extends ConsumerState<NoteTagChips> {
               children: [
                 for (final tag in suggestions)
                   Listener(
-                    onPointerDown: (_) => _onSuggestionPointerDown(),
+                    onPointerDown: (_) => _suppressBlur(),
                     child: _SuggestionChip(
                       label: tag,
                       onTap: () => unawaited(_commit(tag)),
@@ -283,11 +291,11 @@ class _NoteTagChipsState extends ConsumerState<NoteTagChips> {
 class _TagChip extends StatelessWidget {
   const _TagChip({
     required this.label,
-    required this.onRemove,
+    required this.onRemovePointerDown,
   });
 
   final String label;
-  final VoidCallback onRemove;
+  final VoidCallback onRemovePointerDown;
 
   @override
   Widget build(BuildContext context) {
@@ -309,9 +317,8 @@ class _TagChip extends StatelessWidget {
               color: colors.secondaryText,
             ),
           ),
-          InkWell(
-            onTap: onRemove,
-            borderRadius: BorderRadius.circular(4),
+          Listener(
+            onPointerDown: (_) => onRemovePointerDown(),
             child: Padding(
               padding: const EdgeInsets.all(4),
               child: Icon(

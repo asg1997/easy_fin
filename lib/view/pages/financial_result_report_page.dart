@@ -40,8 +40,10 @@ class FinancialResultReportPage extends ConsumerWidget {
     final basesAsync = ref.watch(basesListProvider);
     final reportAsync = ref.watch(financialResultReportProvider);
     final monthlyAsync = ref.watch(financialResultMonthlyProvider);
+    final basesReportAsync = ref.watch(financialResultBasesProvider);
     final period = filters.period;
     final monthPeriod = period is MonthReportPeriod ? period : null;
+    final periodLabel = period.label;
 
     return Scaffold(
       body: TemplatePage(
@@ -96,27 +98,23 @@ class FinancialResultReportPage extends ConsumerWidget {
                   child: Text('Не удалось загрузить финансовый результат'),
                 ),
               ),
+              const Gap(_sectionGap),
+              basesReportAsync.when(
+                data: (items) => FinancialResultBasesPieCharts(
+                  items: items,
+                  subtitle: periodLabel,
+                ),
+                loading: () => const _ChartLoading(),
+                error: (_, _) => const _ChartError(),
+              ),
               if (monthPeriod != null) ...[
                 const Gap(_sectionGap),
                 monthlyAsync.when(
-                  data: (items) {
-                    final yearLabel = '${monthPeriod.month.year} год';
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ExpenseChartSection(
-                          title: 'Динамика финансового результата',
-                          subtitle: yearLabel,
-                          child: FinancialResultMonthlyLineChart(items: items),
-                        ),
-                        const Gap(_sectionGap),
-                        FinancialResultMonthlyPieCharts(
-                          items: items,
-                          subtitle: yearLabel,
-                        ),
-                      ],
-                    );
-                  },
+                  data: (items) => ExpenseChartSection(
+                    title: 'Динамика финансового результата',
+                    subtitle: '${monthPeriod.month.year} год',
+                    child: FinancialResultMonthlyLineChart(items: items),
+                  ),
                   loading: () => const _ChartLoading(),
                   error: (_, _) => const _ChartError(),
                 ),
