@@ -7,6 +7,7 @@ import 'package:easy_fin/view/providers/financial_result_report_filters_provider
 import 'package:easy_fin/view/providers/financial_result_report_provider.dart';
 import 'package:easy_fin/view/widgets/dropdown_widget.dart';
 import 'package:easy_fin/view/widgets/expense_chart_common.dart';
+import 'package:easy_fin/view/widgets/financial_result_excluded_categories_field.dart';
 import 'package:easy_fin/view/widgets/financial_result_report_charts.dart';
 import 'package:easy_fin/view/widgets/financial_result_table.dart';
 import 'package:easy_fin/view/widgets/report_period_selector.dart';
@@ -73,6 +74,10 @@ class FinancialResultReportPage extends ConsumerWidget {
                   ReportPeriodSelector(
                     period: period,
                     onChanged: filtersNotifier.setPeriod,
+                  ),
+                  const Gap(_filtersGap),
+                  const _FilterField(
+                    child: FinancialResultExcludedCategoriesField(),
                   ),
                 ],
               ),

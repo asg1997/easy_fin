@@ -4,6 +4,7 @@ import 'package:easy_fin/data/incomes_storage/incomes_storage.dart';
 import 'package:easy_fin/data/models/get_statements_filters.dart';
 import 'package:easy_fin/models/base.dart';
 import 'package:easy_fin/models/document_type.dart';
+import 'package:easy_fin/models/expense_category.dart';
 import 'package:easy_fin/view/models/financial_result_monthly_report_item.dart';
 import 'package:easy_fin/view/models/financial_result_report.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,11 +19,13 @@ abstract class FinancialResultReportStorage {
     BaseId? baseId,
     DateTime? startDate,
     DateTime? endDate,
+    Set<ExpenseCategoryId> excludedExpenseCategoryIds = const {},
   });
 
   Future<List<FinancialResultMonthlyReportItem>> getMonthlyReport({
     required int year,
     BaseId? baseId,
+    Set<ExpenseCategoryId> excludedExpenseCategoryIds = const {},
   });
 }
 
@@ -36,6 +39,7 @@ class FinancialResultReportStorageImpl implements FinancialResultReportStorage {
     BaseId? baseId,
     DateTime? startDate,
     DateTime? endDate,
+    Set<ExpenseCategoryId> excludedExpenseCategoryIds = const {},
   }) async {
     final revenue = await _sumIncome(
       baseId: baseId,
@@ -46,6 +50,7 @@ class FinancialResultReportStorageImpl implements FinancialResultReportStorage {
       baseId: baseId,
       startDate: startDate,
       endDate: endDate,
+      excludedExpenseCategoryIds: excludedExpenseCategoryIds,
     );
 
     return FinancialResultReport(
@@ -58,6 +63,7 @@ class FinancialResultReportStorageImpl implements FinancialResultReportStorage {
   Future<List<FinancialResultMonthlyReportItem>> getMonthlyReport({
     required int year,
     BaseId? baseId,
+    Set<ExpenseCategoryId> excludedExpenseCategoryIds = const {},
   }) async {
     final now = DateTime.now();
     final currentMonth = DateTime(now.year, now.month);
@@ -85,6 +91,7 @@ class FinancialResultReportStorageImpl implements FinancialResultReportStorage {
         baseId: baseId,
         startDate: monthStart,
         endDate: monthEnd,
+        excludedExpenseCategoryIds: excludedExpenseCategoryIds,
       );
 
       items.add(
@@ -137,6 +144,7 @@ class FinancialResultReportStorageImpl implements FinancialResultReportStorage {
     BaseId? baseId,
     DateTime? startDate,
     DateTime? endDate,
+    Set<ExpenseCategoryId> excludedExpenseCategoryIds = const {},
   }) async {
     final filters = _buildFilters(
       baseId: baseId,
@@ -150,7 +158,10 @@ class FinancialResultReportStorageImpl implements FinancialResultReportStorage {
     final documents =
         await ref.read(expensesStorageProvider).getByFilters(filters);
     for (final document in documents) {
-      total += document.totalSum;
+      for (final line in document.lines) {
+        if (excludedExpenseCategoryIds.contains(line.categoryId)) continue;
+        total += line.sum;
+      }
     }
 
     final statements =
@@ -158,6 +169,11 @@ class FinancialResultReportStorageImpl implements FinancialResultReportStorage {
     for (final statement in statements) {
       for (final operation in statement.operations) {
         if (!operation.isDebit) continue;
+        final categoryId = operation.expenseCategoryId;
+        if (categoryId != null &&
+            excludedExpenseCategoryIds.contains(categoryId)) {
+          continue;
+        }
         final amount = operation.debit ?? 0;
         if (amount <= 0) continue;
         total += amount;

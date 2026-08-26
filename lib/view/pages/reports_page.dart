@@ -17,6 +17,7 @@ import 'package:easy_fin/view/providers/report_templates_provider.dart';
 import 'package:easy_fin/view/widgets/account_balances_table.dart';
 import 'package:easy_fin/view/widgets/dropdown_widget.dart';
 import 'package:easy_fin/view/widgets/expense_categories_table.dart';
+import 'package:easy_fin/view/widgets/financial_result_excluded_categories_field.dart';
 import 'package:easy_fin/view/widgets/financial_result_table.dart';
 import 'package:easy_fin/view/widgets/renter_debts_base_filter_dropdown.dart';
 import 'package:easy_fin/view/widgets/renter_debts_table.dart';
@@ -288,6 +289,10 @@ class ReportsPage extends ConsumerWidget {
                     period: financialFilters.period,
                     onChanged: financialFiltersNotifier.setPeriod,
                     fieldWidth: 220,
+                  ),
+                  const Gap(12),
+                  const _ReportFilterField(
+                    child: FinancialResultExcludedCategoriesField(),
                   ),
                   const Gap(12),
                   financialReportAsync.when(
