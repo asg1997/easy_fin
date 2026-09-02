@@ -34,23 +34,26 @@ class _RenterRow {
   const _RenterRow({
     required this.renterId,
     required this.name,
-    required this.accountNumber,
+    required this.accountNumbers,
   });
 
   final RenterId renterId;
   final String name;
-  final String accountNumber;
+  final List<String> accountNumbers;
+
+  String get accountNumbersLabel {
+    if (accountNumbers.isEmpty) return '—';
+    return accountNumbers.join(', ');
+  }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        other is _RenterRow &&
-            renterId == other.renterId &&
-            accountNumber == other.accountNumber;
+        other is _RenterRow && renterId == other.renterId;
   }
 
   @override
-  int get hashCode => Object.hash(renterId, accountNumber);
+  int get hashCode => renterId.hashCode;
 }
 
 sealed class _DocumentAccountOption {
@@ -228,24 +231,44 @@ class _AddIncomePageState extends ConsumerState<AddIncomePage> {
     };
 
     setState(() {
+      final mergedRenterLineById =
+          <RenterId, _MutualSettlementIncomeLineEntry>{};
+
       for (final line in document.lines) {
         final source = line.incomeSource;
         switch (source) {
-          case IncomeSourceFromRenter(:final renterId, :final accountNumber):
+          case IncomeSourceFromRenter(:final renterId):
             final renter = renterById[renterId];
             if (renter == null) continue;
 
-            _lineEntries.add(
-              _MutualSettlementIncomeLineEntry(
+            final existing = mergedRenterLineById[renterId];
+            if (existing == null) {
+              final entry = _MutualSettlementIncomeLineEntry(
                 renter: _RenterRow(
                   renterId: renterId,
                   name: renter.name,
-                  accountNumber: accountNumber,
+                  accountNumbers: renter.accountNumbers,
                 ),
                 amountText: AmountInputFormatter.formatAmount(line.sum),
                 noteText: line.note ?? '',
-              ),
-            );
+              );
+              mergedRenterLineById[renterId] = entry;
+              _lineEntries.add(entry);
+            } else {
+              final previousAmount = AmountInputFormatter.parseAmount(
+                    existing.amountController.text,
+                  ) ??
+                  0;
+              existing.amountController.text =
+                  AmountInputFormatter.formatAmount(previousAmount + line.sum);
+              final note = line.note?.trim();
+              if (note != null && note.isNotEmpty) {
+                final previousNote = existing.noteController.text.trim();
+                existing.noteController.text = previousNote.isEmpty
+                    ? note
+                    : '$previousNote; $note';
+              }
+            }
           case IncomeSourceFromOther(:final categoryId):
             final category = categoryById[categoryId];
             if (category == null) continue;
@@ -325,8 +348,7 @@ class _AddIncomePageState extends ConsumerState<AddIncomePage> {
     final alreadyAdded = _lineEntries.any(
       (entry) =>
           entry is _MutualSettlementIncomeLineEntry &&
-          entry.renter.renterId == renter.renterId &&
-          entry.renter.accountNumber == renter.accountNumber,
+          entry.renter.renterId == renter.renterId,
     );
     if (alreadyAdded) return;
 
@@ -393,7 +415,7 @@ class _AddIncomePageState extends ConsumerState<AddIncomePage> {
       return;
     }
 
-    final seenRenterKeys = <String>{};
+    final seenRenterIds = <RenterId>{};
     final lines = <Income>[];
     final timestamp = DateTime.now().microsecondsSinceEpoch;
 
@@ -409,17 +431,17 @@ class _AddIncomePageState extends ConsumerState<AddIncomePage> {
       final IncomeSource incomeSource;
       switch (entry) {
         case _MutualSettlementIncomeLineEntry(:final renter):
-          final key = '${renter.renterId}:${renter.accountNumber}';
-          if (seenRenterKeys.contains(key)) {
+          if (seenRenterIds.contains(renter.renterId)) {
             await _showErrorDialog(
               'Арендатор «${renter.name}» добавлен более одного раза',
             );
             return;
           }
-          seenRenterKeys.add(key);
+          seenRenterIds.add(renter.renterId);
           incomeSource = IncomeSourceFromRenter(
             renterId: renter.renterId,
-            accountNumber: renter.accountNumber,
+            // Общий приход по арендатору, без привязки к конкретному р/с.
+            accountNumber: '',
           );
         case _CategoryIncomeLineEntry(:final category):
           incomeSource = IncomeSourceFromOther(categoryId: category.id);
@@ -482,25 +504,14 @@ class _AddIncomePageState extends ConsumerState<AddIncomePage> {
   }
 
   List<_RenterRow> _toRenterRows(List<Renter> renters) {
-    return renters.expand((renter) {
-      if (renter.accountNumbers.isEmpty) {
-        return [
-          _RenterRow(
-            renterId: renter.id,
-            name: renter.name,
-            accountNumber: '',
-          ),
-        ];
-      }
-
-      return renter.accountNumbers.map(
-        (accountNumber) => _RenterRow(
+    return [
+      for (final renter in renters)
+        _RenterRow(
           renterId: renter.id,
           name: renter.name,
-          accountNumber: accountNumber,
+          accountNumbers: renter.accountNumbers,
         ),
-      );
-    }).toList();
+    ];
   }
 
   Future<String?> _showCategoryNameDialog() async {
@@ -634,7 +645,7 @@ class _AddIncomePageState extends ConsumerState<AddIncomePage> {
                 _FilterField(
                   child: DatePickerField(
                     expand: true,
-                    hint: 'Дата',
+                    hint: 'Дата начисления',
                     selectedDate: _selectedDate,
                     onChanged: (date) {
                       if (date != null) {
@@ -790,16 +801,6 @@ class _IncomeLinesTable extends StatelessWidget {
                   Expanded(
                     flex: 2,
                     child: Text(
-                      'р/с',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
                       'Сумма',
                       textAlign: TextAlign.right,
                       style: TextStyle(
@@ -851,13 +852,6 @@ class _IncomeLinesTable extends StatelessWidget {
                             renter.name,
                           _CategoryIncomeLineEntry() => '—',
                         };
-                        final accountNumberLabel = switch (entry) {
-                          _MutualSettlementIncomeLineEntry(:final renter) =>
-                            renter.accountNumber.isEmpty
-                                ? '—'
-                                : renter.accountNumber,
-                          _CategoryIncomeLineEntry() => '—',
-                        };
 
                         return Padding(
                           padding: const EdgeInsets.only(
@@ -881,15 +875,6 @@ class _IncomeLinesTable extends StatelessWidget {
                                 flex: 2,
                                 child: Text(
                                   counterpartyLabel,
-                                  style: filterFieldTextStyle,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              Expanded(
-                                flex: 2,
-                                child: Text(
-                                  accountNumberLabel,
                                   style: filterFieldTextStyle,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
@@ -1009,7 +994,7 @@ class _IncomeSourcesPanelState extends State<_IncomeSourcesPanel> {
 
     return widget.renters.where((renter) {
       return renter.name.toLowerCase().contains(query) ||
-          renter.accountNumber.contains(query);
+          renter.accountNumbers.any((account) => account.contains(query));
     }).toList();
   }
 
@@ -1255,9 +1240,8 @@ class _IncomeSourcesPanelState extends State<_IncomeSourcesPanel> {
                               ),
                             _buildSourceRow(
                               name: filteredRenters[i].name,
-                              accountNumber: filteredRenters[i].accountNumber.isEmpty
-                                  ? '—'
-                                  : filteredRenters[i].accountNumber,
+                              accountNumber:
+                                  filteredRenters[i].accountNumbersLabel,
                               onDoubleTap: () => widget.onRenterDoubleTap(
                                 filteredRenters[i],
                               ),

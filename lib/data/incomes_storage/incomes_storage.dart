@@ -203,11 +203,10 @@ class IncomesStorageImpl implements IncomesStorage {
 
       final source = line.incomeSource;
       if (source is IncomeSourceFromRenter) {
-        final key = '${source.renterId}:${source.accountNumber}';
-        if (seenRenterKeys.contains(key)) {
+        if (seenRenterKeys.contains(source.renterId)) {
           throw const DuplicateIncomeRenterLineError();
         }
-        seenRenterKeys.add(key);
+        seenRenterKeys.add(source.renterId);
       }
     }
   }

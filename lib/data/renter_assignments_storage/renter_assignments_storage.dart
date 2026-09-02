@@ -47,19 +47,27 @@ class RenterAssignmentsStorageImpl implements RenterAssignmentsStorage {
   const RenterAssignmentsStorageImpl(this.ref);
   final Ref ref;
 
+  Expression<bool> _monthRangeCondition(
+    $RenterAssignmentsTable table,
+    DateTime month,
+  ) {
+    final start = normalizeRenterAssignmentMonth(month);
+    final endExclusive = renterAssignmentMonthEndExclusive(month);
+    return table.date.isBiggerOrEqualValue(start) &
+        table.date.isSmallerThanValue(endExclusive);
+  }
+
   @override
   Future<List<RenterAssignment>> getByBaseAndMonth(
     BaseId baseId,
     DateTime month,
   ) async {
     final db = ref.read(appDatabaseProvider);
-    final normalizedMonth = normalizeRenterAssignmentMonth(month);
 
     final rows =
         await (db.select(db.renterAssignments)..where(
           (table) =>
-              table.baseId.equals(baseId) &
-              table.date.equals(normalizedMonth),
+              table.baseId.equals(baseId) & _monthRangeCondition(table, month),
         )).get();
 
     return rows.map((row) => row.toDomain()).toList();
@@ -110,14 +118,14 @@ class RenterAssignmentsStorageImpl implements RenterAssignmentsStorage {
     final startDate = filters.startDate;
     if (startDate != null) {
       condition = condition & table.date.isBiggerOrEqualValue(
-        normalizeRenterAssignmentMonth(startDate),
+        normalizeRenterAssignmentDate(startDate),
       );
     }
 
     final endDate = filters.endDate;
     if (endDate != null) {
       condition = condition & table.date.isSmallerOrEqualValue(
-        normalizeRenterAssignmentMonth(endDate),
+        normalizeRenterAssignmentDate(endDate),
       );
     }
 
@@ -141,12 +149,12 @@ class RenterAssignmentsStorageImpl implements RenterAssignmentsStorage {
     }
 
     final db = ref.read(appDatabaseProvider);
-    final normalizedMonth = normalizeRenterAssignmentMonth(month);
+    final postingDate = normalizeRenterAssignmentDate(month);
 
     await db.transaction(() async {
       await (db.delete(db.renterAssignments)..where(
         (table) =>
-            table.baseId.equals(baseId) & table.date.equals(normalizedMonth),
+            table.baseId.equals(baseId) & _monthRangeCondition(table, month),
       )).go();
 
       await db.batch((batch) {
@@ -157,7 +165,7 @@ class RenterAssignmentsStorageImpl implements RenterAssignmentsStorage {
                 (assignment) => assignment
                     .copyWith(
                       baseId: baseId,
-                      date: normalizedMonth,
+                      date: postingDate,
                     )
                     .toCompanion(),
               )
@@ -170,11 +178,10 @@ class RenterAssignmentsStorageImpl implements RenterAssignmentsStorage {
   @override
   Future<void> deleteByBaseAndMonth(BaseId baseId, DateTime month) async {
     final db = ref.read(appDatabaseProvider);
-    final normalizedMonth = normalizeRenterAssignmentMonth(month);
 
     await (db.delete(db.renterAssignments)..where(
       (table) =>
-          table.baseId.equals(baseId) & table.date.equals(normalizedMonth),
+          table.baseId.equals(baseId) & _monthRangeCondition(table, month),
     )).go();
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:easy_fin/models/base.dart';
 import 'package:easy_fin/utils/app_colors.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
@@ -12,6 +14,8 @@ import 'package:easy_fin/view/providers/expense_categories_report_provider.dart'
 import 'package:easy_fin/view/providers/financial_result_report_filters_provider.dart';
 import 'package:easy_fin/view/providers/financial_result_report_provider.dart';
 import 'package:easy_fin/view/providers/renter_debts_provider.dart';
+import 'package:easy_fin/view/providers/renter_debts_show_all_renters_provider.dart';
+import 'package:easy_fin/view/providers/renter_debts_show_overpayment_column_provider.dart';
 import 'package:easy_fin/view/providers/renter_debts_summary_filters_provider.dart';
 import 'package:easy_fin/view/providers/report_templates_provider.dart';
 import 'package:easy_fin/view/widgets/account_balances_table.dart';
@@ -28,6 +32,7 @@ import 'package:easy_fin/view/widgets/template_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
+import 'package:lucide_flutter/lucide_flutter.dart';
 
 class ReportsPage extends ConsumerWidget {
   const ReportsPage({super.key});
@@ -39,6 +44,11 @@ class ReportsPage extends ConsumerWidget {
     final renterDebtsFilter = ref.watch(renterDebtsSummaryFiltersProvider);
     final renterDebtsFilterNotifier =
         ref.read(renterDebtsSummaryFiltersProvider.notifier);
+    final showOverpaymentColumnAsync =
+        ref.watch(renterDebtsShowOverpaymentColumnProvider);
+    final showOverpaymentColumn = showOverpaymentColumnAsync.value ?? true;
+    final showAllRentersAsync = ref.watch(renterDebtsShowAllRentersProvider);
+    final showAllRenters = showAllRentersAsync.value ?? false;
     final basesAsync = ref.watch(basesListProvider);
     final expenseFilters = ref.watch(expenseCategoriesReportFiltersProvider);
     final expenseReportAsync = ref.watch(expenseCategoriesReportProvider);
@@ -97,7 +107,7 @@ class ReportsPage extends ConsumerWidget {
             ),
             const ReportTableSectionDivider(),
             SizedBox(
-              width: ReportTableTheme.standardWidth,
+              width: RenterDebtsTable.maxWidth,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -107,6 +117,26 @@ class ReportsPage extends ConsumerWidget {
                       const Expanded(
                         child: ReportTableTitle('Долги по арендаторам'),
                       ),
+                      IconButton(
+                        tooltip: 'Столбцы',
+                        onPressed: () => _showRenterDebtsColumnSettings(
+                          context,
+                          ref,
+                          showOverpayment: showOverpaymentColumn,
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
+                        visualDensity: VisualDensity.compact,
+                        icon: Icon(
+                          LucideIcons.columns3,
+                          size: 18,
+                          color: context.appColors.secondaryText,
+                        ),
+                      ),
+                      const Gap(4),
                       TextButton(
                         onPressed: () =>
                             RenterDebtsReportPage.navigate(context),
@@ -127,25 +157,47 @@ class ReportsPage extends ConsumerWidget {
                     ],
                   ),
                   const Gap(12),
-                  _ReportFilterField(
-                    child: basesAsync.when(
-                      data: (bases) => RenterDebtsBaseFilterDropdown(
-                        bases: bases,
-                        selectedFilter: renterDebtsFilter,
-                        onChanged:
-                            renterDebtsFilterNotifier.setSelectedBaseFilter,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _ReportFilterField(
+                          child: basesAsync.when(
+                            data: (bases) => RenterDebtsBaseFilterDropdown(
+                              bases: bases,
+                              selectedFilter: renterDebtsFilter,
+                              onChanged: renterDebtsFilterNotifier
+                                  .setSelectedBaseFilter,
+                            ),
+                            loading: () => const _FilterPlaceholder(
+                              label: 'Выбор базы',
+                            ),
+                            error: (_, _) => const _FilterPlaceholder(
+                              label: 'Выбор базы',
+                            ),
+                          ),
+                        ),
                       ),
-                      loading: () => const _FilterPlaceholder(
-                        label: 'Выбор базы',
+                      const Gap(12),
+                      _ShowAllRentersCheckbox(
+                        value: showAllRenters,
+                        onChanged: (value) {
+                          unawaited(
+                            ref
+                                .read(
+                                  renterDebtsShowAllRentersProvider.notifier,
+                                )
+                                .setVisible(visible: value),
+                          );
+                        },
                       ),
-                      error: (_, _) => const _FilterPlaceholder(
-                        label: 'Выбор базы',
-                      ),
-                    ),
+                    ],
                   ),
                   const Gap(12),
                   renterDebtsAsync.when(
-                    data: (items) => RenterDebtsTable(items: items),
+                    data: (items) => RenterDebtsTable(
+                      items: items,
+                      showOverpayment: showOverpaymentColumn,
+                    ),
                     loading: () => const Padding(
                       padding: EdgeInsets.only(top: 24),
                       child: Center(child: CircularProgressIndicator()),
@@ -322,6 +374,136 @@ class ReportsPage extends ConsumerWidget {
             ),
             const Gap(20),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> _showRenterDebtsColumnSettings(
+  BuildContext context,
+  WidgetRef ref, {
+  required bool showOverpayment,
+}) async {
+  var showOverpaymentColumn = showOverpayment;
+
+  await showDialog<void>(
+    context: context,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Столбцы'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('Арендатор'),
+                  value: true,
+                  onChanged: null,
+                ),
+                const CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('Задолженность'),
+                  value: true,
+                  onChanged: null,
+                ),
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Переплата'),
+                  value: showOverpaymentColumn,
+                  onChanged: (value) {
+                    setDialogState(() {
+                      showOverpaymentColumn = value ?? false;
+                    });
+                  },
+                ),
+                const CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('База'),
+                  value: true,
+                  onChanged: null,
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Отмена'),
+              ),
+              TextButton(
+                onPressed: () {
+                  unawaited(
+                    ref
+                        .read(
+                          renterDebtsShowOverpaymentColumnProvider.notifier,
+                        )
+                        .setVisible(visible: showOverpaymentColumn),
+                  );
+                  Navigator.pop(context);
+                },
+                child: const Text('Применить'),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
+
+class _ShowAllRentersCheckbox extends StatelessWidget {
+  const _ShowAllRentersCheckbox({
+    required this.value,
+    required this.onChanged,
+  });
+
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: filterFieldHeight,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: context.appColors.surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: context.appColors.border),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: () => onChanged(!value),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: Checkbox(
+                    value: value,
+                    onChanged: (checked) {
+                      if (checked != null) onChanged(checked);
+                    },
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+                const Gap(4),
+                Text(
+                  'Показать всех',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: context.appColors.primaryText,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

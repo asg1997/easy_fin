@@ -105,6 +105,10 @@ class DocumentsStorageImpl implements DocumentsStorage {
 
       for (final group in groupedAssignments.values) {
         final first = group.first;
+        // Берём самую позднюю дату в группе — это дата начисления документа.
+        final documentDate = group
+            .map((assignment) => assignment.date)
+            .reduce((a, b) => a.isAfter(b) ? a : b);
         final totalAmount = group.fold<double>(
           0,
           (sum, assignment) => sum + assignment.sum,
@@ -120,7 +124,7 @@ class DocumentsStorageImpl implements DocumentsStorage {
         items.add(
           DocumentsTableItem(
             baseId: first.baseId,
-            date: first.date,
+            date: documentDate,
             documentType: DocumentType.renterAssignment,
             accountType: 'Аренда',
             baseName: baseNameById[first.baseId] ?? '',

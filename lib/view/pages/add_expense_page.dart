@@ -448,7 +448,7 @@ class _AddExpensePageState extends ConsumerState<AddExpensePage> {
                 _FilterField(
                   child: DatePickerField(
                     expand: true,
-                    hint: 'Дата',
+                    hint: 'Дата начисления',
                     selectedDate: _selectedDate,
                     onChanged: (date) {
                       if (date != null) {

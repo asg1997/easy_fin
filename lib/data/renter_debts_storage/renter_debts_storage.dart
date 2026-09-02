@@ -16,7 +16,10 @@ final renterDebtsStorageProvider = Provider<RenterDebtsStorage>(
 );
 
 abstract class RenterDebtsStorage {
-  Future<List<RenterDebtReportItem>> getReport({BaseId? baseId});
+  Future<List<RenterDebtReportItem>> getReport({
+    BaseId? baseId,
+    bool includeZeroBalance = false,
+  });
 
   Future<List<RenterDebtByBaseReportItem>> getReportByBase({BaseId? baseId});
 
@@ -34,7 +37,10 @@ class RenterDebtsStorageImpl implements RenterDebtsStorage {
   static const _sourceTypeRenter = 'renter';
 
   @override
-  Future<List<RenterDebtReportItem>> getReport({BaseId? baseId}) async {
+  Future<List<RenterDebtReportItem>> getReport({
+    BaseId? baseId,
+    bool includeZeroBalance = false,
+  }) async {
     final context = await _loadContext();
     if (context == null) return [];
 
@@ -43,31 +49,27 @@ class RenterDebtsStorageImpl implements RenterDebtsStorage {
       if (baseId != null && renter.baseId != baseId) continue;
 
       final key = _debtKey(renter.baseId, renter.id);
-      final debtMinor = _debtMinorAt(
+      final balanceMinor = _debtMinorAt(
         key: key,
         endDate: DateTime.now(),
         accruals: context.accruals,
         payments: context.payments,
       );
-      if (debtMinor <= 0) continue;
+      if (balanceMinor == 0 && !includeZeroBalance) continue;
 
       items.add(
         RenterDebtReportItem(
           renterName: renter.name,
           baseName: context.baseNameById[renter.baseId] ?? '',
-          debt: moneyFromMinor(debtMinor),
+          debt: moneyFromMinor(balanceMinor > 0 ? balanceMinor : 0),
+          overpayment: moneyFromMinor(balanceMinor < 0 ? -balanceMinor : 0),
         ),
       );
     }
 
-    items.sort((a, b) {
-      final baseCompare = a.baseName.toLowerCase().compareTo(
-        b.baseName.toLowerCase(),
-      );
-      if (baseCompare != 0) return baseCompare;
-
-      return a.renterName.toLowerCase().compareTo(b.renterName.toLowerCase());
-    });
+    items.sort(
+      (a, b) => a.renterName.toLowerCase().compareTo(b.renterName.toLowerCase()),
+    );
 
     return items;
   }

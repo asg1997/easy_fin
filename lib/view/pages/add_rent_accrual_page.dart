@@ -17,6 +17,7 @@ import 'package:easy_fin/view/providers/github_sync_provider.dart';
 import 'package:easy_fin/view/providers/renter_debts_provider.dart';
 import 'package:easy_fin/view/providers/renters_list_provider.dart';
 import 'package:easy_fin/view/widgets/add_renter_dialog.dart';
+import 'package:easy_fin/view/widgets/confirm_dialog.dart';
 import 'package:easy_fin/view/widgets/date_picker_field.dart';
 import 'package:easy_fin/view/widgets/dropdown_widget.dart';
 import 'package:easy_fin/view/widgets/simple_table.dart';
@@ -24,6 +25,7 @@ import 'package:easy_fin/view/widgets/template_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
+import 'package:intl/intl.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
 
 class _RenterRow {
@@ -88,13 +90,42 @@ class AddRentAccrualPage extends ConsumerStatefulWidget {
 class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
   Base? _selectedBase;
   late DateTime _selectedDate;
+
+  /// Месяц в БД, к которому привязано текущее содержимое формы.
+  /// При смене даты начисления и сохранении этот месяц удаляется.
+  DateTime? _boundMonth;
   final List<_AccrualEntry> _accrualEntries = [];
+
+  bool get _isEditing =>
+      widget.initialMonth != null && widget.initialBaseId != null;
+
+  static final _monthLabelFormat = DateFormat('LLLL yyyy', 'ru');
+
+  String _formatMonthLabel(DateTime month) {
+    final formatted = _monthLabelFormat.format(
+      normalizeRenterAssignmentMonth(month),
+    );
+    if (formatted.isEmpty) return formatted;
+    return formatted[0].toUpperCase() + formatted.substring(1);
+  }
+
+  bool _isSameMonth(DateTime a, DateTime b) {
+    final left = normalizeRenterAssignmentMonth(a);
+    final right = normalizeRenterAssignmentMonth(b);
+    return left.year == right.year && left.month == right.month;
+  }
 
   @override
   void initState() {
     super.initState();
     final now = DateTime.now();
-    _selectedDate = widget.initialMonth ?? DateTime(now.year, now.month);
+    final initialMonth = widget.initialMonth;
+    _selectedDate = initialMonth != null
+        ? normalizeRenterAssignmentDate(initialMonth)
+        : DateTime(now.year, now.month, now.day);
+    if (_isEditing) {
+      _boundMonth = normalizeRenterAssignmentMonth(initialMonth!);
+    }
     if (widget.initialBaseId != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         unawaited(_loadInitialBase());
@@ -135,8 +166,24 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
     _clearAccruals();
     setState(() {
       _selectedBase = base;
+      _boundMonth = null;
     });
     unawaited(_loadAccruals());
+  }
+
+  void _onDateChanged(DateTime? date) {
+    if (date == null) return;
+
+    final keepCurrentLines = _boundMonth != null || _accrualEntries.isNotEmpty;
+    setState(() {
+      _selectedDate = date;
+    });
+
+    // Если форма уже привязана к документу или заполнена — меняем только
+    // дату начисления, не подгружая другой месяц.
+    if (!keepCurrentLines) {
+      unawaited(_loadAccruals());
+    }
   }
 
   void _addRenterToAccruals(_RenterRow renter) {
@@ -204,6 +251,8 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
       _accrualEntries.addAll(
         _buildAccrualEntriesFromAssignments(assignments, renterById),
       );
+      // Копия предназначена для текущего выбранного месяца.
+      _boundMonth = normalizeRenterAssignmentMonth(_selectedDate);
     });
   }
 
@@ -228,6 +277,13 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
       _accrualEntries.addAll(
         _buildAccrualEntriesFromAssignments(assignments, renterById),
       );
+      if (assignments.isEmpty) {
+        _boundMonth = null;
+      } else {
+        _boundMonth = normalizeRenterAssignmentMonth(_selectedDate);
+        // Показываем фактическую сохранённую дату (не 1-е число месяца).
+        _selectedDate = normalizeRenterAssignmentDate(assignments.first.date);
+      }
     });
   }
 
@@ -285,9 +341,35 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
       seen.add(entry.renter.renterId);
     }
 
+    final storage = ref.read(renterAssignmentsStorageProvider);
+    final postingDate = normalizeRenterAssignmentDate(_selectedDate);
+    final boundMonth = _boundMonth;
+    final isMovingMonth =
+        boundMonth != null && !_isSameMonth(boundMonth, postingDate);
+
+    if (isMovingMonth) {
+      final existingInTarget =
+          await storage.getByBaseAndMonth(baseId, postingDate);
+      if (!mounted) return;
+
+      if (existingInTarget.isNotEmpty) {
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (context) => ConfirmDialog(
+            title: 'Заменить начисления?',
+            message:
+                'За ${_formatMonthLabel(postingDate)} уже есть начисления. '
+                'Они будут заменены, а начисления за '
+                '${_formatMonthLabel(boundMonth)} будут удалены.',
+            confirmLabel: 'Заменить',
+          ),
+        );
+        if (confirmed != true || !mounted) return;
+      }
+    }
+
     try {
       final timestamp = DateTime.now().microsecondsSinceEpoch;
-      final month = normalizeRenterAssignmentMonth(_selectedDate);
       final assignments = <RenterAssignment>[];
 
       for (var i = 0; i < _accrualEntries.length; i++) {
@@ -308,24 +390,38 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
             renterId: entry.renter.renterId,
             // Общее начисление на арендатора, без привязки к конкретному р/с.
             accountNumber: '',
-            date: month,
+            date: postingDate,
             sum: amount,
           ),
         );
       }
 
-      await ref.read(renterAssignmentsStorageProvider).saveAll(
+      if (isMovingMonth) {
+        await storage.deleteByBaseAndMonth(baseId, boundMonth);
+      }
+
+      await storage.saveAll(
         baseId: baseId,
-        month: _selectedDate,
+        month: postingDate,
         assignments: assignments,
       );
 
       if (!mounted) return;
+      setState(() {
+        _boundMonth = normalizeRenterAssignmentMonth(postingDate);
+        _selectedDate = postingDate;
+      });
       ref.invalidate(documentsListProvider);
       ref.invalidate(renterDebtsProvider);
       ref.invalidate(githubSyncDirtyProvider);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Начисления сохранены')),
+        SnackBar(
+          content: Text(
+            isMovingMonth
+                ? 'Начисления перенесены на ${_formatMonthLabel(postingDate)}'
+                : 'Начисления сохранены',
+          ),
+        ),
       );
     } on EmptyRenterAssignmentsError {
       if (!mounted) return;
@@ -399,7 +495,9 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
     return Scaffold(
       body: TemplatePage(
         hasBackButton: true,
-        title: 'Начисление по аренде',
+        title: _isEditing
+            ? 'Редактирование начисления'
+            : 'Начисление по аренде',
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -425,16 +523,9 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
                 _FilterField(
                   child: DatePickerField(
                     expand: true,
-                    hint: 'Дата',
+                    hint: 'Дата начисления',
                     selectedDate: _selectedDate,
-                    onChanged: (date) {
-                      if (date != null) {
-                        setState(() {
-                          _selectedDate = date;
-                        });
-                        unawaited(_loadAccruals());
-                      }
-                    },
+                    onChanged: _onDateChanged,
                   ),
                 ),
                 const Gap(12),

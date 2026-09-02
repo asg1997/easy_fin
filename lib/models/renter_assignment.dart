@@ -2,8 +2,19 @@ import 'package:easy_fin/models/base.dart';
 import 'package:easy_fin/models/document.dart';
 import 'package:easy_fin/models/renter.dart';
 
+/// Первый день месяца для группировки и выборки начислений.
 DateTime normalizeRenterAssignmentMonth(DateTime date) =>
     DateTime(date.year, date.month);
+
+/// Дата без времени.
+DateTime normalizeRenterAssignmentDate(DateTime date) =>
+    DateTime(date.year, date.month, date.day);
+
+/// Начало следующего месяца (исключающая граница диапазона).
+DateTime renterAssignmentMonthEndExclusive(DateTime date) {
+  final month = normalizeRenterAssignmentMonth(date);
+  return DateTime(month.year, month.month + 1);
+}
 
 /// Начисление по аренде
 class RenterAssignment extends Document {
@@ -34,7 +45,7 @@ class RenterAssignment extends Document {
         sum: sum,
       );
 
-  /// Дата начисления (первый день месяца)
+  /// Дата начисления
   final DateTime date;
 
   /// Сумма начисления
