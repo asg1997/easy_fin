@@ -30,12 +30,17 @@ class _RenterRow {
   const _RenterRow({
     required this.renterId,
     required this.name,
-    required this.accountNumber,
+    required this.accountNumbers,
   });
 
   final RenterId renterId;
   final String name;
-  final String accountNumber;
+  final List<String> accountNumbers;
+
+  String get accountNumbersLabel {
+    if (accountNumbers.isEmpty) return '—';
+    return accountNumbers.join(', ');
+  }
 }
 
 class _AccrualEntry {
@@ -136,9 +141,7 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
 
   void _addRenterToAccruals(_RenterRow renter) {
     final alreadyAdded = _accrualEntries.any(
-      (entry) =>
-          entry.renter.renterId == renter.renterId &&
-          entry.renter.accountNumber == renter.accountNumber,
+      (entry) => entry.renter.renterId == renter.renterId,
     );
     if (alreadyAdded) return;
 
@@ -197,26 +200,10 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
     };
 
     _clearAccruals();
-
     setState(() {
-      for (final assignment in assignments) {
-        final renter = renterById[assignment.renterId];
-        if (renter == null) continue;
-
-        _accrualEntries.add(
-          _AccrualEntry(
-            renter: _RenterRow(
-              renterId: assignment.renterId,
-              name: renter.name,
-              accountNumber: assignment.accountNumber,
-            ),
-            amountController: TextEditingController(
-              text: AmountInputFormatter.formatAmount(assignment.sum),
-            ),
-            amountFocusNode: FocusNode(),
-          ),
-        );
-      }
+      _accrualEntries.addAll(
+        _buildAccrualEntriesFromAssignments(assignments, renterById),
+      );
     });
   }
 
@@ -237,27 +224,45 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
     };
 
     _clearAccruals();
-
     setState(() {
-      for (final assignment in assignments) {
-        final renter = renterById[assignment.renterId];
-        if (renter == null) continue;
-
-        _accrualEntries.add(
-          _AccrualEntry(
-            renter: _RenterRow(
-              renterId: assignment.renterId,
-              name: renter.name,
-              accountNumber: assignment.accountNumber,
-            ),
-            amountController: TextEditingController(
-              text: AmountInputFormatter.formatAmount(assignment.sum),
-            ),
-            amountFocusNode: FocusNode(),
-          ),
-        );
-      }
+      _accrualEntries.addAll(
+        _buildAccrualEntriesFromAssignments(assignments, renterById),
+      );
     });
+  }
+
+  List<_AccrualEntry> _buildAccrualEntriesFromAssignments(
+    List<RenterAssignment> assignments,
+    Map<RenterId, Renter> renterById,
+  ) {
+    final sumByRenterId = <RenterId, double>{};
+    final order = <RenterId>[];
+
+    for (final assignment in assignments) {
+      if (!renterById.containsKey(assignment.renterId)) continue;
+
+      if (!sumByRenterId.containsKey(assignment.renterId)) {
+        order.add(assignment.renterId);
+        sumByRenterId[assignment.renterId] = 0;
+      }
+      sumByRenterId[assignment.renterId] =
+          sumByRenterId[assignment.renterId]! + assignment.sum;
+    }
+
+    return [
+      for (final renterId in order)
+        _AccrualEntry(
+          renter: _RenterRow(
+            renterId: renterId,
+            name: renterById[renterId]!.name,
+            accountNumbers: renterById[renterId]!.accountNumbers,
+          ),
+          amountController: TextEditingController(
+            text: AmountInputFormatter.formatAmount(sumByRenterId[renterId]!),
+          ),
+          amountFocusNode: FocusNode(),
+        ),
+    ];
   }
 
   Future<void> _onSave() async {
@@ -269,16 +274,15 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
       return;
     }
 
-    final seen = <String>{};
+    final seen = <RenterId>{};
     for (final entry in _accrualEntries) {
-      final key = '${entry.renter.renterId}:${entry.renter.accountNumber}';
-      if (seen.contains(key)) {
+      if (seen.contains(entry.renter.renterId)) {
         await _showErrorDialog(
           'Арендатор «${entry.renter.name}» добавлен более одного раза',
         );
         return;
       }
-      seen.add(key);
+      seen.add(entry.renter.renterId);
     }
 
     try {
@@ -302,7 +306,8 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
             createdAt: DateTime.now(),
             baseId: baseId,
             renterId: entry.renter.renterId,
-            accountNumber: entry.renter.accountNumber,
+            // Общее начисление на арендатора, без привязки к конкретному р/с.
+            accountNumber: '',
             date: month,
             sum: amount,
           ),
@@ -335,25 +340,14 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
   }
 
   List<_RenterRow> _toRenterRows(List<Renter> renters) {
-    return renters.expand((renter) {
-      if (renter.accountNumbers.isEmpty) {
-        return [
-          _RenterRow(
-            renterId: renter.id,
-            name: renter.name,
-            accountNumber: '',
-          ),
-        ];
-      }
-
-      return renter.accountNumbers.map(
-        (accountNumber) => _RenterRow(
+    return [
+      for (final renter in renters)
+        _RenterRow(
           renterId: renter.id,
           name: renter.name,
-          accountNumber: accountNumber,
+          accountNumbers: renter.accountNumbers,
         ),
-      );
-    }).toList();
+    ];
   }
 
   Future<void> _onAddRenter() async {
@@ -562,7 +556,7 @@ class _RentersTableState extends State<_RentersTable> {
 
     return widget.renters.where((renter) {
       return renter.name.toLowerCase().contains(query) ||
-          renter.accountNumber.contains(query);
+          renter.accountNumbers.any((account) => account.contains(query));
     }).toList();
   }
 
@@ -577,7 +571,7 @@ class _RentersTableState extends State<_RentersTable> {
           .map(
             (renter) => [
               renter.name,
-              renter.accountNumber.isEmpty ? '—' : renter.accountNumber,
+              renter.accountNumbersLabel,
             ],
           )
           .toList(),
@@ -712,19 +706,9 @@ class _RentAccrualsTable extends StatelessWidget {
               child: const Row(
                 children: [
                   Expanded(
-                    flex: 2,
-                    child: Text(
-                      'Арендатор',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  Expanded(
                     flex: 3,
                     child: Text(
-                      'р/с',
+                      'Арендатор',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -774,20 +758,9 @@ class _RentAccrualsTable extends StatelessWidget {
                           child: Row(
                             children: [
                               Expanded(
-                                flex: 2,
-                                child: Text(
-                                  entry.renter.name,
-                                  style: filterFieldTextStyle,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              Expanded(
                                 flex: 3,
                                 child: Text(
-                                  entry.renter.accountNumber.isEmpty
-                                      ? '—'
-                                      : entry.renter.accountNumber,
+                                  entry.renter.name,
                                   style: filterFieldTextStyle,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
