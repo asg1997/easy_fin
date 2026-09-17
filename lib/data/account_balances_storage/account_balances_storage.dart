@@ -98,24 +98,29 @@ class AccountBalancesStorageImpl implements AccountBalancesStorage {
   }
 
   Future<Map<AccountNumber, double>> _getBalancesByAccountNumber() async {
-    final statementBalances = await _getStatementBalancesByAccountNumber();
-    final manualBalances = await _getManualBankBalancesByAccountNumber();
+    final statementState = await _getStatementStateByAccountNumber();
+    final manualBalances = await _getManualBankBalancesByAccountNumber(
+      coveredUntilByAccountNumber: {
+        for (final entry in statementState.entries)
+          entry.key: entry.value.coveredUntil,
+      },
+    );
 
     final accountNumbers = {
-      ...statementBalances.keys,
+      ...statementState.keys,
       ...manualBalances.keys,
     };
 
     return {
       for (final accountNumber in accountNumbers)
         accountNumber:
-            (statementBalances[accountNumber] ?? 0) +
+            (statementState[accountNumber]?.balance ?? 0) +
             (manualBalances[accountNumber] ?? 0),
     };
   }
 
-  Future<Map<AccountNumber, double>>
-      _getStatementBalancesByAccountNumber() async {
+  Future<Map<AccountNumber, _AccountStatementState>>
+      _getStatementStateByAccountNumber() async {
     final db = ref.read(appDatabaseProvider);
     final statementRows = await db.select(db.bankStatements).get();
     if (statementRows.isEmpty) return {};
@@ -139,17 +144,26 @@ class AccountBalancesStorageImpl implements AccountBalancesStorage {
 
     return {
       for (final entry in latestStatementByAccount.entries)
-        entry.key: _resolveAccountBalance(
-          latestStatement: entry.value,
-          earliestInitialBalance: moneyFromMinor(
-            earliestStatementByAccount[entry.key]!.initialBalanceMinor,
+        entry.key: _AccountStatementState(
+          balance: _resolveAccountBalance(
+            latestStatement: entry.value,
+            earliestInitialBalance: moneyFromMinor(
+              earliestStatementByAccount[entry.key]!.initialBalanceMinor,
+            ),
           ),
+          coveredUntil: _dateOnly(entry.value.endDate),
         ),
     };
   }
 
+  /// Ручные банковские документы после покрытия выпиской.
+  ///
+  /// Документы с датой <= endDate последней выписки по счёту не учитываются:
+  /// их движение уже входит в исходящий остаток выписки.
   Future<Map<AccountNumber, double>>
-      _getManualBankBalancesByAccountNumber() async {
+      _getManualBankBalancesByAccountNumber({
+    required Map<AccountNumber, DateTime> coveredUntilByAccountNumber,
+  }) async {
     final db = ref.read(appDatabaseProvider);
     final bankIncomeDocuments = await (db.select(db.incomeDocuments)
           ..where((table) => table.accountType.equals(_accountTypeBank)))
@@ -158,14 +172,34 @@ class AccountBalancesStorageImpl implements AccountBalancesStorage {
           ..where((table) => table.accountType.equals(_accountTypeBank)))
         .get();
 
-    if (bankIncomeDocuments.isEmpty && bankExpenseDocuments.isEmpty) {
+    final uncoveredIncomeDocuments = bankIncomeDocuments
+        .where(
+          (document) => _isManualDocumentUncovered(
+            accountNumber: document.accountRef,
+            documentDate: document.date,
+            coveredUntilByAccountNumber: coveredUntilByAccountNumber,
+          ),
+        )
+        .toList();
+    final uncoveredExpenseDocuments = bankExpenseDocuments
+        .where(
+          (document) => _isManualDocumentUncovered(
+            accountNumber: document.accountRef,
+            documentDate: document.date,
+            coveredUntilByAccountNumber: coveredUntilByAccountNumber,
+          ),
+        )
+        .toList();
+
+    if (uncoveredIncomeDocuments.isEmpty &&
+        uncoveredExpenseDocuments.isEmpty) {
       return {};
     }
 
     final incomeDocumentIds =
-        bankIncomeDocuments.map((document) => document.id).toList();
+        uncoveredIncomeDocuments.map((document) => document.id).toList();
     final expenseDocumentIds =
-        bankExpenseDocuments.map((document) => document.id).toList();
+        uncoveredExpenseDocuments.map((document) => document.id).toList();
 
     final incomeLines = incomeDocumentIds.isEmpty
         ? <IncomeLineRow>[]
@@ -179,11 +213,11 @@ class AccountBalancesStorageImpl implements AccountBalancesStorage {
             .get();
 
     final accountNumberByIncomeDocumentId = {
-      for (final document in bankIncomeDocuments)
+      for (final document in uncoveredIncomeDocuments)
         document.id: document.accountRef,
     };
     final accountNumberByExpenseDocumentId = {
-      for (final document in bankExpenseDocuments)
+      for (final document in uncoveredExpenseDocuments)
         document.id: document.accountRef,
     };
 
@@ -207,6 +241,22 @@ class AccountBalancesStorageImpl implements AccountBalancesStorage {
 
     return balancesByAccountNumber;
   }
+
+  bool _isManualDocumentUncovered({
+    required String accountNumber,
+    required DateTime documentDate,
+    required Map<AccountNumber, DateTime> coveredUntilByAccountNumber,
+  }) {
+    if (accountNumber.isEmpty) return false;
+
+    final coveredUntil = coveredUntilByAccountNumber[accountNumber];
+    if (coveredUntil == null) return true;
+
+    return _dateOnly(documentDate).isAfter(coveredUntil);
+  }
+
+  DateTime _dateOnly(DateTime date) =>
+      DateTime(date.year, date.month, date.day);
 
   bool _isLaterStatement(BankStatementRow a, BankStatementRow b) {
     final endDateCompare = a.endDate.compareTo(b.endDate);
@@ -276,4 +326,14 @@ class AccountBalancesStorageImpl implements AccountBalancesStorage {
       accounts: accounts,
     );
   }
+}
+
+class _AccountStatementState {
+  const _AccountStatementState({
+    required this.balance,
+    required this.coveredUntil,
+  });
+
+  final double balance;
+  final DateTime coveredUntil;
 }
