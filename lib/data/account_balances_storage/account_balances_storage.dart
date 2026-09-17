@@ -8,6 +8,7 @@ import 'package:easy_fin/view/models/account_balance_report_item.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 const _accountTypeCash = 'cash';
+const _accountTypeBank = 'bank';
 
 final accountBalancesStorageProvider = Provider<AccountBalancesStorage>(
   AccountBalancesStorageImpl.new,
@@ -97,6 +98,24 @@ class AccountBalancesStorageImpl implements AccountBalancesStorage {
   }
 
   Future<Map<AccountNumber, double>> _getBalancesByAccountNumber() async {
+    final statementBalances = await _getStatementBalancesByAccountNumber();
+    final manualBalances = await _getManualBankBalancesByAccountNumber();
+
+    final accountNumbers = {
+      ...statementBalances.keys,
+      ...manualBalances.keys,
+    };
+
+    return {
+      for (final accountNumber in accountNumbers)
+        accountNumber:
+            (statementBalances[accountNumber] ?? 0) +
+            (manualBalances[accountNumber] ?? 0),
+    };
+  }
+
+  Future<Map<AccountNumber, double>>
+      _getStatementBalancesByAccountNumber() async {
     final db = ref.read(appDatabaseProvider);
     final statementRows = await db.select(db.bankStatements).get();
     if (statementRows.isEmpty) return {};
@@ -127,6 +146,66 @@ class AccountBalancesStorageImpl implements AccountBalancesStorage {
           ),
         ),
     };
+  }
+
+  Future<Map<AccountNumber, double>>
+      _getManualBankBalancesByAccountNumber() async {
+    final db = ref.read(appDatabaseProvider);
+    final bankIncomeDocuments = await (db.select(db.incomeDocuments)
+          ..where((table) => table.accountType.equals(_accountTypeBank)))
+        .get();
+    final bankExpenseDocuments = await (db.select(db.expenseDocuments)
+          ..where((table) => table.accountType.equals(_accountTypeBank)))
+        .get();
+
+    if (bankIncomeDocuments.isEmpty && bankExpenseDocuments.isEmpty) {
+      return {};
+    }
+
+    final incomeDocumentIds =
+        bankIncomeDocuments.map((document) => document.id).toList();
+    final expenseDocumentIds =
+        bankExpenseDocuments.map((document) => document.id).toList();
+
+    final incomeLines = incomeDocumentIds.isEmpty
+        ? <IncomeLineRow>[]
+        : await (db.select(db.incomeLines)
+              ..where((table) => table.documentId.isIn(incomeDocumentIds)))
+            .get();
+    final expenseLines = expenseDocumentIds.isEmpty
+        ? <ExpenseLineRow>[]
+        : await (db.select(db.expenseLines)
+              ..where((table) => table.documentId.isIn(expenseDocumentIds)))
+            .get();
+
+    final accountNumberByIncomeDocumentId = {
+      for (final document in bankIncomeDocuments)
+        document.id: document.accountRef,
+    };
+    final accountNumberByExpenseDocumentId = {
+      for (final document in bankExpenseDocuments)
+        document.id: document.accountRef,
+    };
+
+    final balancesByAccountNumber = <AccountNumber, double>{};
+    for (final line in incomeLines) {
+      final accountNumber = accountNumberByIncomeDocumentId[line.documentId];
+      if (accountNumber == null || accountNumber.isEmpty) continue;
+
+      balancesByAccountNumber[accountNumber] =
+          (balancesByAccountNumber[accountNumber] ?? 0) +
+          moneyFromMinor(line.amountMinor);
+    }
+    for (final line in expenseLines) {
+      final accountNumber = accountNumberByExpenseDocumentId[line.documentId];
+      if (accountNumber == null || accountNumber.isEmpty) continue;
+
+      balancesByAccountNumber[accountNumber] =
+          (balancesByAccountNumber[accountNumber] ?? 0) -
+          moneyFromMinor(line.amountMinor);
+    }
+
+    return balancesByAccountNumber;
   }
 
   bool _isLaterStatement(BankStatementRow a, BankStatementRow b) {
