@@ -8,6 +8,7 @@ import 'package:easy_fin/models/renter_assignment.dart';
 import 'package:easy_fin/utils/account_number_validator.dart';
 import 'package:easy_fin/utils/amount_input_formatter.dart';
 import 'package:easy_fin/utils/app_colors.dart';
+import 'package:easy_fin/utils/app_shortcuts.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:easy_fin/utils/app_snack_bar.dart';
 import 'package:easy_fin/utils/app_theme_colors.dart';
@@ -23,6 +24,7 @@ import 'package:easy_fin/view/widgets/dropdown_widget.dart';
 import 'package:easy_fin/view/widgets/simple_table.dart';
 import 'package:easy_fin/view/widgets/template_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
@@ -95,6 +97,7 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
   /// При смене даты начисления и сохранении этот месяц удаляется.
   DateTime? _boundMonth;
   final List<_AccrualEntry> _accrualEntries = [];
+  final _rentersTableKey = GlobalKey<_RentersTableState>();
 
   bool get _isEditing =>
       widget.initialMonth != null && widget.initialBaseId != null;
@@ -492,124 +495,135 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
       rentersListProvider(RentersListFilter(baseId: _selectedBase?.id)),
     );
 
-    return Scaffold(
-      body: TemplatePage(
-        hasBackButton: true,
-        title: _isEditing
-            ? 'Редактирование начисления'
-            : 'Начисление по аренде',
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _FilterRow(
+    return CallbackShortcuts(
+      bindings: {
+        appPrimaryShortcut(LogicalKeyboardKey.keyN): () {
+          _rentersTableKey.currentState?.focusSearchAndClear();
+        },
+      },
+      child: Focus(
+        autofocus: true,
+        child: Scaffold(
+          body: TemplatePage(
+            hasBackButton: true,
+            title: _isEditing
+                ? 'Редактирование начисления'
+                : 'Начисление по аренде',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _FilterField(
-                  child: basesAsync.when(
-                    data: (bases) => DropdownWidget<Base>(
-                      expand: true,
-                      items: bases,
-                      hint: 'Выбор базы',
-                      selectedItem: _selectedBase,
-                      labelBuilder: (item) => item.name,
-                      onChanged: _onBaseChanged,
+                _FilterRow(
+                  children: [
+                    _FilterField(
+                      child: basesAsync.when(
+                        data: (bases) => DropdownWidget<Base>(
+                          expand: true,
+                          items: bases,
+                          hint: 'Выбор базы',
+                          selectedItem: _selectedBase,
+                          labelBuilder: (item) => item.name,
+                          onChanged: _onBaseChanged,
+                        ),
+                        loading: () =>
+                            const _FilterPlaceholder(label: 'Выбор базы'),
+                        error: (_, _) =>
+                            const _FilterPlaceholder(label: 'Выбор базы'),
+                      ),
                     ),
-                    loading: () =>
-                        const _FilterPlaceholder(label: 'Выбор базы'),
-                    error: (_, _) =>
-                        const _FilterPlaceholder(label: 'Выбор базы'),
-                  ),
-                ),
-                const Gap(12),
-                _FilterField(
-                  child: DatePickerField(
-                    expand: true,
-                    hint: 'Дата начисления',
-                    selectedDate: _selectedDate,
-                    onChanged: _onDateChanged,
-                  ),
-                ),
-                const Gap(12),
-                SizedBox(
-                  height: filterFieldHeight,
-                  child: MaterialButton(
-                    onPressed: _onCopyFromPreviousMonth,
-                    elevation: 0,
-                    color: context.appColors.surface,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
-                      side: const BorderSide(color: AppColors.purple),
+                    const Gap(12),
+                    _FilterField(
+                      child: DatePickerField(
+                        expand: true,
+                        hint: 'Дата начисления',
+                        selectedDate: _selectedDate,
+                        onChanged: _onDateChanged,
+                      ),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 28),
-                    child: const Text(
-                      'Скопировать с пред. месяца',
-                      style: TextStyle(
-                        color: AppColors.purple,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                    const Gap(12),
+                    SizedBox(
+                      height: filterFieldHeight,
+                      child: MaterialButton(
+                        onPressed: _onCopyFromPreviousMonth,
+                        elevation: 0,
+                        color: context.appColors.surface,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(25),
+                          side: const BorderSide(color: AppColors.purple),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 28),
+                        child: const Text(
+                          'Скопировать с пред. месяца',
+                          style: TextStyle(
+                            color: AppColors.purple,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (_selectedBase != null) ...[
+                  const Gap(12),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: _RentAccrualsTable(
+                                    entries: _accrualEntries,
+                                    onRemoveEntry: _removeAccrualEntry,
+                                  ),
+                                ),
+                                const Gap(12),
+                                MaterialButton(
+                                  onPressed: _onSave,
+                                  height: filterFieldHeight,
+                                  minWidth: 140,
+                                  color: AppColors.purple,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(25),
+                                  ),
+                                  child: const Text(
+                                    'Сохранить',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Gap(12),
+                          Expanded(
+                            child: rentersAsync.when(
+                              data: (renters) => _RentersTable(
+                                key: _rentersTableKey,
+                                renters: _toRenterRows(renters),
+                                onRenterDoubleTap: _addRenterToAccruals,
+                                onAddRenter: _onAddRenter,
+                              ),
+                              loading: () => const _RentersTablePlaceholder(),
+                              error: (_, _) => const _RentersTablePlaceholder(),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
-            if (_selectedBase != null) ...[
-              const Gap(12),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 20),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: _RentAccrualsTable(
-                                entries: _accrualEntries,
-                                onRemoveEntry: _removeAccrualEntry,
-                              ),
-                            ),
-                            const Gap(12),
-                            MaterialButton(
-                              onPressed: _onSave,
-                              height: filterFieldHeight,
-                              minWidth: 140,
-                              color: AppColors.purple,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(25),
-                              ),
-                              child: const Text(
-                                'Сохранить',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Gap(12),
-                      Expanded(
-                        child: rentersAsync.when(
-                          data: (renters) => _RentersTable(
-                            renters: _toRenterRows(renters),
-                            onRenterDoubleTap: _addRenterToAccruals,
-                            onAddRenter: _onAddRenter,
-                          ),
-                          loading: () => const _RentersTablePlaceholder(),
-                          error: (_, _) => const _RentersTablePlaceholder(),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );
@@ -621,6 +635,7 @@ class _RentersTable extends StatefulWidget {
     required this.renters,
     required this.onRenterDoubleTap,
     required this.onAddRenter,
+    super.key,
   });
 
   final List<_RenterRow> renters;
@@ -633,12 +648,20 @@ class _RentersTable extends StatefulWidget {
 
 class _RentersTableState extends State<_RentersTable> {
   final _searchController = TextEditingController();
+  final _searchFocusNode = FocusNode();
   String _searchQuery = '';
 
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  void focusSearchAndClear() {
+    _searchController.clear();
+    setState(() => _searchQuery = '');
+    _searchFocusNode.requestFocus();
   }
 
   List<_RenterRow> get _filteredRenters {
@@ -676,6 +699,7 @@ class _RentersTableState extends State<_RentersTable> {
             Expanded(
               child: TextField(
                 controller: _searchController,
+                focusNode: _searchFocusNode,
                 style: filterFieldTextStyle,
                 decoration: InputDecoration(
                   isDense: true,

@@ -12,6 +12,7 @@ import 'package:easy_fin/models/renter.dart';
 import 'package:easy_fin/utils/account_number_validator.dart';
 import 'package:easy_fin/utils/amount_input_formatter.dart';
 import 'package:easy_fin/utils/app_colors.dart';
+import 'package:easy_fin/utils/app_shortcuts.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:easy_fin/utils/app_snack_bar.dart';
 import 'package:easy_fin/utils/app_theme_colors.dart';
@@ -26,6 +27,7 @@ import 'package:easy_fin/view/widgets/date_picker_field.dart';
 import 'package:easy_fin/view/widgets/dropdown_widget.dart';
 import 'package:easy_fin/view/widgets/template_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
@@ -94,9 +96,9 @@ sealed class _IncomeLineEntry {
     String amountText = '',
     String noteText = '',
     FocusNode? amountFocusNode,
-  })  : amountController = TextEditingController(text: amountText),
-        noteController = TextEditingController(text: noteText),
-        amountFocusNode = amountFocusNode ?? FocusNode();
+  }) : amountController = TextEditingController(text: amountText),
+       noteController = TextEditingController(text: noteText),
+       amountFocusNode = amountFocusNode ?? FocusNode();
 
   final TextEditingController amountController;
   final TextEditingController noteController;
@@ -171,6 +173,7 @@ class _AddIncomePageState extends ConsumerState<AddIncomePage> {
   String? _editingDocumentId;
   DateTime? _editingCreatedAt;
   List<IncomeCategory> _activeCategories = [];
+  final _sourcesPanelKey = GlobalKey<_IncomeSourcesPanelState>();
 
   bool get _isEditing => _editingDocumentId != null;
 
@@ -210,8 +213,10 @@ class _AddIncomePageState extends ConsumerState<AddIncomePage> {
       _selectedDate = document.date;
       _selectedAccount = switch (document.account) {
         IncomeDocumentCashAccount() => const _CashAccountOption(),
-        IncomeDocumentBankAccount(:final accountNumber) =>
-          _bankOptionForNumber(base, accountNumber),
+        IncomeDocumentBankAccount(:final accountNumber) => _bankOptionForNumber(
+          base,
+          accountNumber,
+        ),
       };
       _isLoadingDocument = false;
     });
@@ -255,7 +260,8 @@ class _AddIncomePageState extends ConsumerState<AddIncomePage> {
               mergedRenterLineById[renterId] = entry;
               _lineEntries.add(entry);
             } else {
-              final previousAmount = AmountInputFormatter.parseAmount(
+              final previousAmount =
+                  AmountInputFormatter.parseAmount(
                     existing.amountController.text,
                   ) ??
                   0;
@@ -288,8 +294,9 @@ class _AddIncomePageState extends ConsumerState<AddIncomePage> {
   }
 
   Future<void> _loadActiveCategories() async {
-    final categories =
-        await ref.read(incomeCategoriesStorageProvider).getActive();
+    final categories = await ref
+        .read(incomeCategoriesStorageProvider)
+        .getActive();
     if (!mounted) return;
     setState(() => _activeCategories = categories);
   }
@@ -392,8 +399,9 @@ class _AddIncomePageState extends ConsumerState<AddIncomePage> {
   IncomeDocumentAccount _toDocumentAccount(_DocumentAccountOption option) {
     return switch (option) {
       _CashAccountOption() => const IncomeDocumentCashAccount(),
-      _BankAccountOption(:final account) =>
-        IncomeDocumentBankAccount(accountNumber: account.accountNumber),
+      _BankAccountOption(:final account) => IncomeDocumentBankAccount(
+        accountNumber: account.accountNumber,
+      ),
     };
   }
 
@@ -421,7 +429,9 @@ class _AddIncomePageState extends ConsumerState<AddIncomePage> {
 
     for (var i = 0; i < _lineEntries.length; i++) {
       final entry = _lineEntries[i];
-      final amount = AmountInputFormatter.parseAmount(entry.amountController.text);
+      final amount = AmountInputFormatter.parseAmount(
+        entry.amountController.text,
+      );
       if (amount == null || amount <= 0) {
         await _showErrorDialog('Укажите сумму для «${entry.displayLabel}»');
         return;
@@ -568,13 +578,15 @@ class _AddIncomePageState extends ConsumerState<AddIncomePage> {
       final baseId = _selectedBase?.id;
       if (baseId == null) return;
 
-      await ref.read(rentersStorageProvider).save(
-        Renter.create(
-          baseId: baseId,
-          name: result.name,
-          accountNumbers: result.accountNumbers,
-        ),
-      );
+      await ref
+          .read(rentersStorageProvider)
+          .save(
+            Renter.create(
+              baseId: baseId,
+              name: result.name,
+              accountNumbers: result.accountNumbers,
+            ),
+          );
       ref.invalidate(rentersListProvider);
     } on DuplicateRenterAccountNumbersError {
       if (!mounted) return;
@@ -616,137 +628,150 @@ class _AddIncomePageState extends ConsumerState<AddIncomePage> {
       _selectedAccount,
     );
 
-    return Scaffold(
-      body: TemplatePage(
-        hasBackButton: true,
-        title: _isEditing ? 'Редактирование прихода' : 'Приход',
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _FilterRow(
+    return CallbackShortcuts(
+      bindings: {
+        appPrimaryShortcut(LogicalKeyboardKey.keyN): () {
+          _sourcesPanelKey.currentState?.focusSearchAndClear();
+        },
+      },
+      child: Focus(
+        autofocus: true,
+        child: Scaffold(
+          body: TemplatePage(
+            hasBackButton: true,
+            title: _isEditing ? 'Редактирование прихода' : 'Приход',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _FilterField(
-                  child: basesAsync.when(
-                    data: (bases) => DropdownWidget<Base>(
-                      expand: true,
-                      items: bases,
-                      hint: 'Выбор базы',
-                      selectedItem: _selectedBase,
-                      labelBuilder: (item) => item.name,
-                      onChanged: _onBaseChanged,
-                    ),
-                    loading: () =>
-                        const _FilterPlaceholder(label: 'Выбор базы'),
-                    error: (_, _) =>
-                        const _FilterPlaceholder(label: 'Выбор базы'),
-                  ),
-                ),
-                const Gap(12),
-                _FilterField(
-                  child: DatePickerField(
-                    expand: true,
-                    hint: 'Дата начисления',
-                    selectedDate: _selectedDate,
-                    onChanged: (date) {
-                      if (date != null) {
-                        setState(() => _selectedDate = date);
-                      }
-                    },
-                  ),
-                ),
-                const Gap(12),
-                _FilterField(
-                  child: accountOptions.isEmpty
-                      ? const _FilterPlaceholder(label: 'Счёт')
-                      : DropdownWidget<_DocumentAccountOption>(
+                _FilterRow(
+                  children: [
+                    _FilterField(
+                      child: basesAsync.when(
+                        data: (bases) => DropdownWidget<Base>(
                           expand: true,
-                          items: accountOptions,
-                          hint: 'Счёт',
-                          selectedItem: selectedAccount,
-                          labelBuilder: (item) => item.label,
-                          onChanged: (item) {
-                            setState(() => _selectedAccount = item);
-                          },
+                          items: bases,
+                          hint: 'Выбор базы',
+                          selectedItem: _selectedBase,
+                          labelBuilder: (item) => item.name,
+                          onChanged: _onBaseChanged,
                         ),
+                        loading: () =>
+                            const _FilterPlaceholder(label: 'Выбор базы'),
+                        error: (_, _) =>
+                            const _FilterPlaceholder(label: 'Выбор базы'),
+                      ),
+                    ),
+                    const Gap(12),
+                    _FilterField(
+                      child: DatePickerField(
+                        expand: true,
+                        hint: 'Дата начисления',
+                        selectedDate: _selectedDate,
+                        onChanged: (date) {
+                          if (date != null) {
+                            setState(() => _selectedDate = date);
+                          }
+                        },
+                      ),
+                    ),
+                    const Gap(12),
+                    _FilterField(
+                      child: accountOptions.isEmpty
+                          ? const _FilterPlaceholder(label: 'Счёт')
+                          : DropdownWidget<_DocumentAccountOption>(
+                              expand: true,
+                              items: accountOptions,
+                              hint: 'Счёт',
+                              selectedItem: selectedAccount,
+                              labelBuilder: (item) => item.label,
+                              onChanged: (item) {
+                                setState(() => _selectedAccount = item);
+                              },
+                            ),
+                    ),
+                  ],
                 ),
+                if (_selectedBase != null) ...[
+                  const Gap(12),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: _IncomeLinesTable(
+                                    entries: _lineEntries,
+                                    onRemoveLine: _removeLine,
+                                  ),
+                                ),
+                                const Gap(12),
+                                MaterialButton(
+                                  onPressed: _onSave,
+                                  height: filterFieldHeight,
+                                  minWidth: 140,
+                                  color: AppColors.purple,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(25),
+                                  ),
+                                  child: const Text(
+                                    'Сохранить',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Gap(12),
+                          Expanded(
+                            child: rentersAsync.when(
+                              data: (renters) => _IncomeSourcesPanel(
+                                key: _sourcesPanelKey,
+                                categories: _activeCategories,
+                                renters: _toRenterRows(renters),
+                                onCategoryDoubleTap: _addCategoryLine,
+                                onRenterDoubleTap: _addRenterLine,
+                                onAddCategory: _onAddCategory,
+                                onAddRenter: _onAddRenter,
+                              ),
+                              loading: () => _IncomeSourcesPanel(
+                                key: _sourcesPanelKey,
+                                categories: _activeCategories,
+                                renters: const [],
+                                isLoadingRenters: true,
+                                onCategoryDoubleTap: _addCategoryLine,
+                                onRenterDoubleTap: _addRenterLine,
+                                onAddCategory: _onAddCategory,
+                                onAddRenter: _onAddRenter,
+                              ),
+                              error: (_, _) => _IncomeSourcesPanel(
+                                key: _sourcesPanelKey,
+                                categories: _activeCategories,
+                                renters: const [],
+                                onCategoryDoubleTap: _addCategoryLine,
+                                onRenterDoubleTap: _addRenterLine,
+                                onAddCategory: _onAddCategory,
+                                onAddRenter: _onAddRenter,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
-            if (_selectedBase != null) ...[
-              const Gap(12),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 20),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: _IncomeLinesTable(
-                                entries: _lineEntries,
-                                onRemoveLine: _removeLine,
-                              ),
-                            ),
-                            const Gap(12),
-                            MaterialButton(
-                              onPressed: _onSave,
-                              height: filterFieldHeight,
-                              minWidth: 140,
-                              color: AppColors.purple,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(25),
-                              ),
-                              child: const Text(
-                                'Сохранить',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Gap(12),
-                      Expanded(
-                        child: rentersAsync.when(
-                          data: (renters) => _IncomeSourcesPanel(
-                            categories: _activeCategories,
-                            renters: _toRenterRows(renters),
-                            onCategoryDoubleTap: _addCategoryLine,
-                            onRenterDoubleTap: _addRenterLine,
-                            onAddCategory: _onAddCategory,
-                            onAddRenter: _onAddRenter,
-                          ),
-                          loading: () => _IncomeSourcesPanel(
-                            categories: _activeCategories,
-                            renters: const [],
-                            isLoadingRenters: true,
-                            onCategoryDoubleTap: _addCategoryLine,
-                            onRenterDoubleTap: _addRenterLine,
-                            onAddCategory: _onAddCategory,
-                            onAddRenter: _onAddRenter,
-                          ),
-                          error: (_, _) => _IncomeSourcesPanel(
-                            categories: _activeCategories,
-                            renters: const [],
-                            onCategoryDoubleTap: _addCategoryLine,
-                            onRenterDoubleTap: _addRenterLine,
-                            onAddCategory: _onAddCategory,
-                            onAddRenter: _onAddRenter,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );
@@ -955,6 +980,7 @@ class _IncomeSourcesPanel extends StatefulWidget {
     required this.onAddCategory,
     required this.onAddRenter,
     this.isLoadingRenters = false,
+    super.key,
   });
 
   final List<IncomeCategory> categories;
@@ -971,12 +997,20 @@ class _IncomeSourcesPanel extends StatefulWidget {
 
 class _IncomeSourcesPanelState extends State<_IncomeSourcesPanel> {
   final _searchController = TextEditingController();
+  final _searchFocusNode = FocusNode();
   String _searchQuery = '';
 
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  void focusSearchAndClear() {
+    _searchController.clear();
+    setState(() => _searchQuery = '');
+    _searchFocusNode.requestFocus();
   }
 
   List<IncomeCategory> get _filteredCategories {
@@ -1004,7 +1038,8 @@ class _IncomeSourcesPanelState extends State<_IncomeSourcesPanel> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Text(
         title,
-        style: TextStyle(fontSize: 12,
+        style: TextStyle(
+          fontSize: 12,
           fontWeight: FontWeight.w500,
           color: context.appColors.secondaryText,
         ),
@@ -1100,6 +1135,7 @@ class _IncomeSourcesPanelState extends State<_IncomeSourcesPanel> {
                   Expanded(
                     child: TextField(
                       controller: _searchController,
+                      focusNode: _searchFocusNode,
                       style: filterFieldTextStyle,
                       decoration: InputDecoration(
                         isDense: true,
@@ -1132,18 +1168,19 @@ class _IncomeSourcesPanelState extends State<_IncomeSourcesPanel> {
                               ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide:
-                              BorderSide(color: context.appColors.border),
+                          borderSide: BorderSide(
+                            color: context.appColors.border,
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide:
-                              BorderSide(color: context.appColors.border),
+                          borderSide: BorderSide(
+                            color: context.appColors.border,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide:
-                              BorderSide(color: AppColors.primary),
+                          borderSide: BorderSide(color: AppColors.primary),
                         ),
                       ),
                       onChanged: (value) =>
@@ -1206,7 +1243,11 @@ class _IncomeSourcesPanelState extends State<_IncomeSourcesPanel> {
                       children: [
                         if (filteredCategories.isNotEmpty) ...[
                           _buildSectionHeader('Прочее'),
-                          for (var i = 0; i < filteredCategories.length; i++) ...[
+                          for (
+                            var i = 0;
+                            i < filteredCategories.length;
+                            i++
+                          ) ...[
                             if (i > 0)
                               Divider(
                                 height: 1,
