@@ -914,7 +914,7 @@ class _DocumentsTableRow extends StatelessWidget {
                           amountFormat.format(item.amount),
                           textAlign: TextAlign.right,
                           style: filterFieldTextStyle.copyWith(
-                            color: _amountColor(item.documentType),
+                            color: _amountColor(item.documentType, colors),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -967,11 +967,11 @@ class _DocumentsTableRow extends StatelessWidget {
     };
   }
 
-  Color _amountColor(DocumentType documentType) {
+  Color _amountColor(DocumentType documentType, AppThemeColors colors) {
     return switch (documentType) {
       DocumentType.income => AppColors.green,
       DocumentType.outcome => AppColors.red,
-      DocumentType.renterAssignment => AppColors.primary,
+      DocumentType.renterAssignment => colors.primaryText,
     };
   }
 }
