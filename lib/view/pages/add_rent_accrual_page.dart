@@ -12,6 +12,7 @@ import 'package:easy_fin/utils/app_shortcuts.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:easy_fin/utils/app_snack_bar.dart';
 import 'package:easy_fin/utils/app_theme_colors.dart';
+import 'package:easy_fin/utils/search_match.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/providers/documents_list_provider.dart';
 import 'package:easy_fin/view/providers/github_sync_provider.dart';
@@ -190,11 +191,6 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
   }
 
   void _addRenterToAccruals(_RenterRow renter) {
-    final alreadyAdded = _accrualEntries.any(
-      (entry) => entry.renter.renterId == renter.renterId,
-    );
-    if (alreadyAdded) return;
-
     final focusNode = FocusNode();
 
     setState(() {
@@ -294,33 +290,20 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
     List<RenterAssignment> assignments,
     Map<RenterId, Renter> renterById,
   ) {
-    final sumByRenterId = <RenterId, double>{};
-    final order = <RenterId>[];
-
-    for (final assignment in assignments) {
-      if (!renterById.containsKey(assignment.renterId)) continue;
-
-      if (!sumByRenterId.containsKey(assignment.renterId)) {
-        order.add(assignment.renterId);
-        sumByRenterId[assignment.renterId] = 0;
-      }
-      sumByRenterId[assignment.renterId] =
-          sumByRenterId[assignment.renterId]! + assignment.sum;
-    }
-
     return [
-      for (final renterId in order)
-        _AccrualEntry(
-          renter: _RenterRow(
-            renterId: renterId,
-            name: renterById[renterId]!.name,
-            accountNumbers: renterById[renterId]!.accountNumbers,
+      for (final assignment in assignments)
+        if (renterById.containsKey(assignment.renterId))
+          _AccrualEntry(
+            renter: _RenterRow(
+              renterId: assignment.renterId,
+              name: renterById[assignment.renterId]!.name,
+              accountNumbers: renterById[assignment.renterId]!.accountNumbers,
+            ),
+            amountController: TextEditingController(
+              text: AmountInputFormatter.formatAmount(assignment.sum),
+            ),
+            amountFocusNode: FocusNode(),
           ),
-          amountController: TextEditingController(
-            text: AmountInputFormatter.formatAmount(sumByRenterId[renterId]!),
-          ),
-          amountFocusNode: FocusNode(),
-        ),
     ];
   }
 
@@ -331,17 +314,6 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
     if (_accrualEntries.isEmpty) {
       await _showErrorDialog('Добавьте хотя бы одно начисление');
       return;
-    }
-
-    final seen = <RenterId>{};
-    for (final entry in _accrualEntries) {
-      if (seen.contains(entry.renter.renterId)) {
-        await _showErrorDialog(
-          'Арендатор «${entry.renter.name}» добавлен более одного раза',
-        );
-        return;
-      }
-      seen.add(entry.renter.renterId);
     }
 
     final storage = ref.read(renterAssignmentsStorageProvider);
@@ -648,8 +620,18 @@ class _RentersTable extends StatefulWidget {
 
 class _RentersTableState extends State<_RentersTable> {
   final _searchController = TextEditingController();
-  final _searchFocusNode = FocusNode();
+  late final FocusNode _searchFocusNode;
+  final _highlightedRowKey = GlobalKey();
   String _searchQuery = '';
+  int? _highlightedIndex;
+
+  Color get _highlightColor => AppColors.purple.withValues(alpha: 0.12);
+
+  @override
+  void initState() {
+    super.initState();
+    _searchFocusNode = FocusNode(onKeyEvent: _onSearchKeyEvent);
+  }
 
   @override
   void dispose() {
@@ -660,7 +642,10 @@ class _RentersTableState extends State<_RentersTable> {
 
   void focusSearchAndClear() {
     _searchController.clear();
-    setState(() => _searchQuery = '');
+    setState(() {
+      _searchQuery = '';
+      _highlightedIndex = null;
+    });
     _searchFocusNode.requestFocus();
   }
 
@@ -672,6 +657,80 @@ class _RentersTableState extends State<_RentersTable> {
       return renter.name.toLowerCase().contains(query) ||
           renter.accountNumbers.any((account) => account.contains(query));
     }).toList();
+  }
+
+  void _onSearchChanged(String value) {
+    setState(() {
+      _searchQuery = value;
+      final renters = _filteredRenters;
+      _highlightedIndex = indexOfBestSearchMatch(
+        candidates: [
+          for (final renter in renters) [renter.name, ...renter.accountNumbers],
+        ],
+        query: value,
+      );
+    });
+    _scrollToHighlighted();
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() {
+      _searchQuery = '';
+      _highlightedIndex = null;
+    });
+  }
+
+  void _scrollToHighlighted() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ensureSearchHighlightVisible(_highlightedRowKey);
+    });
+  }
+
+  void _moveHighlight(int delta) {
+    final renters = _filteredRenters;
+    if (renters.isEmpty) return;
+
+    setState(() {
+      final current = _highlightedIndex;
+      if (current == null) {
+        _highlightedIndex = delta > 0 ? 0 : renters.length - 1;
+      } else {
+        _highlightedIndex = (current + delta).clamp(0, renters.length - 1);
+      }
+    });
+    _scrollToHighlighted();
+  }
+
+  void _activateHighlighted() {
+    final index = _highlightedIndex;
+    if (index == null) return;
+    final renters = _filteredRenters;
+    if (index < 0 || index >= renters.length) return;
+    widget.onRenterDoubleTap(renters[index]);
+  }
+
+  KeyEventResult _onSearchKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+    if (_searchQuery.trim().isEmpty || _filteredRenters.isEmpty) {
+      return KeyEventResult.ignored;
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      _moveHighlight(1);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      _moveHighlight(-1);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.enter) {
+      _activateHighlighted();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
   }
 
   @override
@@ -692,6 +751,9 @@ class _RentersTableState extends State<_RentersTable> {
       emptyMessage: _searchQuery.trim().isEmpty
           ? 'Нет данных'
           : 'Ничего не найдено',
+      selectedRowIndex: _highlightedIndex,
+      selectedRowKey: _highlightedRowKey,
+      selectedRowColor: _highlightColor,
       belowHeader: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Row(
@@ -720,10 +782,7 @@ class _RentersTableState extends State<_RentersTable> {
                       ? null
                       : IconButton(
                           tooltip: 'Очистить',
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() => _searchQuery = '');
-                          },
+                          onPressed: _clearSearch,
                           icon: Icon(
                             LucideIcons.x,
                             size: 16,
@@ -743,7 +802,7 @@ class _RentersTableState extends State<_RentersTable> {
                     borderSide: const BorderSide(color: AppColors.primary),
                   ),
                 ),
-                onChanged: (value) => setState(() => _searchQuery = value),
+                onChanged: _onSearchChanged,
               ),
             ),
             const Gap(8),

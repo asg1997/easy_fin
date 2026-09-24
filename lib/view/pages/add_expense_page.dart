@@ -13,6 +13,7 @@ import 'package:easy_fin/utils/app_shortcuts.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:easy_fin/utils/app_snack_bar.dart';
 import 'package:easy_fin/utils/app_theme_colors.dart';
+import 'package:easy_fin/utils/search_match.dart';
 import 'package:easy_fin/view/providers/account_balances_provider.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/providers/documents_list_provider.dart';
@@ -736,8 +737,18 @@ class _ExpenseCategoriesPanel extends StatefulWidget {
 
 class _ExpenseCategoriesPanelState extends State<_ExpenseCategoriesPanel> {
   final _searchController = TextEditingController();
-  final _searchFocusNode = FocusNode();
+  late final FocusNode _searchFocusNode;
+  final _highlightedRowKey = GlobalKey();
   String _searchQuery = '';
+  int? _highlightedIndex;
+
+  Color get _highlightColor => AppColors.purple.withValues(alpha: 0.12);
+
+  @override
+  void initState() {
+    super.initState();
+    _searchFocusNode = FocusNode(onKeyEvent: _onSearchKeyEvent);
+  }
 
   @override
   void dispose() {
@@ -748,7 +759,10 @@ class _ExpenseCategoriesPanelState extends State<_ExpenseCategoriesPanel> {
 
   void focusSearchAndClear() {
     _searchController.clear();
-    setState(() => _searchQuery = '');
+    setState(() {
+      _searchQuery = '';
+      _highlightedIndex = null;
+    });
     _searchFocusNode.requestFocus();
   }
 
@@ -759,6 +773,79 @@ class _ExpenseCategoriesPanelState extends State<_ExpenseCategoriesPanel> {
     return widget.categories
         .where((category) => category.name.toLowerCase().contains(query))
         .toList();
+  }
+
+  void _onSearchChanged(String value) {
+    setState(() {
+      _searchQuery = value;
+      _highlightedIndex = indexOfBestSearchMatch(
+        candidates: [
+          for (final category in _filteredCategories) [category.name],
+        ],
+        query: value,
+      );
+    });
+    _scrollToHighlighted();
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() {
+      _searchQuery = '';
+      _highlightedIndex = null;
+    });
+  }
+
+  void _scrollToHighlighted() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ensureSearchHighlightVisible(_highlightedRowKey);
+    });
+  }
+
+  void _moveHighlight(int delta) {
+    final categories = _filteredCategories;
+    if (categories.isEmpty) return;
+
+    setState(() {
+      final current = _highlightedIndex;
+      if (current == null) {
+        _highlightedIndex = delta > 0 ? 0 : categories.length - 1;
+      } else {
+        _highlightedIndex = (current + delta).clamp(0, categories.length - 1);
+      }
+    });
+    _scrollToHighlighted();
+  }
+
+  void _activateHighlighted() {
+    final index = _highlightedIndex;
+    if (index == null) return;
+    final categories = _filteredCategories;
+    if (index < 0 || index >= categories.length) return;
+    widget.onCategoryDoubleTap(categories[index]);
+  }
+
+  KeyEventResult _onSearchKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+    if (_searchQuery.trim().isEmpty || _filteredCategories.isEmpty) {
+      return KeyEventResult.ignored;
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      _moveHighlight(1);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      _moveHighlight(-1);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.enter) {
+      _activateHighlighted();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
   }
 
   @override
@@ -821,10 +908,7 @@ class _ExpenseCategoriesPanelState extends State<_ExpenseCategoriesPanel> {
                             ? null
                             : IconButton(
                                 tooltip: 'Очистить',
-                                onPressed: () {
-                                  _searchController.clear();
-                                  setState(() => _searchQuery = '');
-                                },
+                                onPressed: _clearSearch,
                                 icon: Icon(
                                   LucideIcons.x,
                                   size: 16,
@@ -848,8 +932,7 @@ class _ExpenseCategoriesPanelState extends State<_ExpenseCategoriesPanel> {
                           borderSide: BorderSide(color: AppColors.primary),
                         ),
                       ),
-                      onChanged: (value) =>
-                          setState(() => _searchQuery = value),
+                      onChanged: _onSearchChanged,
                     ),
                   ),
                   const Gap(8),
@@ -894,20 +977,27 @@ class _ExpenseCategoriesPanelState extends State<_ExpenseCategoriesPanel> {
                       ),
                       itemBuilder: (context, index) {
                         final category = filteredCategories[index];
+                        final isHighlighted = _highlightedIndex == index;
                         return GestureDetector(
                           behavior: HitTestBehavior.opaque,
                           onDoubleTap: () =>
                               widget.onCategoryDoubleTap(category),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                            child: Text(
-                              category.name,
-                              style: filterFieldTextStyle,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                          child: ColoredBox(
+                            key: isHighlighted ? _highlightedRowKey : null,
+                            color: isHighlighted
+                                ? _highlightColor
+                                : Colors.transparent,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              child: Text(
+                                category.name,
+                                style: filterFieldTextStyle,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           ),
                         );

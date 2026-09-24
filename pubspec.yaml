@@ -1,7 +1,7 @@
 name: easy_fin
 description: "A new Flutter project."
 publish_to: "none"
-version: 1.2.13+27
+version: 1.2.14+28
 
 environment:
   sdk: ^3.11.4

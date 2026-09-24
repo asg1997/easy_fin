@@ -16,6 +16,7 @@ import 'package:easy_fin/utils/app_shortcuts.dart';
 import 'package:easy_fin/utils/app_sizes.dart';
 import 'package:easy_fin/utils/app_snack_bar.dart';
 import 'package:easy_fin/utils/app_theme_colors.dart';
+import 'package:easy_fin/utils/search_match.dart';
 import 'package:easy_fin/view/providers/account_balances_provider.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/providers/documents_list_provider.dart';
@@ -236,9 +237,6 @@ class _AddIncomePageState extends ConsumerState<AddIncomePage> {
     };
 
     setState(() {
-      final mergedRenterLineById =
-          <RenterId, _MutualSettlementIncomeLineEntry>{};
-
       for (final line in document.lines) {
         final source = line.incomeSource;
         switch (source) {
@@ -246,9 +244,8 @@ class _AddIncomePageState extends ConsumerState<AddIncomePage> {
             final renter = renterById[renterId];
             if (renter == null) continue;
 
-            final existing = mergedRenterLineById[renterId];
-            if (existing == null) {
-              final entry = _MutualSettlementIncomeLineEntry(
+            _lineEntries.add(
+              _MutualSettlementIncomeLineEntry(
                 renter: _RenterRow(
                   renterId: renterId,
                   name: renter.name,
@@ -256,25 +253,8 @@ class _AddIncomePageState extends ConsumerState<AddIncomePage> {
                 ),
                 amountText: AmountInputFormatter.formatAmount(line.sum),
                 noteText: line.note ?? '',
-              );
-              mergedRenterLineById[renterId] = entry;
-              _lineEntries.add(entry);
-            } else {
-              final previousAmount =
-                  AmountInputFormatter.parseAmount(
-                    existing.amountController.text,
-                  ) ??
-                  0;
-              existing.amountController.text =
-                  AmountInputFormatter.formatAmount(previousAmount + line.sum);
-              final note = line.note?.trim();
-              if (note != null && note.isNotEmpty) {
-                final previousNote = existing.noteController.text.trim();
-                existing.noteController.text = previousNote.isEmpty
-                    ? note
-                    : '$previousNote; $note';
-              }
-            }
+              ),
+            );
           case IncomeSourceFromOther(:final categoryId):
             final category = categoryById[categoryId];
             if (category == null) continue;
@@ -352,13 +332,6 @@ class _AddIncomePageState extends ConsumerState<AddIncomePage> {
   }
 
   void _addRenterLine(_RenterRow renter) {
-    final alreadyAdded = _lineEntries.any(
-      (entry) =>
-          entry is _MutualSettlementIncomeLineEntry &&
-          entry.renter.renterId == renter.renterId,
-    );
-    if (alreadyAdded) return;
-
     final focusNode = FocusNode();
     setState(() {
       _lineEntries.add(
@@ -423,7 +396,6 @@ class _AddIncomePageState extends ConsumerState<AddIncomePage> {
       return;
     }
 
-    final seenRenterIds = <RenterId>{};
     final lines = <Income>[];
     final timestamp = DateTime.now().microsecondsSinceEpoch;
 
@@ -441,13 +413,6 @@ class _AddIncomePageState extends ConsumerState<AddIncomePage> {
       final IncomeSource incomeSource;
       switch (entry) {
         case _MutualSettlementIncomeLineEntry(:final renter):
-          if (seenRenterIds.contains(renter.renterId)) {
-            await _showErrorDialog(
-              'Арендатор «${renter.name}» добавлен более одного раза',
-            );
-            return;
-          }
-          seenRenterIds.add(renter.renterId);
           incomeSource = IncomeSourceFromRenter(
             renterId: renter.renterId,
             // Общий приход по арендатору, без привязки к конкретному р/с.
@@ -501,9 +466,6 @@ class _AddIncomePageState extends ConsumerState<AddIncomePage> {
     } on InvalidIncomeAmountError {
       if (!mounted) return;
       await _showErrorDialog('Сумма должна быть больше нуля');
-    } on DuplicateIncomeRenterLineError {
-      if (!mounted) return;
-      await _showErrorDialog('Арендатор добавлен более одного раза');
     } on IncomeDocumentNotFoundError {
       if (!mounted) return;
       await _showErrorDialog('Документ не найден');
@@ -997,8 +959,18 @@ class _IncomeSourcesPanel extends StatefulWidget {
 
 class _IncomeSourcesPanelState extends State<_IncomeSourcesPanel> {
   final _searchController = TextEditingController();
-  final _searchFocusNode = FocusNode();
+  late final FocusNode _searchFocusNode;
+  final _highlightedRowKey = GlobalKey();
   String _searchQuery = '';
+  int? _highlightedIndex;
+
+  Color get _highlightColor => AppColors.purple.withValues(alpha: 0.12);
+
+  @override
+  void initState() {
+    super.initState();
+    _searchFocusNode = FocusNode(onKeyEvent: _onSearchKeyEvent);
+  }
 
   @override
   void dispose() {
@@ -1009,7 +981,10 @@ class _IncomeSourcesPanelState extends State<_IncomeSourcesPanel> {
 
   void focusSearchAndClear() {
     _searchController.clear();
-    setState(() => _searchQuery = '');
+    setState(() {
+      _searchQuery = '';
+      _highlightedIndex = null;
+    });
     _searchFocusNode.requestFocus();
   }
 
@@ -1032,6 +1007,101 @@ class _IncomeSourcesPanelState extends State<_IncomeSourcesPanel> {
     }).toList();
   }
 
+  int get _visibleItemCount =>
+      _filteredCategories.length + _filteredRenters.length;
+
+  List<List<String>> get _visibleSearchFields {
+    return [
+      for (final category in _filteredCategories) [category.name],
+      for (final renter in _filteredRenters)
+        [renter.name, ...renter.accountNumbers],
+    ];
+  }
+
+  void _updateHighlightForQuery() {
+    _highlightedIndex = indexOfBestSearchMatch(
+      candidates: _visibleSearchFields,
+      query: _searchQuery,
+    );
+  }
+
+  void _onSearchChanged(String value) {
+    setState(() {
+      _searchQuery = value;
+      _updateHighlightForQuery();
+    });
+    _scrollToHighlighted();
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() {
+      _searchQuery = '';
+      _highlightedIndex = null;
+    });
+  }
+
+  void _scrollToHighlighted() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ensureSearchHighlightVisible(_highlightedRowKey);
+    });
+  }
+
+  void _moveHighlight(int delta) {
+    final count = _visibleItemCount;
+    if (count == 0) return;
+
+    setState(() {
+      final current = _highlightedIndex;
+      if (current == null) {
+        _highlightedIndex = delta > 0 ? 0 : count - 1;
+      } else {
+        _highlightedIndex = (current + delta).clamp(0, count - 1);
+      }
+    });
+    _scrollToHighlighted();
+  }
+
+  void _activateHighlighted() {
+    final index = _highlightedIndex;
+    if (index == null) return;
+
+    final categories = _filteredCategories;
+    if (index < categories.length) {
+      widget.onCategoryDoubleTap(categories[index]);
+      return;
+    }
+
+    final renterIndex = index - categories.length;
+    final renters = _filteredRenters;
+    if (renterIndex >= 0 && renterIndex < renters.length) {
+      widget.onRenterDoubleTap(renters[renterIndex]);
+    }
+  }
+
+  KeyEventResult _onSearchKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+    if (_searchQuery.trim().isEmpty || _visibleItemCount == 0) {
+      return KeyEventResult.ignored;
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      _moveHighlight(1);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      _moveHighlight(-1);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.enter) {
+      _activateHighlighted();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
   Widget _buildSectionHeader(String title) {
     return Container(
       color: context.appColors.navActiveBackground,
@@ -1051,33 +1121,38 @@ class _IncomeSourcesPanelState extends State<_IncomeSourcesPanel> {
     required String name,
     required String accountNumber,
     required VoidCallback onDoubleTap,
+    required bool isHighlighted,
   }) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onDoubleTap: onDoubleTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            Expanded(
-              flex: 2,
-              child: Text(
-                name,
-                style: filterFieldTextStyle,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+      child: ColoredBox(
+        key: isHighlighted ? _highlightedRowKey : null,
+        color: isHighlighted ? _highlightColor : Colors.transparent,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Text(
+                  name,
+                  style: filterFieldTextStyle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-            Expanded(
-              flex: 3,
-              child: Text(
-                accountNumber,
-                style: filterFieldTextStyle,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+              Expanded(
+                flex: 3,
+                child: Text(
+                  accountNumber,
+                  style: filterFieldTextStyle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1156,10 +1231,7 @@ class _IncomeSourcesPanelState extends State<_IncomeSourcesPanel> {
                             ? null
                             : IconButton(
                                 tooltip: 'Очистить',
-                                onPressed: () {
-                                  _searchController.clear();
-                                  setState(() => _searchQuery = '');
-                                },
+                                onPressed: _clearSearch,
                                 icon: Icon(
                                   LucideIcons.x,
                                   size: 16,
@@ -1183,8 +1255,7 @@ class _IncomeSourcesPanelState extends State<_IncomeSourcesPanel> {
                           borderSide: BorderSide(color: AppColors.primary),
                         ),
                       ),
-                      onChanged: (value) =>
-                          setState(() => _searchQuery = value),
+                      onChanged: _onSearchChanged,
                     ),
                   ),
                   const Gap(8),
@@ -1257,6 +1328,7 @@ class _IncomeSourcesPanelState extends State<_IncomeSourcesPanel> {
                             _buildSourceRow(
                               name: filteredCategories[i].name,
                               accountNumber: '—',
+                              isHighlighted: _highlightedIndex == i,
                               onDoubleTap: () => widget.onCategoryDoubleTap(
                                 filteredCategories[i],
                               ),
@@ -1283,6 +1355,8 @@ class _IncomeSourcesPanelState extends State<_IncomeSourcesPanel> {
                               name: filteredRenters[i].name,
                               accountNumber:
                                   filteredRenters[i].accountNumbersLabel,
+                              isHighlighted: _highlightedIndex ==
+                                  filteredCategories.length + i,
                               onDoubleTap: () => widget.onRenterDoubleTap(
                                 filteredRenters[i],
                               ),

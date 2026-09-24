@@ -5,7 +5,6 @@ import 'package:easy_fin/drift/db/app_database_provider.dart';
 import 'package:easy_fin/drift/mappers/income_document_mapper.dart';
 import 'package:easy_fin/models/account_filter_type.dart';
 import 'package:easy_fin/models/document_type.dart';
-import 'package:easy_fin/models/income.dart';
 import 'package:easy_fin/models/income_document.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -23,10 +22,6 @@ class EmptyIncomeDocumentError extends IncomesStorageError {
 
 class InvalidIncomeAmountError extends IncomesStorageError {
   const InvalidIncomeAmountError();
-}
-
-class DuplicateIncomeRenterLineError extends IncomesStorageError {
-  const DuplicateIncomeRenterLineError();
 }
 
 class IncomeDocumentNotFoundError extends IncomesStorageError {
@@ -195,18 +190,9 @@ class IncomesStorageImpl implements IncomesStorage {
       throw const EmptyIncomeDocumentError();
     }
 
-    final seenRenterKeys = <String>{};
     for (final line in document.lines) {
       if (line.sum <= 0) {
         throw const InvalidIncomeAmountError();
-      }
-
-      final source = line.incomeSource;
-      if (source is IncomeSourceFromRenter) {
-        if (seenRenterKeys.contains(source.renterId)) {
-          throw const DuplicateIncomeRenterLineError();
-        }
-        seenRenterKeys.add(source.renterId);
       }
     }
   }

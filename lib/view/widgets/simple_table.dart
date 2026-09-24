@@ -13,6 +13,9 @@ class SimpleTable extends StatelessWidget {
     this.rowLeadingBuilder,
     this.leadingWidth = 32,
     this.belowHeader,
+    this.selectedRowIndex,
+    this.selectedRowKey,
+    this.selectedRowColor,
     super.key,
   });
 
@@ -25,10 +28,15 @@ class SimpleTable extends StatelessWidget {
   final Widget? Function(int index)? rowLeadingBuilder;
   final double leadingWidth;
   final Widget? belowHeader;
+  final int? selectedRowIndex;
+  final Key? selectedRowKey;
+  final Color? selectedRowColor;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final highlightColor =
+        selectedRowColor ?? colors.navActiveBackground;
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -76,33 +84,40 @@ class SimpleTable extends StatelessWidget {
                       ),
                       itemBuilder: (context, index) {
                         final row = rows[index];
-                        final content = Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          child: Row(
-                            children: [
-                              if (rowLeadingBuilder != null) ...[
-                                rowLeadingBuilder!(index)!,
-                                const SizedBox(width: 4),
-                              ],
-                              for (var i = 0; i < columns.length; i++)
-                                _SimpleTableCell(
-                                  flex: _flexForColumn(i),
-                                  child: Text(
-                                    i < row.length ? row[i] : '',
-                                    textAlign: alignRightColumns.contains(i)
-                                        ? TextAlign.right
-                                        : TextAlign.left,
-                                    style: filterFieldTextStyle.copyWith(
-                                      color: colors.primaryText,
+                        final isSelected = selectedRowIndex == index;
+                        final content = ColoredBox(
+                          key: isSelected ? selectedRowKey : null,
+                          color: isSelected
+                              ? highlightColor
+                              : Colors.transparent,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            child: Row(
+                              children: [
+                                if (rowLeadingBuilder != null) ...[
+                                  rowLeadingBuilder!(index)!,
+                                  const SizedBox(width: 4),
+                                ],
+                                for (var i = 0; i < columns.length; i++)
+                                  _SimpleTableCell(
+                                    flex: _flexForColumn(i),
+                                    child: Text(
+                                      i < row.length ? row[i] : '',
+                                      textAlign: alignRightColumns.contains(i)
+                                          ? TextAlign.right
+                                          : TextAlign.left,
+                                      style: filterFieldTextStyle.copyWith(
+                                        color: colors.primaryText,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                ),
-                            ],
+                              ],
+                            ),
                           ),
                         );
 
