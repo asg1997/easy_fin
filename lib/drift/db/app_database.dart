@@ -14,6 +14,7 @@ import 'package:easy_fin/drift/models/income_documents_table.dart';
 import 'package:easy_fin/drift/models/income_lines_table.dart';
 import 'package:easy_fin/drift/models/note_tags_table.dart';
 import 'package:easy_fin/drift/models/notes_table.dart';
+import 'package:easy_fin/drift/models/renter_assignment_documents_table.dart';
 import 'package:easy_fin/drift/models/renter_assignments_table.dart';
 import 'package:easy_fin/drift/models/renters_table.dart';
 import 'package:easy_fin/utils/database_path.dart';
@@ -28,6 +29,7 @@ part 'app_database.g.dart';
     BankStatementOperations,
     Renters,
     RenterAccountNumbers,
+    RenterAssignmentDocuments,
     RenterAssignments,
     IncomeCategories,
     ExpenseCategories,
@@ -41,7 +43,7 @@ part 'app_database.g.dart';
   ],
 )
 class AppDatabase extends _$AppDatabase {
-  static const int currentSchemaVersion = 17;
+  static const int currentSchemaVersion = 18;
 
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
@@ -151,6 +153,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 17) {
         await migrator.createTable(noteTags);
+      }
+      if (from < 18) {
+        await _migrateToV18(migrator);
       }
     },
   );
@@ -348,6 +353,103 @@ Future<void> _migrateToV15(Migrator migrator) async {
     await db.customStatement('DROP TABLE renter_account_numbers');
     await db.customStatement(
       'ALTER TABLE renter_account_numbers_new RENAME TO renter_account_numbers',
+    );
+
+    await db.customStatement('PRAGMA foreign_keys = ON');
+  });
+}
+
+/// Начисления: одна таблица строк → документ + строки (как приход).
+/// Существующие строки за (база, месяц) склеиваются в один документ.
+Future<void> _migrateToV18(Migrator migrator) async {
+  final db = migrator.database;
+
+  await db.transaction(() async {
+    await db.customStatement('PRAGMA foreign_keys = OFF');
+
+    await db.customStatement('''
+      CREATE TABLE renter_assignment_documents (
+        id TEXT NOT NULL PRIMARY KEY,
+        base_id TEXT NOT NULL REFERENCES bases (id) ON DELETE CASCADE,
+        date INTEGER NOT NULL,
+        created_at INTEGER NOT NULL
+      )
+    ''');
+
+    await db.customStatement('''
+      CREATE TABLE renter_assignments_new (
+        id TEXT NOT NULL PRIMARY KEY,
+        document_id TEXT NOT NULL
+          REFERENCES renter_assignment_documents (id) ON DELETE CASCADE,
+        renter_id TEXT NOT NULL REFERENCES renters (id) ON DELETE CASCADE,
+        account_number TEXT NOT NULL,
+        amount_minor INTEGER NOT NULL,
+        created_at INTEGER NOT NULL
+      )
+    ''');
+
+    final oldRows = await db
+        .customSelect(
+          'SELECT id, base_id, renter_id, account_number, date, '
+          'amount_minor, created_at FROM renter_assignments',
+        )
+        .get();
+
+    final groups = <String, List<QueryRow>>{};
+    for (final row in oldRows) {
+      final dateMs = row.read<int>('date');
+      final date = DateTime.fromMillisecondsSinceEpoch(dateMs);
+      final baseId = row.read<String>('base_id');
+      final key = '${baseId}_${date.year}_${date.month}';
+      groups.putIfAbsent(key, () => []).add(row);
+    }
+
+    var documentIndex = 0;
+    for (final group in groups.values) {
+      final baseId = group.first.read<String>('base_id');
+      var maxDateMs = group.first.read<int>('date');
+      var minCreatedAtMs = group.first.read<int>('created_at');
+      for (final row in group) {
+        final dateMs = row.read<int>('date');
+        final createdAtMs = row.read<int>('created_at');
+        if (dateMs > maxDateMs) maxDateMs = dateMs;
+        if (createdAtMs < minCreatedAtMs) minCreatedAtMs = createdAtMs;
+      }
+
+      final documentId =
+          'migrated_ra_${++documentIndex}_$maxDateMs';
+
+      await db.customInsert(
+        'INSERT INTO renter_assignment_documents '
+        '(id, base_id, date, created_at) VALUES (?, ?, ?, ?)',
+        variables: [
+          Variable.withString(documentId),
+          Variable.withString(baseId),
+          Variable.withInt(maxDateMs),
+          Variable.withInt(minCreatedAtMs),
+        ],
+      );
+
+      for (final row in group) {
+        await db.customInsert(
+          'INSERT INTO renter_assignments_new '
+          '(id, document_id, renter_id, account_number, amount_minor, created_at) '
+          'VALUES (?, ?, ?, ?, ?, ?)',
+          variables: [
+            Variable.withString(row.read<String>('id')),
+            Variable.withString(documentId),
+            Variable.withString(row.read<String>('renter_id')),
+            Variable.withString(row.read<String>('account_number')),
+            Variable.withInt(row.read<int>('amount_minor')),
+            Variable.withInt(row.read<int>('created_at')),
+          ],
+        );
+      }
+    }
+
+    await db.customStatement('DROP TABLE renter_assignments');
+    await db.customStatement(
+      'ALTER TABLE renter_assignments_new RENAME TO renter_assignments',
     );
 
     await db.customStatement('PRAGMA foreign_keys = ON');

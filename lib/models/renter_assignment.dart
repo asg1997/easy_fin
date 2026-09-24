@@ -1,6 +1,10 @@
 import 'package:easy_fin/models/base.dart';
 import 'package:easy_fin/models/document.dart';
 import 'package:easy_fin/models/renter.dart';
+import 'package:equatable/equatable.dart';
+
+typedef RenterAssignmentDocumentId = String;
+typedef RenterAssignmentLineId = String;
 
 /// Первый день месяца для группировки и выборки начислений.
 DateTime normalizeRenterAssignmentMonth(DateTime date) =>
@@ -16,44 +20,47 @@ DateTime renterAssignmentMonthEndExclusive(DateTime date) {
   return DateTime(month.year, month.month + 1);
 }
 
-/// Начисление по аренде
-class RenterAssignment extends Document {
-  const RenterAssignment({
+/// Документ начисления по аренде: заголовок + строки.
+class RenterAssignmentDocument extends Document {
+  const RenterAssignmentDocument({
     required super.id,
     required super.createdAt,
     required super.baseId,
     required this.date,
-    required this.sum,
-    required this.renterId,
-    required this.accountNumber,
+    required this.lines,
   });
-
-  factory RenterAssignment.create({
-    required BaseId baseId,
-    required RenterId renterId,
-    required AccountNumber accountNumber,
-    required DateTime date,
-    required double sum,
-  }) =>
-      RenterAssignment(
-        id: DateTime.now().microsecondsSinceEpoch.toString(),
-        createdAt: DateTime.now(),
-        baseId: baseId,
-        renterId: renterId,
-        accountNumber: accountNumber,
-        date: date,
-        sum: sum,
-      );
 
   /// Дата начисления
   final DateTime date;
 
-  /// Сумма начисления
-  final double sum;
+  final List<RenterAssignmentLine> lines;
+
+  double get totalSum => lines.fold<double>(0, (sum, line) => sum + line.sum);
+
+  @override
+  List<Object?> get props => [id, createdAt, baseId, date, lines];
+}
+
+/// Строка документа начисления по аренде.
+class RenterAssignmentLine extends Equatable {
+  const RenterAssignmentLine({
+    required this.id,
+    required this.renterId,
+    required this.accountNumber,
+    required this.sum,
+  });
+
+  final RenterAssignmentLineId id;
 
   /// ID арендатора
   final RenterId renterId;
 
-  /// Номер р/с арендатора
+  /// Номер р/с арендатора (пусто — общее начисление без привязки к р/с)
   final AccountNumber accountNumber;
+
+  /// Сумма начисления
+  final double sum;
+
+  @override
+  List<Object?> get props => [id, renterId, accountNumber, sum];
 }

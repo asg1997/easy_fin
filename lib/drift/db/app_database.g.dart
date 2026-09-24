@@ -3069,12 +3069,16 @@ class RenterAccountNumbersCompanion
   }
 }
 
-class $RenterAssignmentsTable extends RenterAssignments
-    with TableInfo<$RenterAssignmentsTable, RenterAssignmentRow> {
+class $RenterAssignmentDocumentsTable extends RenterAssignmentDocuments
+    with
+        TableInfo<
+          $RenterAssignmentDocumentsTable,
+          RenterAssignmentDocumentRow
+        > {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $RenterAssignmentsTable(this.attachedDatabase, [this._alias]);
+  $RenterAssignmentDocumentsTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
@@ -3094,6 +3098,324 @@ class $RenterAssignmentsTable extends RenterAssignments
     requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
       'REFERENCES bases (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<DateTime> date = GeneratedColumn<DateTime>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, baseId, date, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'renter_assignment_documents';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RenterAssignmentDocumentRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('base_id')) {
+      context.handle(
+        _baseIdMeta,
+        baseId.isAcceptableOrUnknown(data['base_id']!, _baseIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_baseIdMeta);
+    }
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  RenterAssignmentDocumentRow map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RenterAssignmentDocumentRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      baseId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}base_id'],
+      )!,
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}date'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $RenterAssignmentDocumentsTable createAlias(String alias) {
+    return $RenterAssignmentDocumentsTable(attachedDatabase, alias);
+  }
+}
+
+class RenterAssignmentDocumentRow extends DataClass
+    implements Insertable<RenterAssignmentDocumentRow> {
+  final String id;
+  final String baseId;
+  final DateTime date;
+  final DateTime createdAt;
+  const RenterAssignmentDocumentRow({
+    required this.id,
+    required this.baseId,
+    required this.date,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['base_id'] = Variable<String>(baseId);
+    map['date'] = Variable<DateTime>(date);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  RenterAssignmentDocumentsCompanion toCompanion(bool nullToAbsent) {
+    return RenterAssignmentDocumentsCompanion(
+      id: Value(id),
+      baseId: Value(baseId),
+      date: Value(date),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory RenterAssignmentDocumentRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RenterAssignmentDocumentRow(
+      id: serializer.fromJson<String>(json['id']),
+      baseId: serializer.fromJson<String>(json['baseId']),
+      date: serializer.fromJson<DateTime>(json['date']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'baseId': serializer.toJson<String>(baseId),
+      'date': serializer.toJson<DateTime>(date),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  RenterAssignmentDocumentRow copyWith({
+    String? id,
+    String? baseId,
+    DateTime? date,
+    DateTime? createdAt,
+  }) => RenterAssignmentDocumentRow(
+    id: id ?? this.id,
+    baseId: baseId ?? this.baseId,
+    date: date ?? this.date,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  RenterAssignmentDocumentRow copyWithCompanion(
+    RenterAssignmentDocumentsCompanion data,
+  ) {
+    return RenterAssignmentDocumentRow(
+      id: data.id.present ? data.id.value : this.id,
+      baseId: data.baseId.present ? data.baseId.value : this.baseId,
+      date: data.date.present ? data.date.value : this.date,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RenterAssignmentDocumentRow(')
+          ..write('id: $id, ')
+          ..write('baseId: $baseId, ')
+          ..write('date: $date, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, baseId, date, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RenterAssignmentDocumentRow &&
+          other.id == this.id &&
+          other.baseId == this.baseId &&
+          other.date == this.date &&
+          other.createdAt == this.createdAt);
+}
+
+class RenterAssignmentDocumentsCompanion
+    extends UpdateCompanion<RenterAssignmentDocumentRow> {
+  final Value<String> id;
+  final Value<String> baseId;
+  final Value<DateTime> date;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const RenterAssignmentDocumentsCompanion({
+    this.id = const Value.absent(),
+    this.baseId = const Value.absent(),
+    this.date = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RenterAssignmentDocumentsCompanion.insert({
+    required String id,
+    required String baseId,
+    required DateTime date,
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       baseId = Value(baseId),
+       date = Value(date),
+       createdAt = Value(createdAt);
+  static Insertable<RenterAssignmentDocumentRow> custom({
+    Expression<String>? id,
+    Expression<String>? baseId,
+    Expression<DateTime>? date,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (baseId != null) 'base_id': baseId,
+      if (date != null) 'date': date,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RenterAssignmentDocumentsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? baseId,
+    Value<DateTime>? date,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return RenterAssignmentDocumentsCompanion(
+      id: id ?? this.id,
+      baseId: baseId ?? this.baseId,
+      date: date ?? this.date,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (baseId.present) {
+      map['base_id'] = Variable<String>(baseId.value);
+    }
+    if (date.present) {
+      map['date'] = Variable<DateTime>(date.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RenterAssignmentDocumentsCompanion(')
+          ..write('id: $id, ')
+          ..write('baseId: $baseId, ')
+          ..write('date: $date, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $RenterAssignmentsTable extends RenterAssignments
+    with TableInfo<$RenterAssignmentsTable, RenterAssignmentRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RenterAssignmentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _documentIdMeta = const VerificationMeta(
+    'documentId',
+  );
+  @override
+  late final GeneratedColumn<String> documentId = GeneratedColumn<String>(
+    'document_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES renter_assignment_documents (id) ON DELETE CASCADE',
     ),
   );
   static const VerificationMeta _renterIdMeta = const VerificationMeta(
@@ -3121,15 +3443,6 @@ class $RenterAssignmentsTable extends RenterAssignments
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _dateMeta = const VerificationMeta('date');
-  @override
-  late final GeneratedColumn<DateTime> date = GeneratedColumn<DateTime>(
-    'date',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
   static const VerificationMeta _amountMinorMeta = const VerificationMeta(
     'amountMinor',
   );
@@ -3155,10 +3468,9 @@ class $RenterAssignmentsTable extends RenterAssignments
   @override
   List<GeneratedColumn> get $columns => [
     id,
-    baseId,
+    documentId,
     renterId,
     accountNumber,
-    date,
     amountMinor,
     createdAt,
   ];
@@ -3179,13 +3491,13 @@ class $RenterAssignmentsTable extends RenterAssignments
     } else if (isInserting) {
       context.missing(_idMeta);
     }
-    if (data.containsKey('base_id')) {
+    if (data.containsKey('document_id')) {
       context.handle(
-        _baseIdMeta,
-        baseId.isAcceptableOrUnknown(data['base_id']!, _baseIdMeta),
+        _documentIdMeta,
+        documentId.isAcceptableOrUnknown(data['document_id']!, _documentIdMeta),
       );
     } else if (isInserting) {
-      context.missing(_baseIdMeta);
+      context.missing(_documentIdMeta);
     }
     if (data.containsKey('renter_id')) {
       context.handle(
@@ -3205,14 +3517,6 @@ class $RenterAssignmentsTable extends RenterAssignments
       );
     } else if (isInserting) {
       context.missing(_accountNumberMeta);
-    }
-    if (data.containsKey('date')) {
-      context.handle(
-        _dateMeta,
-        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_dateMeta);
     }
     if (data.containsKey('amount_minor')) {
       context.handle(
@@ -3246,9 +3550,9 @@ class $RenterAssignmentsTable extends RenterAssignments
         DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
-      baseId: attachedDatabase.typeMapping.read(
+      documentId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}base_id'],
+        data['${effectivePrefix}document_id'],
       )!,
       renterId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -3257,10 +3561,6 @@ class $RenterAssignmentsTable extends RenterAssignments
       accountNumber: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}account_number'],
-      )!,
-      date: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}date'],
       )!,
       amountMinor: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -3282,18 +3582,16 @@ class $RenterAssignmentsTable extends RenterAssignments
 class RenterAssignmentRow extends DataClass
     implements Insertable<RenterAssignmentRow> {
   final String id;
-  final String baseId;
+  final String documentId;
   final String renterId;
   final String accountNumber;
-  final DateTime date;
   final int amountMinor;
   final DateTime createdAt;
   const RenterAssignmentRow({
     required this.id,
-    required this.baseId,
+    required this.documentId,
     required this.renterId,
     required this.accountNumber,
-    required this.date,
     required this.amountMinor,
     required this.createdAt,
   });
@@ -3301,10 +3599,9 @@ class RenterAssignmentRow extends DataClass
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
-    map['base_id'] = Variable<String>(baseId);
+    map['document_id'] = Variable<String>(documentId);
     map['renter_id'] = Variable<String>(renterId);
     map['account_number'] = Variable<String>(accountNumber);
-    map['date'] = Variable<DateTime>(date);
     map['amount_minor'] = Variable<int>(amountMinor);
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
@@ -3313,10 +3610,9 @@ class RenterAssignmentRow extends DataClass
   RenterAssignmentsCompanion toCompanion(bool nullToAbsent) {
     return RenterAssignmentsCompanion(
       id: Value(id),
-      baseId: Value(baseId),
+      documentId: Value(documentId),
       renterId: Value(renterId),
       accountNumber: Value(accountNumber),
-      date: Value(date),
       amountMinor: Value(amountMinor),
       createdAt: Value(createdAt),
     );
@@ -3329,10 +3625,9 @@ class RenterAssignmentRow extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return RenterAssignmentRow(
       id: serializer.fromJson<String>(json['id']),
-      baseId: serializer.fromJson<String>(json['baseId']),
+      documentId: serializer.fromJson<String>(json['documentId']),
       renterId: serializer.fromJson<String>(json['renterId']),
       accountNumber: serializer.fromJson<String>(json['accountNumber']),
-      date: serializer.fromJson<DateTime>(json['date']),
       amountMinor: serializer.fromJson<int>(json['amountMinor']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
@@ -3342,10 +3637,9 @@ class RenterAssignmentRow extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
-      'baseId': serializer.toJson<String>(baseId),
+      'documentId': serializer.toJson<String>(documentId),
       'renterId': serializer.toJson<String>(renterId),
       'accountNumber': serializer.toJson<String>(accountNumber),
-      'date': serializer.toJson<DateTime>(date),
       'amountMinor': serializer.toJson<int>(amountMinor),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
@@ -3353,30 +3647,29 @@ class RenterAssignmentRow extends DataClass
 
   RenterAssignmentRow copyWith({
     String? id,
-    String? baseId,
+    String? documentId,
     String? renterId,
     String? accountNumber,
-    DateTime? date,
     int? amountMinor,
     DateTime? createdAt,
   }) => RenterAssignmentRow(
     id: id ?? this.id,
-    baseId: baseId ?? this.baseId,
+    documentId: documentId ?? this.documentId,
     renterId: renterId ?? this.renterId,
     accountNumber: accountNumber ?? this.accountNumber,
-    date: date ?? this.date,
     amountMinor: amountMinor ?? this.amountMinor,
     createdAt: createdAt ?? this.createdAt,
   );
   RenterAssignmentRow copyWithCompanion(RenterAssignmentsCompanion data) {
     return RenterAssignmentRow(
       id: data.id.present ? data.id.value : this.id,
-      baseId: data.baseId.present ? data.baseId.value : this.baseId,
+      documentId: data.documentId.present
+          ? data.documentId.value
+          : this.documentId,
       renterId: data.renterId.present ? data.renterId.value : this.renterId,
       accountNumber: data.accountNumber.present
           ? data.accountNumber.value
           : this.accountNumber,
-      date: data.date.present ? data.date.value : this.date,
       amountMinor: data.amountMinor.present
           ? data.amountMinor.value
           : this.amountMinor,
@@ -3388,10 +3681,9 @@ class RenterAssignmentRow extends DataClass
   String toString() {
     return (StringBuffer('RenterAssignmentRow(')
           ..write('id: $id, ')
-          ..write('baseId: $baseId, ')
+          ..write('documentId: $documentId, ')
           ..write('renterId: $renterId, ')
           ..write('accountNumber: $accountNumber, ')
-          ..write('date: $date, ')
           ..write('amountMinor: $amountMinor, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -3401,10 +3693,9 @@ class RenterAssignmentRow extends DataClass
   @override
   int get hashCode => Object.hash(
     id,
-    baseId,
+    documentId,
     renterId,
     accountNumber,
-    date,
     amountMinor,
     createdAt,
   );
@@ -3413,65 +3704,58 @@ class RenterAssignmentRow extends DataClass
       identical(this, other) ||
       (other is RenterAssignmentRow &&
           other.id == this.id &&
-          other.baseId == this.baseId &&
+          other.documentId == this.documentId &&
           other.renterId == this.renterId &&
           other.accountNumber == this.accountNumber &&
-          other.date == this.date &&
           other.amountMinor == this.amountMinor &&
           other.createdAt == this.createdAt);
 }
 
 class RenterAssignmentsCompanion extends UpdateCompanion<RenterAssignmentRow> {
   final Value<String> id;
-  final Value<String> baseId;
+  final Value<String> documentId;
   final Value<String> renterId;
   final Value<String> accountNumber;
-  final Value<DateTime> date;
   final Value<int> amountMinor;
   final Value<DateTime> createdAt;
   final Value<int> rowid;
   const RenterAssignmentsCompanion({
     this.id = const Value.absent(),
-    this.baseId = const Value.absent(),
+    this.documentId = const Value.absent(),
     this.renterId = const Value.absent(),
     this.accountNumber = const Value.absent(),
-    this.date = const Value.absent(),
     this.amountMinor = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   RenterAssignmentsCompanion.insert({
     required String id,
-    required String baseId,
+    required String documentId,
     required String renterId,
     required String accountNumber,
-    required DateTime date,
     required int amountMinor,
     required DateTime createdAt,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
-       baseId = Value(baseId),
+       documentId = Value(documentId),
        renterId = Value(renterId),
        accountNumber = Value(accountNumber),
-       date = Value(date),
        amountMinor = Value(amountMinor),
        createdAt = Value(createdAt);
   static Insertable<RenterAssignmentRow> custom({
     Expression<String>? id,
-    Expression<String>? baseId,
+    Expression<String>? documentId,
     Expression<String>? renterId,
     Expression<String>? accountNumber,
-    Expression<DateTime>? date,
     Expression<int>? amountMinor,
     Expression<DateTime>? createdAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
-      if (baseId != null) 'base_id': baseId,
+      if (documentId != null) 'document_id': documentId,
       if (renterId != null) 'renter_id': renterId,
       if (accountNumber != null) 'account_number': accountNumber,
-      if (date != null) 'date': date,
       if (amountMinor != null) 'amount_minor': amountMinor,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
@@ -3480,20 +3764,18 @@ class RenterAssignmentsCompanion extends UpdateCompanion<RenterAssignmentRow> {
 
   RenterAssignmentsCompanion copyWith({
     Value<String>? id,
-    Value<String>? baseId,
+    Value<String>? documentId,
     Value<String>? renterId,
     Value<String>? accountNumber,
-    Value<DateTime>? date,
     Value<int>? amountMinor,
     Value<DateTime>? createdAt,
     Value<int>? rowid,
   }) {
     return RenterAssignmentsCompanion(
       id: id ?? this.id,
-      baseId: baseId ?? this.baseId,
+      documentId: documentId ?? this.documentId,
       renterId: renterId ?? this.renterId,
       accountNumber: accountNumber ?? this.accountNumber,
-      date: date ?? this.date,
       amountMinor: amountMinor ?? this.amountMinor,
       createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
@@ -3506,17 +3788,14 @@ class RenterAssignmentsCompanion extends UpdateCompanion<RenterAssignmentRow> {
     if (id.present) {
       map['id'] = Variable<String>(id.value);
     }
-    if (baseId.present) {
-      map['base_id'] = Variable<String>(baseId.value);
+    if (documentId.present) {
+      map['document_id'] = Variable<String>(documentId.value);
     }
     if (renterId.present) {
       map['renter_id'] = Variable<String>(renterId.value);
     }
     if (accountNumber.present) {
       map['account_number'] = Variable<String>(accountNumber.value);
-    }
-    if (date.present) {
-      map['date'] = Variable<DateTime>(date.value);
     }
     if (amountMinor.present) {
       map['amount_minor'] = Variable<int>(amountMinor.value);
@@ -3534,10 +3813,9 @@ class RenterAssignmentsCompanion extends UpdateCompanion<RenterAssignmentRow> {
   String toString() {
     return (StringBuffer('RenterAssignmentsCompanion(')
           ..write('id: $id, ')
-          ..write('baseId: $baseId, ')
+          ..write('documentId: $documentId, ')
           ..write('renterId: $renterId, ')
           ..write('accountNumber: $accountNumber, ')
-          ..write('date: $date, ')
           ..write('amountMinor: $amountMinor, ')
           ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
@@ -6264,6 +6542,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $BankStatementOperationsTable(this);
   late final $RenterAccountNumbersTable renterAccountNumbers =
       $RenterAccountNumbersTable(this);
+  late final $RenterAssignmentDocumentsTable renterAssignmentDocuments =
+      $RenterAssignmentDocumentsTable(this);
   late final $RenterAssignmentsTable renterAssignments =
       $RenterAssignmentsTable(this);
   late final $ExpenseCategoryAccountNumbersTable expenseCategoryAccountNumbers =
@@ -6299,6 +6579,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     expenseCategories,
     bankStatementOperations,
     renterAccountNumbers,
+    renterAssignmentDocuments,
     renterAssignments,
     expenseCategoryAccountNumbers,
     incomeDocuments,
@@ -6379,6 +6660,15 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'bases',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [
+        TableUpdate('renter_assignment_documents', kind: UpdateKind.delete),
+      ],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'renter_assignment_documents',
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('renter_assignments', kind: UpdateKind.delete)],
@@ -6530,24 +6820,28 @@ final class $$BasesTableReferences
     );
   }
 
-  static MultiTypedResultKey<$RenterAssignmentsTable, List<RenterAssignmentRow>>
-  _renterAssignmentsRefsTable(_$AppDatabase db) =>
+  static MultiTypedResultKey<
+    $RenterAssignmentDocumentsTable,
+    List<RenterAssignmentDocumentRow>
+  >
+  _renterAssignmentDocumentsRefsTable(_$AppDatabase db) =>
       MultiTypedResultKey.fromTable(
-        db.renterAssignments,
+        db.renterAssignmentDocuments,
         aliasName: $_aliasNameGenerator(
           db.bases.id,
-          db.renterAssignments.baseId,
+          db.renterAssignmentDocuments.baseId,
         ),
       );
 
-  $$RenterAssignmentsTableProcessedTableManager get renterAssignmentsRefs {
-    final manager = $$RenterAssignmentsTableTableManager(
+  $$RenterAssignmentDocumentsTableProcessedTableManager
+  get renterAssignmentDocumentsRefs {
+    final manager = $$RenterAssignmentDocumentsTableTableManager(
       $_db,
-      $_db.renterAssignments,
+      $_db.renterAssignmentDocuments,
     ).filter((f) => f.baseId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(
-      _renterAssignmentsRefsTable($_db),
+      _renterAssignmentDocumentsRefsTable($_db),
     );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
@@ -6716,28 +7010,30 @@ class $$BasesTableFilterComposer extends Composer<_$AppDatabase, $BasesTable> {
     return f(composer);
   }
 
-  Expression<bool> renterAssignmentsRefs(
-    Expression<bool> Function($$RenterAssignmentsTableFilterComposer f) f,
+  Expression<bool> renterAssignmentDocumentsRefs(
+    Expression<bool> Function($$RenterAssignmentDocumentsTableFilterComposer f)
+    f,
   ) {
-    final $$RenterAssignmentsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.renterAssignments,
-      getReferencedColumn: (t) => t.baseId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$RenterAssignmentsTableFilterComposer(
-            $db: $db,
-            $table: $db.renterAssignments,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
+    final $$RenterAssignmentDocumentsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.renterAssignmentDocuments,
+          getReferencedColumn: (t) => t.baseId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
                 $removeJoinBuilderFromRootComposer,
-          ),
-    );
+              }) => $$RenterAssignmentDocumentsTableFilterComposer(
+                $db: $db,
+                $table: $db.renterAssignmentDocuments,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
     return f(composer);
   }
 
@@ -6932,23 +7228,24 @@ class $$BasesTableAnnotationComposer
     return f(composer);
   }
 
-  Expression<T> renterAssignmentsRefs<T extends Object>(
-    Expression<T> Function($$RenterAssignmentsTableAnnotationComposer a) f,
+  Expression<T> renterAssignmentDocumentsRefs<T extends Object>(
+    Expression<T> Function($$RenterAssignmentDocumentsTableAnnotationComposer a)
+    f,
   ) {
-    final $$RenterAssignmentsTableAnnotationComposer composer =
+    final $$RenterAssignmentDocumentsTableAnnotationComposer composer =
         $composerBuilder(
           composer: this,
           getCurrentColumn: (t) => t.id,
-          referencedTable: $db.renterAssignments,
+          referencedTable: $db.renterAssignmentDocuments,
           getReferencedColumn: (t) => t.baseId,
           builder:
               (
                 joinBuilder, {
                 $addJoinBuilderToRootComposer,
                 $removeJoinBuilderFromRootComposer,
-              }) => $$RenterAssignmentsTableAnnotationComposer(
+              }) => $$RenterAssignmentDocumentsTableAnnotationComposer(
                 $db: $db,
-                $table: $db.renterAssignments,
+                $table: $db.renterAssignmentDocuments,
                 $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
                 joinBuilder: joinBuilder,
                 $removeJoinBuilderFromRootComposer:
@@ -7055,7 +7352,7 @@ class $$BasesTableTableManager
             bool baseAccountNumbersRefs,
             bool bankStatementsRefs,
             bool rentersRefs,
-            bool renterAssignmentsRefs,
+            bool renterAssignmentDocumentsRefs,
             bool expenseCategoryAccountNumbersRefs,
             bool incomeDocumentsRefs,
             bool expenseDocumentsRefs,
@@ -7095,7 +7392,7 @@ class $$BasesTableTableManager
                 baseAccountNumbersRefs = false,
                 bankStatementsRefs = false,
                 rentersRefs = false,
-                renterAssignmentsRefs = false,
+                renterAssignmentDocumentsRefs = false,
                 expenseCategoryAccountNumbersRefs = false,
                 incomeDocumentsRefs = false,
                 expenseDocumentsRefs = false,
@@ -7106,7 +7403,8 @@ class $$BasesTableTableManager
                     if (baseAccountNumbersRefs) db.baseAccountNumbers,
                     if (bankStatementsRefs) db.bankStatements,
                     if (rentersRefs) db.renters,
-                    if (renterAssignmentsRefs) db.renterAssignments,
+                    if (renterAssignmentDocumentsRefs)
+                      db.renterAssignmentDocuments,
                     if (expenseCategoryAccountNumbersRefs)
                       db.expenseCategoryAccountNumbers,
                     if (incomeDocumentsRefs) db.incomeDocuments,
@@ -7174,21 +7472,21 @@ class $$BasesTableTableManager
                               ),
                           typedResults: items,
                         ),
-                      if (renterAssignmentsRefs)
+                      if (renterAssignmentDocumentsRefs)
                         await $_getPrefetchedData<
                           BaseRow,
                           $BasesTable,
-                          RenterAssignmentRow
+                          RenterAssignmentDocumentRow
                         >(
                           currentTable: table,
                           referencedTable: $$BasesTableReferences
-                              ._renterAssignmentsRefsTable(db),
+                              ._renterAssignmentDocumentsRefsTable(db),
                           managerFromTypedResult: (p0) =>
                               $$BasesTableReferences(
                                 db,
                                 table,
                                 p0,
-                              ).renterAssignmentsRefs,
+                              ).renterAssignmentDocumentsRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.baseId == item.id,
@@ -7282,7 +7580,7 @@ typedef $$BasesTableProcessedTableManager =
         bool baseAccountNumbersRefs,
         bool bankStatementsRefs,
         bool rentersRefs,
-        bool renterAssignmentsRefs,
+        bool renterAssignmentDocumentsRefs,
         bool expenseCategoryAccountNumbersRefs,
         bool incomeDocumentsRefs,
         bool expenseDocumentsRefs,
@@ -11043,13 +11341,434 @@ typedef $$RenterAccountNumbersTableProcessedTableManager =
       RenterAccountNumber,
       PrefetchHooks Function({bool renterId})
     >;
+typedef $$RenterAssignmentDocumentsTableCreateCompanionBuilder =
+    RenterAssignmentDocumentsCompanion Function({
+      required String id,
+      required String baseId,
+      required DateTime date,
+      required DateTime createdAt,
+      Value<int> rowid,
+    });
+typedef $$RenterAssignmentDocumentsTableUpdateCompanionBuilder =
+    RenterAssignmentDocumentsCompanion Function({
+      Value<String> id,
+      Value<String> baseId,
+      Value<DateTime> date,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+final class $$RenterAssignmentDocumentsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $RenterAssignmentDocumentsTable,
+          RenterAssignmentDocumentRow
+        > {
+  $$RenterAssignmentDocumentsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $BasesTable _baseIdTable(_$AppDatabase db) => db.bases.createAlias(
+    $_aliasNameGenerator(db.renterAssignmentDocuments.baseId, db.bases.id),
+  );
+
+  $$BasesTableProcessedTableManager get baseId {
+    final $_column = $_itemColumn<String>('base_id')!;
+
+    final manager = $$BasesTableTableManager(
+      $_db,
+      $_db.bases,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_baseIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<$RenterAssignmentsTable, List<RenterAssignmentRow>>
+  _renterAssignmentsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.renterAssignments,
+        aliasName: $_aliasNameGenerator(
+          db.renterAssignmentDocuments.id,
+          db.renterAssignments.documentId,
+        ),
+      );
+
+  $$RenterAssignmentsTableProcessedTableManager get renterAssignmentsRefs {
+    final manager = $$RenterAssignmentsTableTableManager(
+      $_db,
+      $_db.renterAssignments,
+    ).filter((f) => f.documentId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _renterAssignmentsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$RenterAssignmentDocumentsTableFilterComposer
+    extends Composer<_$AppDatabase, $RenterAssignmentDocumentsTable> {
+  $$RenterAssignmentDocumentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$BasesTableFilterComposer get baseId {
+    final $$BasesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.baseId,
+      referencedTable: $db.bases,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BasesTableFilterComposer(
+            $db: $db,
+            $table: $db.bases,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<bool> renterAssignmentsRefs(
+    Expression<bool> Function($$RenterAssignmentsTableFilterComposer f) f,
+  ) {
+    final $$RenterAssignmentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.renterAssignments,
+      getReferencedColumn: (t) => t.documentId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RenterAssignmentsTableFilterComposer(
+            $db: $db,
+            $table: $db.renterAssignments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$RenterAssignmentDocumentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $RenterAssignmentDocumentsTable> {
+  $$RenterAssignmentDocumentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$BasesTableOrderingComposer get baseId {
+    final $$BasesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.baseId,
+      referencedTable: $db.bases,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BasesTableOrderingComposer(
+            $db: $db,
+            $table: $db.bases,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$RenterAssignmentDocumentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RenterAssignmentDocumentsTable> {
+  $$RenterAssignmentDocumentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$BasesTableAnnotationComposer get baseId {
+    final $$BasesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.baseId,
+      referencedTable: $db.bases,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BasesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.bases,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<T> renterAssignmentsRefs<T extends Object>(
+    Expression<T> Function($$RenterAssignmentsTableAnnotationComposer a) f,
+  ) {
+    final $$RenterAssignmentsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.renterAssignments,
+          getReferencedColumn: (t) => t.documentId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$RenterAssignmentsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.renterAssignments,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+}
+
+class $$RenterAssignmentDocumentsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RenterAssignmentDocumentsTable,
+          RenterAssignmentDocumentRow,
+          $$RenterAssignmentDocumentsTableFilterComposer,
+          $$RenterAssignmentDocumentsTableOrderingComposer,
+          $$RenterAssignmentDocumentsTableAnnotationComposer,
+          $$RenterAssignmentDocumentsTableCreateCompanionBuilder,
+          $$RenterAssignmentDocumentsTableUpdateCompanionBuilder,
+          (
+            RenterAssignmentDocumentRow,
+            $$RenterAssignmentDocumentsTableReferences,
+          ),
+          RenterAssignmentDocumentRow,
+          PrefetchHooks Function({bool baseId, bool renterAssignmentsRefs})
+        > {
+  $$RenterAssignmentDocumentsTableTableManager(
+    _$AppDatabase db,
+    $RenterAssignmentDocumentsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RenterAssignmentDocumentsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$RenterAssignmentDocumentsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$RenterAssignmentDocumentsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> baseId = const Value.absent(),
+                Value<DateTime> date = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RenterAssignmentDocumentsCompanion(
+                id: id,
+                baseId: baseId,
+                date: date,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String baseId,
+                required DateTime date,
+                required DateTime createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => RenterAssignmentDocumentsCompanion.insert(
+                id: id,
+                baseId: baseId,
+                date: date,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$RenterAssignmentDocumentsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({baseId = false, renterAssignmentsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (renterAssignmentsRefs) db.renterAssignments,
+              ],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (baseId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.baseId,
+                                referencedTable:
+                                    $$RenterAssignmentDocumentsTableReferences
+                                        ._baseIdTable(db),
+                                referencedColumn:
+                                    $$RenterAssignmentDocumentsTableReferences
+                                        ._baseIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (renterAssignmentsRefs)
+                    await $_getPrefetchedData<
+                      RenterAssignmentDocumentRow,
+                      $RenterAssignmentDocumentsTable,
+                      RenterAssignmentRow
+                    >(
+                      currentTable: table,
+                      referencedTable:
+                          $$RenterAssignmentDocumentsTableReferences
+                              ._renterAssignmentsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$RenterAssignmentDocumentsTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).renterAssignmentsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.documentId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$RenterAssignmentDocumentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RenterAssignmentDocumentsTable,
+      RenterAssignmentDocumentRow,
+      $$RenterAssignmentDocumentsTableFilterComposer,
+      $$RenterAssignmentDocumentsTableOrderingComposer,
+      $$RenterAssignmentDocumentsTableAnnotationComposer,
+      $$RenterAssignmentDocumentsTableCreateCompanionBuilder,
+      $$RenterAssignmentDocumentsTableUpdateCompanionBuilder,
+      (RenterAssignmentDocumentRow, $$RenterAssignmentDocumentsTableReferences),
+      RenterAssignmentDocumentRow,
+      PrefetchHooks Function({bool baseId, bool renterAssignmentsRefs})
+    >;
 typedef $$RenterAssignmentsTableCreateCompanionBuilder =
     RenterAssignmentsCompanion Function({
       required String id,
-      required String baseId,
+      required String documentId,
       required String renterId,
       required String accountNumber,
-      required DateTime date,
       required int amountMinor,
       required DateTime createdAt,
       Value<int> rowid,
@@ -11057,10 +11776,9 @@ typedef $$RenterAssignmentsTableCreateCompanionBuilder =
 typedef $$RenterAssignmentsTableUpdateCompanionBuilder =
     RenterAssignmentsCompanion Function({
       Value<String> id,
-      Value<String> baseId,
+      Value<String> documentId,
       Value<String> renterId,
       Value<String> accountNumber,
-      Value<DateTime> date,
       Value<int> amountMinor,
       Value<DateTime> createdAt,
       Value<int> rowid,
@@ -11079,18 +11797,22 @@ final class $$RenterAssignmentsTableReferences
     super.$_typedResult,
   );
 
-  static $BasesTable _baseIdTable(_$AppDatabase db) => db.bases.createAlias(
-    $_aliasNameGenerator(db.renterAssignments.baseId, db.bases.id),
-  );
+  static $RenterAssignmentDocumentsTable _documentIdTable(_$AppDatabase db) =>
+      db.renterAssignmentDocuments.createAlias(
+        $_aliasNameGenerator(
+          db.renterAssignments.documentId,
+          db.renterAssignmentDocuments.id,
+        ),
+      );
 
-  $$BasesTableProcessedTableManager get baseId {
-    final $_column = $_itemColumn<String>('base_id')!;
+  $$RenterAssignmentDocumentsTableProcessedTableManager get documentId {
+    final $_column = $_itemColumn<String>('document_id')!;
 
-    final manager = $$BasesTableTableManager(
+    final manager = $$RenterAssignmentDocumentsTableTableManager(
       $_db,
-      $_db.bases,
+      $_db.renterAssignmentDocuments,
     ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_baseIdTable($_db));
+    final item = $_typedResult.readTableOrNull(_documentIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -11136,11 +11858,6 @@ class $$RenterAssignmentsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<DateTime> get date => $composableBuilder(
-    column: $table.date,
-    builder: (column) => ColumnFilters(column),
-  );
-
   ColumnFilters<int> get amountMinor => $composableBuilder(
     column: $table.amountMinor,
     builder: (column) => ColumnFilters(column),
@@ -11151,26 +11868,27 @@ class $$RenterAssignmentsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  $$BasesTableFilterComposer get baseId {
-    final $$BasesTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.baseId,
-      referencedTable: $db.bases,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$BasesTableFilterComposer(
-            $db: $db,
-            $table: $db.bases,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
+  $$RenterAssignmentDocumentsTableFilterComposer get documentId {
+    final $$RenterAssignmentDocumentsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.documentId,
+          referencedTable: $db.renterAssignmentDocuments,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
                 $removeJoinBuilderFromRootComposer,
-          ),
-    );
+              }) => $$RenterAssignmentDocumentsTableFilterComposer(
+                $db: $db,
+                $table: $db.renterAssignmentDocuments,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
     return composer;
   }
 
@@ -11217,11 +11935,6 @@ class $$RenterAssignmentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<DateTime> get date => $composableBuilder(
-    column: $table.date,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<int> get amountMinor => $composableBuilder(
     column: $table.amountMinor,
     builder: (column) => ColumnOrderings(column),
@@ -11232,26 +11945,27 @@ class $$RenterAssignmentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  $$BasesTableOrderingComposer get baseId {
-    final $$BasesTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.baseId,
-      referencedTable: $db.bases,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$BasesTableOrderingComposer(
-            $db: $db,
-            $table: $db.bases,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
+  $$RenterAssignmentDocumentsTableOrderingComposer get documentId {
+    final $$RenterAssignmentDocumentsTableOrderingComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.documentId,
+          referencedTable: $db.renterAssignmentDocuments,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
                 $removeJoinBuilderFromRootComposer,
-          ),
-    );
+              }) => $$RenterAssignmentDocumentsTableOrderingComposer(
+                $db: $db,
+                $table: $db.renterAssignmentDocuments,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
     return composer;
   }
 
@@ -11296,9 +12010,6 @@ class $$RenterAssignmentsTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<DateTime> get date =>
-      $composableBuilder(column: $table.date, builder: (column) => column);
-
   GeneratedColumn<int> get amountMinor => $composableBuilder(
     column: $table.amountMinor,
     builder: (column) => column,
@@ -11307,26 +12018,27 @@ class $$RenterAssignmentsTableAnnotationComposer
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
-  $$BasesTableAnnotationComposer get baseId {
-    final $$BasesTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.baseId,
-      referencedTable: $db.bases,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$BasesTableAnnotationComposer(
-            $db: $db,
-            $table: $db.bases,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
+  $$RenterAssignmentDocumentsTableAnnotationComposer get documentId {
+    final $$RenterAssignmentDocumentsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.documentId,
+          referencedTable: $db.renterAssignmentDocuments,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
                 $removeJoinBuilderFromRootComposer,
-          ),
-    );
+              }) => $$RenterAssignmentDocumentsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.renterAssignmentDocuments,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
     return composer;
   }
 
@@ -11367,7 +12079,7 @@ class $$RenterAssignmentsTableTableManager
           $$RenterAssignmentsTableUpdateCompanionBuilder,
           (RenterAssignmentRow, $$RenterAssignmentsTableReferences),
           RenterAssignmentRow,
-          PrefetchHooks Function({bool baseId, bool renterId})
+          PrefetchHooks Function({bool documentId, bool renterId})
         > {
   $$RenterAssignmentsTableTableManager(
     _$AppDatabase db,
@@ -11388,19 +12100,17 @@ class $$RenterAssignmentsTableTableManager
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
-                Value<String> baseId = const Value.absent(),
+                Value<String> documentId = const Value.absent(),
                 Value<String> renterId = const Value.absent(),
                 Value<String> accountNumber = const Value.absent(),
-                Value<DateTime> date = const Value.absent(),
                 Value<int> amountMinor = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RenterAssignmentsCompanion(
                 id: id,
-                baseId: baseId,
+                documentId: documentId,
                 renterId: renterId,
                 accountNumber: accountNumber,
-                date: date,
                 amountMinor: amountMinor,
                 createdAt: createdAt,
                 rowid: rowid,
@@ -11408,19 +12118,17 @@ class $$RenterAssignmentsTableTableManager
           createCompanionCallback:
               ({
                 required String id,
-                required String baseId,
+                required String documentId,
                 required String renterId,
                 required String accountNumber,
-                required DateTime date,
                 required int amountMinor,
                 required DateTime createdAt,
                 Value<int> rowid = const Value.absent(),
               }) => RenterAssignmentsCompanion.insert(
                 id: id,
-                baseId: baseId,
+                documentId: documentId,
                 renterId: renterId,
                 accountNumber: accountNumber,
-                date: date,
                 amountMinor: amountMinor,
                 createdAt: createdAt,
                 rowid: rowid,
@@ -11433,7 +12141,7 @@ class $$RenterAssignmentsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({baseId = false, renterId = false}) {
+          prefetchHooksCallback: ({documentId = false, renterId = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [],
@@ -11453,17 +12161,17 @@ class $$RenterAssignmentsTableTableManager
                       dynamic
                     >
                   >(state) {
-                    if (baseId) {
+                    if (documentId) {
                       state =
                           state.withJoin(
                                 currentTable: table,
-                                currentColumn: table.baseId,
+                                currentColumn: table.documentId,
                                 referencedTable:
                                     $$RenterAssignmentsTableReferences
-                                        ._baseIdTable(db),
+                                        ._documentIdTable(db),
                                 referencedColumn:
                                     $$RenterAssignmentsTableReferences
-                                        ._baseIdTable(db)
+                                        ._documentIdTable(db)
                                         .id,
                               )
                               as T;
@@ -11507,7 +12215,7 @@ typedef $$RenterAssignmentsTableProcessedTableManager =
       $$RenterAssignmentsTableUpdateCompanionBuilder,
       (RenterAssignmentRow, $$RenterAssignmentsTableReferences),
       RenterAssignmentRow,
-      PrefetchHooks Function({bool baseId, bool renterId})
+      PrefetchHooks Function({bool documentId, bool renterId})
     >;
 typedef $$ExpenseCategoryAccountNumbersTableCreateCompanionBuilder =
     ExpenseCategoryAccountNumbersCompanion Function({
@@ -14394,6 +15102,11 @@ class $AppDatabaseManager {
       );
   $$RenterAccountNumbersTableTableManager get renterAccountNumbers =>
       $$RenterAccountNumbersTableTableManager(_db, _db.renterAccountNumbers);
+  $$RenterAssignmentDocumentsTableTableManager get renterAssignmentDocuments =>
+      $$RenterAssignmentDocumentsTableTableManager(
+        _db,
+        _db.renterAssignmentDocuments,
+      );
   $$RenterAssignmentsTableTableManager get renterAssignments =>
       $$RenterAssignmentsTableTableManager(_db, _db.renterAssignments);
   $$ExpenseCategoryAccountNumbersTableTableManager

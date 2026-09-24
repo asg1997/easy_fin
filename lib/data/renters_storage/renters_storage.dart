@@ -333,15 +333,29 @@ class RentersStorageImpl implements RentersStorage {
     final assignmentRows = await (db.select(db.renterAssignments)
           ..where((table) => table.renterId.equals(id)))
         .get();
-    for (final row in assignmentRows) {
-      documents.add(
-        RenterUsageDocument(
-          date: row.date,
-          kindLabel: 'Начисление',
-          accountLabel: 'Аренда',
-          amount: moneyFromMinor(row.amountMinor),
-        ),
-      );
+    if (assignmentRows.isNotEmpty) {
+      final documentIds =
+          assignmentRows.map((row) => row.documentId).toSet().toList();
+      final headers = await (db.select(db.renterAssignmentDocuments)
+            ..where((table) => table.id.isIn(documentIds)))
+          .get();
+      final dateByDocumentId = {
+        for (final header in headers) header.id: header.date,
+      };
+
+      for (final row in assignmentRows) {
+        final date = dateByDocumentId[row.documentId];
+        if (date == null) continue;
+
+        documents.add(
+          RenterUsageDocument(
+            date: date,
+            kindLabel: 'Начисление',
+            accountLabel: 'Аренда',
+            amount: moneyFromMinor(row.amountMinor),
+          ),
+        );
+      }
     }
 
     documents.sort((a, b) => b.date.compareTo(a.date));

@@ -189,16 +189,29 @@ class RenterDebtsStorageImpl implements RenterDebtsStorage {
   }
 
   Future<List<_DebtEvent>> _getAccrualEvents(AppDatabase db) async {
-    final rows = await db.select(db.renterAssignments).get();
-    return rows
-        .map(
-          (row) => _DebtEvent(
-            key: _debtKey(row.baseId, row.renterId),
-            date: row.date,
-            amountMinor: row.amountMinor,
-          ),
-        )
-        .toList();
+    final lines = await db.select(db.renterAssignments).get();
+    if (lines.isEmpty) return [];
+
+    final documentIds = lines.map((line) => line.documentId).toSet().toList();
+    final headers = await (db.select(db.renterAssignmentDocuments)
+          ..where((table) => table.id.isIn(documentIds)))
+        .get();
+    final documentById = {for (final header in headers) header.id: header};
+
+    final events = <_DebtEvent>[];
+    for (final line in lines) {
+      final header = documentById[line.documentId];
+      if (header == null) continue;
+
+      events.add(
+        _DebtEvent(
+          key: _debtKey(header.baseId, line.renterId),
+          date: header.date,
+          amountMinor: line.amountMinor,
+        ),
+      );
+    }
+    return events;
   }
 
   Future<List<_DebtEvent>> _getPaymentEvents(AppDatabase db) async {

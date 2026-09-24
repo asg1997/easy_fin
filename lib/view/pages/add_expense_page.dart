@@ -18,6 +18,7 @@ import 'package:easy_fin/view/providers/account_balances_provider.dart';
 import 'package:easy_fin/view/providers/bases_list_provider.dart';
 import 'package:easy_fin/view/providers/documents_list_provider.dart';
 import 'package:easy_fin/view/providers/github_sync_provider.dart';
+import 'package:easy_fin/view/widgets/amount_text_field.dart';
 import 'package:easy_fin/view/widgets/date_picker_field.dart';
 import 'package:easy_fin/view/widgets/dropdown_widget.dart';
 import 'package:easy_fin/view/widgets/template_page.dart';
@@ -656,17 +657,9 @@ class _ExpenseLinesTable extends StatelessWidget {
                                 flex: 2,
                                 child: SizedBox(
                                   height: documentLineFieldHeight,
-                                  child: TextField(
+                                  child: AmountTextField(
                                     controller: entry.amountController,
                                     focusNode: entry.amountFocusNode,
-                                    textAlign: TextAlign.right,
-                                    keyboardType:
-                                        const TextInputType.numberWithOptions(
-                                          decimal: true,
-                                        ),
-                                    inputFormatters: const [
-                                      AmountInputFormatter(),
-                                    ],
                                     style: filterFieldTextStyle,
                                     decoration: documentLineFieldDecorationOf(
                                       context,

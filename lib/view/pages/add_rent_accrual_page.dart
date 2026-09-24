@@ -19,7 +19,7 @@ import 'package:easy_fin/view/providers/github_sync_provider.dart';
 import 'package:easy_fin/view/providers/renter_debts_provider.dart';
 import 'package:easy_fin/view/providers/renters_list_provider.dart';
 import 'package:easy_fin/view/widgets/add_renter_dialog.dart';
-import 'package:easy_fin/view/widgets/confirm_dialog.dart';
+import 'package:easy_fin/view/widgets/amount_text_field.dart';
 import 'package:easy_fin/view/widgets/date_picker_field.dart';
 import 'package:easy_fin/view/widgets/dropdown_widget.dart';
 import 'package:easy_fin/view/widgets/simple_table.dart';
@@ -28,7 +28,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
-import 'package:intl/intl.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
 
 class _RenterRow {
@@ -64,23 +63,29 @@ class AddRentAccrualPage extends ConsumerStatefulWidget {
   const AddRentAccrualPage({
     super.key,
     this.initialBaseId,
-    this.initialMonth,
+    this.initialDocumentId,
+    this.copyFromDocumentId,
   });
 
   final String? initialBaseId;
-  final DateTime? initialMonth;
+  final String? initialDocumentId;
+
+  /// Загружает строки из документа, но сохраняет как новый.
+  final String? copyFromDocumentId;
 
   static Future<void> navigate(
     BuildContext context, {
     String? baseId,
-    DateTime? month,
+    String? documentId,
+    String? copyFromDocumentId,
   }) async {
     await Navigator.push(
       context,
       MaterialPageRoute<void>(
         builder: (context) => AddRentAccrualPage(
           initialBaseId: baseId,
-          initialMonth: month,
+          initialDocumentId: documentId,
+          copyFromDocumentId: copyFromDocumentId,
         ),
       ),
     );
@@ -93,44 +98,32 @@ class AddRentAccrualPage extends ConsumerStatefulWidget {
 class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
   Base? _selectedBase;
   late DateTime _selectedDate;
-
-  /// Месяц в БД, к которому привязано текущее содержимое формы.
-  /// При смене даты начисления и сохранении этот месяц удаляется.
-  DateTime? _boundMonth;
   final List<_AccrualEntry> _accrualEntries = [];
   final _rentersTableKey = GlobalKey<_RentersTableState>();
+  String? _editingDocumentId;
+  DateTime? _editingCreatedAt;
+  bool _isLoadingDocument = false;
 
-  bool get _isEditing =>
-      widget.initialMonth != null && widget.initialBaseId != null;
-
-  static final _monthLabelFormat = DateFormat('LLLL yyyy', 'ru');
-
-  String _formatMonthLabel(DateTime month) {
-    final formatted = _monthLabelFormat.format(
-      normalizeRenterAssignmentMonth(month),
-    );
-    if (formatted.isEmpty) return formatted;
-    return formatted[0].toUpperCase() + formatted.substring(1);
-  }
-
-  bool _isSameMonth(DateTime a, DateTime b) {
-    final left = normalizeRenterAssignmentMonth(a);
-    final right = normalizeRenterAssignmentMonth(b);
-    return left.year == right.year && left.month == right.month;
-  }
+  bool get _isEditing => _editingDocumentId != null;
 
   @override
   void initState() {
     super.initState();
     final now = DateTime.now();
-    final initialMonth = widget.initialMonth;
-    _selectedDate = initialMonth != null
-        ? normalizeRenterAssignmentDate(initialMonth)
-        : DateTime(now.year, now.month, now.day);
-    if (_isEditing) {
-      _boundMonth = normalizeRenterAssignmentMonth(initialMonth!);
-    }
-    if (widget.initialBaseId != null) {
+    _selectedDate = DateTime(now.year, now.month, now.day);
+
+    final documentIdToLoad =
+        widget.initialDocumentId ?? widget.copyFromDocumentId;
+    if (documentIdToLoad != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        unawaited(
+          _loadDocument(
+            documentIdToLoad,
+            asCopy: widget.copyFromDocumentId != null,
+          ),
+        );
+      });
+    } else if (widget.initialBaseId != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         unawaited(_loadInitialBase());
       });
@@ -149,7 +142,48 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
     setState(() {
       _selectedBase = base;
     });
-    await _loadAccruals();
+  }
+
+  Future<void> _loadDocument(String documentId, {required bool asCopy}) async {
+    setState(() => _isLoadingDocument = true);
+
+    final document =
+        await ref.read(renterAssignmentsStorageProvider).getById(documentId);
+    if (!mounted) return;
+
+    if (document == null) {
+      setState(() => _isLoadingDocument = false);
+      await _showErrorDialog('Документ не найден');
+      if (mounted) Navigator.of(context).pop();
+      return;
+    }
+
+    final bases = await ref.read(basesListProvider.future);
+    final base = bases.where((item) => item.id == document.baseId).firstOrNull;
+
+    final renters =
+        await ref.read(rentersStorageProvider).getByBase(document.baseId);
+    final archivedRenters = await ref
+        .read(rentersStorageProvider)
+        .getArchivedByBase(document.baseId);
+    final renterById = {
+      for (final renter in [...renters, ...archivedRenters]) renter.id: renter,
+    };
+
+    _clearAccruals();
+    if (!asCopy) {
+      _editingDocumentId = document.id;
+      _editingCreatedAt = document.createdAt;
+    }
+
+    setState(() {
+      _selectedBase = base;
+      _selectedDate = normalizeRenterAssignmentDate(document.date);
+      _accrualEntries.addAll(
+        _buildAccrualEntriesFromLines(document.lines, renterById),
+      );
+      _isLoadingDocument = false;
+    });
   }
 
   @override
@@ -170,24 +204,14 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
     _clearAccruals();
     setState(() {
       _selectedBase = base;
-      _boundMonth = null;
     });
-    unawaited(_loadAccruals());
   }
 
   void _onDateChanged(DateTime? date) {
     if (date == null) return;
-
-    final keepCurrentLines = _boundMonth != null || _accrualEntries.isNotEmpty;
     setState(() {
       _selectedDate = date;
     });
-
-    // Если форма уже привязана к документу или заполнена — меняем только
-    // дату начисления, не подгружая другой месяц.
-    if (!keepCurrentLines) {
-      unawaited(_loadAccruals());
-    }
   }
 
   void _addRenterToAccruals(_RenterRow renter) {
@@ -217,90 +241,21 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
     });
   }
 
-  Future<void> _onCopyFromPreviousMonth() async {
-    final baseId = _selectedBase?.id;
-    if (baseId == null) return;
-
-    final previousMonth = DateTime(
-      _selectedDate.month == 1
-          ? _selectedDate.year - 1
-          : _selectedDate.year,
-      _selectedDate.month == 1 ? 12 : _selectedDate.month - 1,
-    );
-
-    final assignments = await ref
-        .read(renterAssignmentsStorageProvider)
-        .getByBaseAndMonth(baseId, previousMonth);
-    if (!mounted) return;
-
-    if (assignments.isEmpty) {
-      await _showErrorDialog('Нет начислений за предыдущий месяц');
-      return;
-    }
-
-    final renters = await ref.read(rentersStorageProvider).getByBase(baseId);
-    final archivedRenters =
-        await ref.read(rentersStorageProvider).getArchivedByBase(baseId);
-    final renterById = {
-      for (final renter in [...renters, ...archivedRenters]) renter.id: renter,
-    };
-
-    _clearAccruals();
-    setState(() {
-      _accrualEntries.addAll(
-        _buildAccrualEntriesFromAssignments(assignments, renterById),
-      );
-      // Копия предназначена для текущего выбранного месяца.
-      _boundMonth = normalizeRenterAssignmentMonth(_selectedDate);
-    });
-  }
-
-  Future<void> _loadAccruals() async {
-    final baseId = _selectedBase?.id;
-    if (baseId == null) return;
-
-    final assignments = await ref
-        .read(renterAssignmentsStorageProvider)
-        .getByBaseAndMonth(baseId, _selectedDate);
-    if (!mounted) return;
-
-    final renters = await ref.read(rentersStorageProvider).getByBase(baseId);
-    final archivedRenters =
-        await ref.read(rentersStorageProvider).getArchivedByBase(baseId);
-    final renterById = {
-      for (final renter in [...renters, ...archivedRenters]) renter.id: renter,
-    };
-
-    _clearAccruals();
-    setState(() {
-      _accrualEntries.addAll(
-        _buildAccrualEntriesFromAssignments(assignments, renterById),
-      );
-      if (assignments.isEmpty) {
-        _boundMonth = null;
-      } else {
-        _boundMonth = normalizeRenterAssignmentMonth(_selectedDate);
-        // Показываем фактическую сохранённую дату (не 1-е число месяца).
-        _selectedDate = normalizeRenterAssignmentDate(assignments.first.date);
-      }
-    });
-  }
-
-  List<_AccrualEntry> _buildAccrualEntriesFromAssignments(
-    List<RenterAssignment> assignments,
+  List<_AccrualEntry> _buildAccrualEntriesFromLines(
+    List<RenterAssignmentLine> lines,
     Map<RenterId, Renter> renterById,
   ) {
     return [
-      for (final assignment in assignments)
-        if (renterById.containsKey(assignment.renterId))
+      for (final line in lines)
+        if (renterById.containsKey(line.renterId))
           _AccrualEntry(
             renter: _RenterRow(
-              renterId: assignment.renterId,
-              name: renterById[assignment.renterId]!.name,
-              accountNumbers: renterById[assignment.renterId]!.accountNumbers,
+              renterId: line.renterId,
+              name: renterById[line.renterId]!.name,
+              accountNumbers: renterById[line.renterId]!.accountNumbers,
             ),
             amountController: TextEditingController(
-              text: AmountInputFormatter.formatAmount(assignment.sum),
+              text: AmountInputFormatter.formatAmount(line.sum),
             ),
             amountFocusNode: FocusNode(),
           ),
@@ -316,97 +271,71 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
       return;
     }
 
-    final storage = ref.read(renterAssignmentsStorageProvider);
-    final postingDate = normalizeRenterAssignmentDate(_selectedDate);
-    final boundMonth = _boundMonth;
-    final isMovingMonth =
-        boundMonth != null && !_isSameMonth(boundMonth, postingDate);
+    final timestamp = DateTime.now().microsecondsSinceEpoch;
+    final lines = <RenterAssignmentLine>[];
 
-    if (isMovingMonth) {
-      final existingInTarget =
-          await storage.getByBaseAndMonth(baseId, postingDate);
-      if (!mounted) return;
-
-      if (existingInTarget.isNotEmpty) {
-        final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (context) => ConfirmDialog(
-            title: 'Заменить начисления?',
-            message:
-                'За ${_formatMonthLabel(postingDate)} уже есть начисления. '
-                'Они будут заменены, а начисления за '
-                '${_formatMonthLabel(boundMonth)} будут удалены.',
-            confirmLabel: 'Заменить',
-          ),
-        );
-        if (confirmed != true || !mounted) return;
+    for (var i = 0; i < _accrualEntries.length; i++) {
+      final entry = _accrualEntries[i];
+      final amount = AmountInputFormatter.parseAmount(
+        entry.amountController.text,
+      );
+      if (amount == null || amount <= 0) {
+        await _showErrorDialog('Укажите сумму для «${entry.renter.name}»');
+        return;
       }
+
+      lines.add(
+        RenterAssignmentLine(
+          id: '${timestamp}_$i',
+          renterId: entry.renter.renterId,
+          // Общее начисление на арендатора, без привязки к конкретному р/с.
+          accountNumber: '',
+          sum: amount,
+        ),
+      );
     }
 
+    final postingDate = normalizeRenterAssignmentDate(_selectedDate);
+    final document = RenterAssignmentDocument(
+      id: _editingDocumentId ?? timestamp.toString(),
+      createdAt: _editingCreatedAt ?? DateTime.now(),
+      baseId: baseId,
+      date: postingDate,
+      lines: lines,
+    );
+
     try {
-      final timestamp = DateTime.now().microsecondsSinceEpoch;
-      final assignments = <RenterAssignment>[];
-
-      for (var i = 0; i < _accrualEntries.length; i++) {
-        final entry = _accrualEntries[i];
-        final amount = AmountInputFormatter.parseAmount(
-          entry.amountController.text,
-        );
-        if (amount == null || amount <= 0) {
-          await _showErrorDialog('Укажите сумму для «${entry.renter.name}»');
-          return;
-        }
-
-        assignments.add(
-          RenterAssignment(
-            id: '${timestamp}_$i',
-            createdAt: DateTime.now(),
-            baseId: baseId,
-            renterId: entry.renter.renterId,
-            // Общее начисление на арендатора, без привязки к конкретному р/с.
-            accountNumber: '',
-            date: postingDate,
-            sum: amount,
-          ),
-        );
+      final storage = ref.read(renterAssignmentsStorageProvider);
+      if (_isEditing) {
+        await storage.updateDocument(document);
+      } else {
+        await storage.saveDocument(document);
       }
-
-      if (isMovingMonth) {
-        await storage.deleteByBaseAndMonth(baseId, boundMonth);
-      }
-
-      await storage.saveAll(
-        baseId: baseId,
-        month: postingDate,
-        assignments: assignments,
-      );
 
       if (!mounted) return;
-      setState(() {
-        _boundMonth = normalizeRenterAssignmentMonth(postingDate);
-        _selectedDate = postingDate;
-      });
       ref.invalidate(documentsListProvider);
       ref.invalidate(renterDebtsProvider);
       ref.invalidate(githubSyncDirtyProvider);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            isMovingMonth
-                ? 'Начисления перенесены на ${_formatMonthLabel(postingDate)}'
-                : 'Начисления сохранены',
+            _isEditing ? 'Начисление обновлено' : 'Начисление сохранено',
           ),
         ),
       );
+      Navigator.of(context).pop();
     } on EmptyRenterAssignmentsError {
       if (!mounted) return;
       await _showErrorDialog('Добавьте хотя бы одно начисление');
     } on InvalidRenterAssignmentAmountError {
       if (!mounted) return;
       await _showErrorDialog('Сумма должна быть больше нуля');
+    } on RenterAssignmentDocumentNotFoundError {
+      if (!mounted) return;
+      await _showErrorDialog('Документ не найден');
     } on Object catch (error) {
       if (!mounted) return;
-      await _showErrorDialog('Не удалось сохранить начисления\n$error');
+      await _showErrorDialog('Не удалось сохранить начисление\n$error');
     }
   }
 
@@ -467,6 +396,12 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
       rentersListProvider(RentersListFilter(baseId: _selectedBase?.id)),
     );
 
+    if (_isLoadingDocument) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return CallbackShortcuts(
       bindings: {
         appPrimaryShortcut(LogicalKeyboardKey.keyN): () {
@@ -509,28 +444,6 @@ class _AddRentAccrualPageState extends ConsumerState<AddRentAccrualPage> {
                         hint: 'Дата начисления',
                         selectedDate: _selectedDate,
                         onChanged: _onDateChanged,
-                      ),
-                    ),
-                    const Gap(12),
-                    SizedBox(
-                      height: filterFieldHeight,
-                      child: MaterialButton(
-                        onPressed: _onCopyFromPreviousMonth,
-                        elevation: 0,
-                        color: context.appColors.surface,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
-                          side: const BorderSide(color: AppColors.purple),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 28),
-                        child: const Text(
-                          'Скопировать с пред. месяца',
-                          style: TextStyle(
-                            color: AppColors.purple,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
                       ),
                     ),
                   ],
@@ -944,17 +857,9 @@ class _RentAccrualsTable extends StatelessWidget {
                                 flex: 2,
                                 child: SizedBox(
                                   height: documentLineFieldHeight,
-                                  child: TextField(
+                                  child: AmountTextField(
                                     controller: entry.amountController,
                                     focusNode: entry.amountFocusNode,
-                                    textAlign: TextAlign.right,
-                                    keyboardType:
-                                        const TextInputType.numberWithOptions(
-                                          decimal: true,
-                                        ),
-                                    inputFormatters: const [
-                                      AmountInputFormatter(),
-                                    ],
                                     style: filterFieldTextStyle,
                                     decoration: documentLineFieldDecorationOf(
                                       context,

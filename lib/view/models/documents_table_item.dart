@@ -9,19 +9,19 @@ class DocumentsTableItem {
     required this.amount,
     required this.note,
     this.operationId,
-    this.baseId,
+    this.renterAssignmentDocumentId,
     this.incomeDocumentId,
     this.expenseDocumentId,
   }) : assert(
          operationId != null ||
-             (baseId != null &&
+             (renterAssignmentDocumentId != null &&
                  documentType == DocumentType.renterAssignment) ||
              (incomeDocumentId != null &&
                  documentType == DocumentType.income) ||
              (expenseDocumentId != null &&
                  documentType == DocumentType.outcome),
-         'Bank operations need operationId, rent accruals need baseId, '
-         'manual incomes need incomeDocumentId, '
+         'Bank operations need operationId, rent accruals need '
+         'renterAssignmentDocumentId, manual incomes need incomeDocumentId, '
          'manual outcomes need expenseDocumentId',
        );
 
@@ -32,7 +32,7 @@ class DocumentsTableItem {
   final double amount;
   final String note;
   final int? operationId;
-  final String? baseId;
+  final String? renterAssignmentDocumentId;
   final String? incomeDocumentId;
   final String? expenseDocumentId;
 
@@ -43,7 +43,8 @@ class DocumentsTableItem {
       isRenterAssignmentDocument;
 
   bool get isRenterAssignmentDocument =>
-      documentType == DocumentType.renterAssignment && baseId != null;
+      documentType == DocumentType.renterAssignment &&
+      renterAssignmentDocumentId != null;
 
   bool get isManualIncomeDocument =>
       documentType == DocumentType.income && incomeDocumentId != null;
@@ -57,6 +58,6 @@ class DocumentsTableItem {
     if (operationId != null) return 'operation:$operationId';
     if (incomeDocumentId != null) return 'income:$incomeDocumentId';
     if (expenseDocumentId != null) return 'expense:$expenseDocumentId';
-    return 'renterAssignment:$baseId:${date.toIso8601String()}';
+    return 'renterAssignment:$renterAssignmentDocumentId';
   }
 }

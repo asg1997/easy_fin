@@ -237,10 +237,9 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
     }
 
     if (item.isRenterAssignmentDocument) {
-      await ref.read(renterAssignmentsStorageProvider).deleteByBaseAndMonth(
-        item.baseId!,
-        item.date,
-      );
+      await ref
+          .read(renterAssignmentsStorageProvider)
+          .deleteDocument(item.renterAssignmentDocumentId!);
     }
   }
 
@@ -301,8 +300,7 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
       return 'Документ расхода будет удалён безвозвратно.';
     }
     if (item.isRenterAssignmentDocument) {
-      final monthLabel = DateFormat('MMMM yyyy', 'ru').format(item.date);
-      return 'Начисление аренды за $monthLabel будет удалено безвозвратно.';
+      return 'Документ начисления будет удалён безвозвратно.';
     }
     return 'Операция будет удалена безвозвратно.';
   }
@@ -573,6 +571,13 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
                                             _toggleItemSelection(item),
                                         onDelete: () =>
                                             _confirmDeleteOperation(item),
+                                        onCopy: item.isRenterAssignmentDocument
+                                            ? () => AddRentAccrualPage.navigate(
+                                                context,
+                                                copyFromDocumentId:
+                                                    item.renterAssignmentDocumentId,
+                                              )
+                                            : null,
                                         onTap: _isSelectionMode
                                             ? (item.canDelete
                                                   ? () =>
@@ -581,8 +586,8 @@ class _DocumentsTableState extends ConsumerState<DocumentsTable> {
                                             : item.isRenterAssignmentDocument
                                             ? () => AddRentAccrualPage.navigate(
                                                 context,
-                                                baseId: item.baseId,
-                                                month: item.date,
+                                                documentId: item
+                                                    .renterAssignmentDocumentId,
                                               )
                                             : item.isManualIncomeDocument
                                             ? () => AddIncomePage.navigate(
@@ -827,6 +832,7 @@ class _DocumentsTableRow extends StatelessWidget {
     required this.isSelected,
     required this.onSelectionToggle,
     required this.onDelete,
+    this.onCopy,
     this.onTap,
   });
 
@@ -838,6 +844,7 @@ class _DocumentsTableRow extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onSelectionToggle;
   final VoidCallback onDelete;
+  final VoidCallback? onCopy;
   final VoidCallback? onTap;
 
   Future<void> _showContextMenu(
@@ -856,15 +863,22 @@ class _DocumentsTableRow extends StatelessWidget {
     final action = await showMenu<String>(
       context: context,
       position: position,
-      items: const [
-        PopupMenuItem(
+      items: [
+        if (onCopy != null)
+          const PopupMenuItem(
+            value: 'copy',
+            child: Text('Копировать'),
+          ),
+        const PopupMenuItem(
           value: 'delete',
           child: Text('Удалить'),
         ),
       ],
     );
 
-    if (action == 'delete') {
+    if (action == 'copy') {
+      onCopy?.call();
+    } else if (action == 'delete') {
       onDelete();
     }
   }
@@ -933,19 +947,39 @@ class _DocumentsTableRow extends StatelessWidget {
                   SizedBox(
                     width: _DocumentsTableLayout.actionsColumnWidth,
                     child: item.canDelete
-                        ? IconButton(
-                            tooltip: 'Удалить',
-                            onPressed: onDelete,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(
-                              minWidth: 32,
-                              minHeight: 32,
-                            ),
-                            icon: Icon(
-                              LucideIcons.trash2,
-                              size: 16,
-                              color: colors.secondaryText,
-                            ),
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              if (onCopy != null)
+                                IconButton(
+                                  tooltip: 'Копировать',
+                                  onPressed: onCopy,
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(
+                                    minWidth: 32,
+                                    minHeight: 32,
+                                  ),
+                                  icon: Icon(
+                                    LucideIcons.copy,
+                                    size: 16,
+                                    color: colors.secondaryText,
+                                  ),
+                                ),
+                              IconButton(
+                                tooltip: 'Удалить',
+                                onPressed: onDelete,
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(
+                                  minWidth: 32,
+                                  minHeight: 32,
+                                ),
+                                icon: Icon(
+                                  LucideIcons.trash2,
+                                  size: 16,
+                                  color: colors.secondaryText,
+                                ),
+                              ),
+                            ],
                           )
                         : const SizedBox.shrink(),
                   ),
@@ -1037,7 +1071,7 @@ class _DocumentsTableLayout {
 
   static const double horizontalPadding = 32;
   static const double selectionColumnWidth = 40;
-  static const double actionsColumnWidth = 32;
+  static const double actionsColumnWidth = 64;
 
   static EdgeInsets paddingForColumn(DocumentsTableColumn column) {
     return switch (column) {

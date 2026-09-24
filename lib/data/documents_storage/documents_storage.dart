@@ -14,7 +14,6 @@ import 'package:easy_fin/models/expense.dart';
 import 'package:easy_fin/models/expense_document.dart';
 import 'package:easy_fin/models/income.dart';
 import 'package:easy_fin/models/income_document.dart';
-import 'package:easy_fin/models/renter_assignment.dart';
 import 'package:easy_fin/view/models/documents_table_item.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -92,47 +91,28 @@ class DocumentsStorageImpl implements DocumentsStorage {
       }
     }
 
-    final assignments = await ref
+    final assignmentDocuments = await ref
         .read(renterAssignmentsStorageProvider)
         .getByFilters(filters);
-    if (assignments.isNotEmpty) {
-      final groupedAssignments = <String, List<RenterAssignment>>{};
-      for (final assignment in assignments) {
-        final key =
-            '${assignment.baseId}_${assignment.date.year}_${assignment.date.month}';
-        groupedAssignments.putIfAbsent(key, () => []).add(assignment);
-      }
+    for (final document in assignmentDocuments) {
+      final renterNames = document.lines
+          .map(
+            (line) => renterNameById[line.renterId] ?? 'Арендатор',
+          )
+          .toSet()
+          .join(', ');
 
-      for (final group in groupedAssignments.values) {
-        final first = group.first;
-        // Берём самую позднюю дату в группе — это дата начисления документа.
-        final documentDate = group
-            .map((assignment) => assignment.date)
-            .reduce((a, b) => a.isAfter(b) ? a : b);
-        final totalAmount = group.fold<double>(
-          0,
-          (sum, assignment) => sum + assignment.sum,
-        );
-        final renterNames = group
-            .map(
-              (assignment) =>
-                  renterNameById[assignment.renterId] ?? 'Арендатор',
-            )
-            .toSet()
-            .join(', ');
-
-        items.add(
-          DocumentsTableItem(
-            baseId: first.baseId,
-            date: documentDate,
-            documentType: DocumentType.renterAssignment,
-            accountType: 'Аренда',
-            baseName: baseNameById[first.baseId] ?? '',
-            amount: totalAmount,
-            note: renterNames,
-          ),
-        );
-      }
+      items.add(
+        DocumentsTableItem(
+          renterAssignmentDocumentId: document.id,
+          date: document.date,
+          documentType: DocumentType.renterAssignment,
+          accountType: 'Аренда',
+          baseName: baseNameById[document.baseId] ?? '',
+          amount: document.totalSum,
+          note: renterNames,
+        ),
+      );
     }
 
     final incomeDocuments = await ref
